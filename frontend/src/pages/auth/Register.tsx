@@ -5,15 +5,25 @@ import {
   Divider,
   Text,
   Checkbox,
+  LoadingOverlay,
 } from "@mantine/core";
 import { IconBrandGithub, IconCheck } from "@tabler/icons-react";
 import { LeftSection } from "./components/LeftSection";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useRegister } from "./queries/useAuth";
 import { toast } from "react-toastify";
 
+interface FormErrors {
+  username?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  acceptTC?: string;
+}
+
 const Register = () => {
+  const navigate = useNavigate();
   const { mutateAsync: handleRegister, isPending } = useRegister();
   const [form, setForm] = useState({
     username: "",
@@ -22,42 +32,219 @@ const Register = () => {
     confirmPassword: "",
     acceptTC: false,
   });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  const handleChange = (name: string, value: string) => {
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const validateField = (
+    name: string,
+    value: string | boolean
+  ): string | undefined => {
+    switch (name) {
+      case "username":
+        if (typeof value === "string") {
+          if (!value.trim()) {
+            return "Username is required";
+          }
+          if (value.length < 3) {
+            return "Username must be at least 3 characters";
+          }
+          if (value.length > 20) {
+            return "Username must not exceed 20 characters";
+          }
+          if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+            return "Username can only contain letters, numbers, and underscores";
+          }
+        }
+        return undefined;
+
+      case "email":
+        if (typeof value === "string") {
+          if (!value.trim()) {
+            return "Email is required";
+          }
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            return "Please enter a valid email address";
+          }
+        }
+        return undefined;
+
+      case "password":
+        if (typeof value === "string") {
+          if (!value) {
+            return "Password is required";
+          }
+          if (value.length < 8) {
+            return "Password must be at least 8 characters";
+          }
+          if (!/(?=.*[a-z])/.test(value)) {
+            return "Password must contain at least one lowercase letter";
+          }
+          if (!/(?=.*[A-Z])/.test(value)) {
+            return "Password must contain at least one uppercase letter";
+          }
+          if (!/(?=.*\d)/.test(value)) {
+            return "Password must contain at least one number";
+          }
+        }
+        return undefined;
+
+      case "confirmPassword":
+        if (typeof value === "string") {
+          if (!value) {
+            return "Please confirm your password";
+          }
+          if (value !== form.password) {
+            return "Passwords do not match";
+          }
+        }
+        return undefined;
+
+      case "acceptTC":
+        if (typeof value === "boolean") {
+          if (!value) {
+            return "You must accept the terms and conditions";
+          }
+        }
+        return undefined;
+
+      default:
+        return undefined;
+    }
   };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    const usernameError = validateField("username", form.username);
+    if (usernameError) newErrors.username = usernameError;
+
+    const emailError = validateField("email", form.email);
+    if (emailError) newErrors.email = emailError;
+
+    const passwordError = validateField("password", form.password);
+    if (passwordError) newErrors.password = passwordError;
+
+    const confirmPasswordError = validateField(
+      "confirmPassword",
+      form.confirmPassword
+    );
+    if (confirmPasswordError) newErrors.confirmPassword = confirmPasswordError;
+
+    const acceptTCError = validateField("acceptTC", form.acceptTC);
+    if (acceptTCError) newErrors.acceptTC = acceptTCError;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (name: string, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name as keyof FormErrors]) {
+      const error = validateField(name, value);
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    }
+
+    if (
+      name === "password" &&
+      form.confirmPassword &&
+      touched.confirmPassword
+    ) {
+      const confirmError = validateField(
+        "confirmPassword",
+        form.confirmPassword
+      );
+      setErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+    }
+  };
+
+  const handleBlur = (name: string) => {
+    setTouched((prev) => ({ ...prev, [name]: true }));
+
+    const value = form[name as keyof typeof form];
+    const error = validateField(name, value);
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
   const handleSubmit = async () => {
-    const toastId = toast.loading("Logging in....", {
+    setTouched({
+      username: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      acceptTC: true,
+    });
+
+    if (!validateForm()) {
+      toast.error("Please fix the errors before submitting");
+      return;
+    }
+
+    const toastId = toast.loading("Creating your account....", {
       autoClose: false,
       closeButton: true,
     });
+
     try {
-      const res = await handleRegister(form);
+      const res = await handleRegister({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+      });
       const data = res.data;
 
       toast.update(toastId, {
         type: "success",
-        render: data["message"],
+        render: data["message"] || "Registration successful!",
         isLoading: false,
         autoClose: 3000,
       });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
     } catch (error) {
       console.error(error);
       toast.update(toastId, {
         type: "error",
-        render: error?.["response"]?.["data"]?.["error"],
+        render:
+          error?.["response"]?.["data"]?.["error"] || "Registration failed",
         isLoading: false,
         autoClose: 3000,
       });
     }
   };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
       <LeftSection />
 
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-lg shadow-xl p-8 transform transition-all duration-300 hover:shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-lg shadow-xl p-8 transform transition-all duration-300 hover:shadow-2xl border border-slate-100 relative">
+            {/* Loading Overlay */}
+            <LoadingOverlay
+              visible={isPending}
+              zIndex={1000}
+              overlayProps={{
+                radius: "lg",
+                blur: 3,
+                style: { position: "absolute" },
+              }}
+              loaderProps={{
+                color: "blue",
+                type: "dots",
+                size: "lg",
+              }}
+            />
+
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
@@ -71,6 +258,7 @@ const Register = () => {
                 fullWidth
                 variant="default"
                 size="md"
+                disabled={isPending}
                 leftSection={
                   <div className="w-5 h-5 flex items-center justify-center">
                     <svg viewBox="0 0 24 24" className="w-5 h-5">
@@ -101,6 +289,7 @@ const Register = () => {
                 fullWidth
                 variant="default"
                 size="md"
+                disabled={isPending}
                 leftSection={
                   <div className="w-5 h-5 flex items-center justify-center bg-slate-900 rounded-full p-0.5">
                     <IconBrandGithub size={16} className="text-white" />
@@ -122,14 +311,18 @@ const Register = () => {
               className="my-6"
             />
 
-            <div className="space-y-4">
+            <div className="space-y-4" onKeyPress={handleKeyPress}>
               <div className="relative group">
                 <TextInput
                   label="Username"
                   placeholder="Choose a username"
                   size="md"
                   name="username"
+                  value={form.username}
+                  error={touched.username && errors.username}
+                  disabled={isPending}
                   onChange={(e) => handleChange(e.target.name, e.target.value)}
+                  onBlur={() => handleBlur("username")}
                   className="transition-all duration-200"
                   styles={{
                     input: {
@@ -154,7 +347,11 @@ const Register = () => {
                   type="email"
                   size="md"
                   name="email"
+                  value={form.email}
+                  error={touched.email && errors.email}
+                  disabled={isPending}
                   onChange={(e) => handleChange(e.target.name, e.target.value)}
+                  onBlur={() => handleBlur("email")}
                   className="transition-all duration-200"
                   styles={{
                     input: {
@@ -178,7 +375,11 @@ const Register = () => {
                   placeholder="Create a password"
                   size="md"
                   name="password"
+                  value={form.password}
+                  error={touched.password && errors.password}
+                  disabled={isPending}
                   onChange={(e) => handleChange(e.target.name, e.target.value)}
+                  onBlur={() => handleBlur("password")}
                   className="transition-all duration-200"
                   styles={{
                     input: {
@@ -194,6 +395,11 @@ const Register = () => {
                     },
                   }}
                 />
+                {!errors.password && touched.password && form.password && (
+                  <Text size="xs" c="green" mt={4}>
+                    Strong password ✓
+                  </Text>
+                )}
               </div>
 
               <div className="relative group">
@@ -203,7 +409,11 @@ const Register = () => {
                   size="md"
                   className="transition-all duration-200"
                   name="confirmPassword"
+                  value={form.confirmPassword}
+                  error={touched.confirmPassword && errors.confirmPassword}
+                  disabled={isPending}
                   onChange={(e) => handleChange(e.target.name, e.target.value)}
+                  onBlur={() => handleBlur("confirmPassword")}
                   styles={{
                     input: {
                       "&:focus": {
@@ -225,8 +435,10 @@ const Register = () => {
                   <Checkbox
                     size="xs"
                     name="acceptTC"
+                    checked={form.acceptTC}
+                    disabled={isPending}
                     onChange={(e) =>
-                      handleChange(e.target.name, e.target.value)
+                      handleChange(e.target.name, e.target.checked)
                     }
                     className="mt-0.5"
                     styles={{
@@ -256,6 +468,11 @@ const Register = () => {
                     </a>
                   </span>
                 </label>
+                {touched.acceptTC && errors.acceptTC && (
+                  <Text size="xs" c="red" mt={4}>
+                    {errors.acceptTC}
+                  </Text>
+                )}
               </div>
 
               <Button
@@ -276,6 +493,7 @@ const Register = () => {
                   <Button
                     variant="subtle"
                     px={"xs"}
+                    disabled={isPending}
                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold transition-all duration-200"
                   >
                     Sign in
