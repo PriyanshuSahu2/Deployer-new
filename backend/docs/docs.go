@@ -63,7 +63,7 @@ const docTemplate = `{
         },
         "/auth/register": {
             "post": {
-                "description": "Login with username/email and password",
+                "description": "Register",
                 "consumes": [
                     "application/json"
                 ],
@@ -77,7 +77,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Register credentials",
-                        "name": "login",
+                        "name": "Register",
                         "in": "body",
                         "required": true,
                         "schema": {

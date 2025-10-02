@@ -5,6 +5,7 @@ import (
 	models_auth "backend/models/auth"
 	"backend/utils"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -47,9 +48,36 @@ func Login(c *gin.Context, db *gorm.DB) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong credentials"})
 		return
 	}
+	payload := map[string]interface{}{
+		"id": foundUser.ID,
+	}
+	access_token, err := utils.GenerateAccessToken(payload)
+	if err != nil {
+		fmt.Print("Error Generating Access Token", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something Went Wrong!. Please Try After sometime"})
+		return
+	}
+
+	refresh_token, err := utils.GenerateRefreshToken(payload)
+	if err != nil {
+		fmt.Print("Error Generating Refresh Token", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something Went Wrong!. Please Try After sometime"})
+		return
+	}
+
+	c.SetCookie(
+		"refresh_token",
+		refresh_token,
+		7*24*60*60,
+		"/",
+		"",
+		false,
+		true,
+	)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Login successful",
-		"user":    foundUser.Email,
+		"message":      "Login successful",
+		"user":         foundUser.ID,
+		"access_token": access_token,
 	})
 }

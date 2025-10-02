@@ -59,11 +59,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: Login with username/email and password
+      description: Register
       parameters:
       - description: Register credentials
         in: body
-        name: login
+        name: Register
         required: true
         schema:
           $ref: '#/definitions/dtos_auth.RegisterDTO'
