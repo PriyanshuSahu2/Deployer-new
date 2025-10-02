@@ -1,14 +1,14 @@
 package main
 
 import (
+	"backend/db"
 	models_auth "backend/models/auth"
 	"backend/routes"
-	"fmt"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 
 	_ "backend/docs" // swagger docs
 
@@ -16,22 +16,29 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func init(){
+func init() {
 	godotenv.Load()
 }
 
 func main() {
-	// Connect to SQLite
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to connect database: %v", err))
-	}
 
-	db.AutoMigrate(&models_auth.User{})
+	gin.SetMode(gin.DebugMode)
+
 	r := gin.Default()
+	// ===== Global CORS middleware =====
+	r.Use(gin.Recovery())
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // frontend origin
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true, // required if using cookies
+		MaxAge:           12 * time.Hour,
+	}))
+	db.ConnectToDB()
+	db.DB.AutoMigrate(&models_auth.User{})
 
-	// Pass db to routes
-	routes.AuthRoutes(r, db)
+	routes.AuthRoutes(r)
 
 	// Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

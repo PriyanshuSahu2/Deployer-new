@@ -9,8 +9,50 @@ import {
 import { IconBrandGithub, IconCheck, IconRocket } from "@tabler/icons-react";
 import { LeftSection } from "./components/LeftSection";
 import { Link } from "react-router-dom";
+import { useLogin } from "./queries/useAuth";
+import { useState } from "react";
+import { toast } from "react-toastify";
 
 const Login = () => {
+  const { mutateAsync: handleLogin, isPending } = useLogin();
+  const [form, setForm] = useState({
+    identifier: "",
+    password: "",
+    rememberMe: false,
+  });
+
+  const handleChange = (name: string, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleSubmit = async () => {
+    const toastId = toast.loading("Logging in....", {
+      autoClose: false,
+      closeButton: true,
+    });
+    try {
+      const res = await handleLogin(form);
+      const data = res.data;
+      if (form.rememberMe) {
+        localStorage.setItem("accessToken", data["access_token"]);
+      } else {
+        sessionStorage.setItem("accessToken", data["access_token"]);
+      }
+      toast.update(toastId, {
+        type: "success",
+        render: "Login Successful!",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error(error);
+      toast.update(toastId, {
+        type: "error",
+        render: error?.["response"]?.["data"]?.["error"],
+        isLoading: false,
+        autoClose: 3000,
+      });
+    }
+  };
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
       <LeftSection />
@@ -86,13 +128,15 @@ const Login = () => {
               className="my-6"
             />
 
-            <form className="space-y-4">
+            <div className="space-y-4">
               <div className="relative group">
                 <TextInput
                   label="Username or Email"
                   placeholder="Enter your username or email"
                   size="md"
+                  name="identifier"
                   className="transition-all duration-200"
+                  onChange={(e) => handleChange(e.target.name, e.target.value)}
                   styles={{
                     input: {
                       "&:focus": {
@@ -114,7 +158,9 @@ const Login = () => {
                   label="Password"
                   placeholder="Enter your password"
                   size="md"
+                  name="password"
                   className="transition-all duration-200"
+                  onChange={(e) => handleChange(e.target.name, e.target.value)}
                   styles={{
                     input: {
                       "&:focus": {
@@ -136,6 +182,10 @@ const Login = () => {
                   <Checkbox
                     size="xs"
                     type="checkbox"
+                    name="rememberMe"
+                    onChange={(e) =>
+                      handleChange(e.target.name, e.target.value)
+                    }
                     styles={{
                       input: {
                         cursor: "pointer",
@@ -160,18 +210,20 @@ const Login = () => {
               </div>
 
               <Button
+                disabled={isPending}
                 fullWidth
                 size="md"
+                onClick={handleSubmit}
                 className="mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
               >
                 Sign In
               </Button>
-            </form>
+            </div>
 
             <div className="text-center mt-6">
               <Text size="sm" c="dimmed">
                 Don't have an account?{" "}
-                <Link to={'/register'}>
+                <Link to={"/register"}>
                   <Button
                     variant="subtle"
                     px={"xs"}

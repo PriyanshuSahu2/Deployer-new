@@ -1,6 +1,7 @@
 package controllers_auth
 
 import (
+	"backend/db"
 	dtos_auth "backend/dtos/auth"
 	models_auth "backend/models/auth"
 	"backend/utils"
@@ -22,7 +23,7 @@ import (
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/login [post]
-func Login(c *gin.Context, db *gorm.DB) {
+func Login(c *gin.Context) {
 	var userBody dtos_auth.LoginDTO
 	var foundUser models_auth.User
 
@@ -31,7 +32,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	result := db.Where("LOWER(email) = LOWER(?) OR username = ?", userBody.Identifier, userBody.Identifier).
+	result := db.DB.Where("LOWER(email) = LOWER(?) OR username = ?", userBody.Identifier, userBody.Identifier).
 		First(&foundUser)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {

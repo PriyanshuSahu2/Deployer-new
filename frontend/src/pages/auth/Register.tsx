@@ -6,47 +6,51 @@ import {
   Text,
   Checkbox,
 } from "@mantine/core";
-import {
-  IconBrandGithub,
-  IconRocket,
-  IconCloudUpload,
-  IconServer,
-  IconCheck,
-  IconCloudComputing,
-} from "@tabler/icons-react";
-import { useEffect } from "react";
+import { IconBrandGithub, IconCheck } from "@tabler/icons-react";
 import { LeftSection } from "./components/LeftSection";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useRegister } from "./queries/useAuth";
+import { toast } from "react-toastify";
 
 const Register = () => {
-  const deploymentSteps = [
-    {
-      icon: IconCloudUpload,
-      title: "Upload Your Code",
-      desc: "Push your project to our platform",
-    },
-    {
-      icon: IconCloudComputing,
-      title: "Give Access To Your Server",
-      desc: "Provide your SSH key or credentials.",
-    },
-    {
-      icon: IconServer,
-      title: "Automated Build",
-      desc: "We build and optimize your application",
-    },
-    {
-      icon: IconRocket,
-      title: "Deploy Instantly",
-      desc: "Go live in seconds, not hours",
-    },
-  ];
+  const { mutateAsync: handleRegister, isPending } = useRegister();
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    acceptTC: false,
+  });
 
-  useEffect(() => {
-    const interval = setInterval(() => {}, 3000);
-    return () => clearInterval(interval);
-  }, [deploymentSteps.length]);
+  const handleChange = (name: string, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleSubmit = async () => {
+    const toastId = toast.loading("Logging in....", {
+      autoClose: false,
+      closeButton: true,
+    });
+    try {
+      const res = await handleRegister(form);
+      const data = res.data;
 
+      toast.update(toastId, {
+        type: "success",
+        render: data["message"],
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error(error);
+      toast.update(toastId, {
+        type: "error",
+        render: error?.["response"]?.["data"]?.["error"],
+        isLoading: false,
+        autoClose: 3000,
+      });
+    }
+  };
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
       <LeftSection />
@@ -118,12 +122,14 @@ const Register = () => {
               className="my-6"
             />
 
-            <form className="space-y-4">
+            <div className="space-y-4">
               <div className="relative group">
                 <TextInput
                   label="Username"
                   placeholder="Choose a username"
                   size="md"
+                  name="username"
+                  onChange={(e) => handleChange(e.target.name, e.target.value)}
                   className="transition-all duration-200"
                   styles={{
                     input: {
@@ -147,6 +153,8 @@ const Register = () => {
                   placeholder="Enter your email"
                   type="email"
                   size="md"
+                  name="email"
+                  onChange={(e) => handleChange(e.target.name, e.target.value)}
                   className="transition-all duration-200"
                   styles={{
                     input: {
@@ -169,6 +177,8 @@ const Register = () => {
                   label="Password"
                   placeholder="Create a password"
                   size="md"
+                  name="password"
+                  onChange={(e) => handleChange(e.target.name, e.target.value)}
                   className="transition-all duration-200"
                   styles={{
                     input: {
@@ -192,6 +202,8 @@ const Register = () => {
                   placeholder="Confirm your password"
                   size="md"
                   className="transition-all duration-200"
+                  name="confirmPassword"
+                  onChange={(e) => handleChange(e.target.name, e.target.value)}
                   styles={{
                     input: {
                       "&:focus": {
@@ -212,6 +224,10 @@ const Register = () => {
                 <label className="flex items-start cursor-pointer group">
                   <Checkbox
                     size="xs"
+                    name="acceptTC"
+                    onChange={(e) =>
+                      handleChange(e.target.name, e.target.value)
+                    }
                     className="mt-0.5"
                     styles={{
                       input: {
@@ -244,12 +260,14 @@ const Register = () => {
 
               <Button
                 fullWidth
+                disabled={isPending}
+                onClick={handleSubmit}
                 size="md"
                 className="mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
               >
                 Create Account
               </Button>
-            </form>
+            </div>
 
             <div className="text-center mt-6">
               <Text size="sm" c="dimmed">
