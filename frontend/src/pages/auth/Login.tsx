@@ -132,6 +132,17 @@ const Login = () => {
     }
   };
 
+  const handleGithubOAuthLogin = () => {
+    const REDIRECT_URI = `${window.location.origin}/auth/github/callback`;
+
+    const oAuthUrl =
+      import.meta.env.VITE_GITHUB_OAUTH_URL +
+      `?client_id=${
+        import.meta.env.VITE_GITHUB_CLIENT_ID
+      }&redirect_uri=${REDIRECT_URI}&scope=user:email&state=${crypto.randomUUID()}`;
+    window.location.href = oAuthUrl;
+  };
+
   return (
     <>
       <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
@@ -205,6 +216,7 @@ const Login = () => {
                   variant="default"
                   size="md"
                   disabled={isPending}
+                  onClick={() => handleGithubOAuthLogin()}
                   leftSection={
                     <div className="w-5 h-5 flex items-center justify-center bg-slate-900 rounded-full p-0.5">
                       <IconBrandGithub size={16} className="text-white" />

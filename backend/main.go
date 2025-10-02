@@ -25,14 +25,13 @@ func main() {
 	gin.SetMode(gin.DebugMode)
 
 	r := gin.Default()
-	// ===== Global CORS middleware =====
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"}, // frontend origin
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true, // required if using cookies
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 	db.ConnectToDB()

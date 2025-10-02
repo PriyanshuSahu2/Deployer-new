@@ -489,7 +489,7 @@ const Register = () => {
             <div className="text-center mt-6">
               <Text size="sm" c="dimmed">
                 Already have an account?{" "}
-                <Link to={"/"}>
+                <Link to={"/login"}>
                   <Button
                     variant="subtle"
                     px={"xs"}

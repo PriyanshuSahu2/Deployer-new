@@ -11,7 +11,9 @@ type User struct {
 	Name      string         `gorm:"size:100;" json:"name"`
 	Username  string         `gorm:"size:100;" json:"username"`
 	Email     string         `gorm:"unique;not null" json:"email"`
-	Password  string         `gorm:"not null" json:"-"`
+	Password  string         `json:"-"`
+	GithubID  string         `gorm:"uniqueIndex" json:"-"`
+	GoogleID  string         `gorm:"uniqueIndex" json:"-"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
