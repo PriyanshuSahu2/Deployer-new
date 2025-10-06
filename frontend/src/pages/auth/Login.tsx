@@ -142,6 +142,19 @@ const Login = () => {
       }&redirect_uri=${REDIRECT_URI}&scope=user:email&state=${crypto.randomUUID()}`;
     window.location.href = oAuthUrl;
   };
+  const handleGoogleOAuthLogin = () => {
+    const REDIRECT_URI = `${window.location.origin}/auth/google/callback`;
+
+    const oAuthUrl =
+      import.meta.env.VITE_GOOGLE_OAUTH_URL +
+      `?client_id=${import.meta.env.VITE_GOOGLE_CLIENT_ID}` +
+      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+      `&response_type=code` +
+      `&scope=openid%20email%20profile` +
+      `&state=${crypto.randomUUID()}`;
+
+    window.location.href = oAuthUrl;
+  };
 
   return (
     <>
@@ -184,6 +197,7 @@ const Login = () => {
                   fullWidth
                   variant="default"
                   size="md"
+                  onClick={() => handleGoogleOAuthLogin()}
                   disabled={isPending}
                   leftSection={
                     <div className="w-5 h-5 flex items-center justify-center">

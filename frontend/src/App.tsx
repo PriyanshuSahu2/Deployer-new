@@ -3,6 +3,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
 import GithubCallback from "./pages/auth/GithubCallback";
+import GoogleCallback from "./pages/auth/GoogleCallback";
 
 function App() {
   return (
@@ -15,6 +16,10 @@ function App() {
           <Route
             path="/auth/github/callback"
             element={<GithubCallback />}
+          ></Route>
+          <Route
+            path="/auth/google/callback"
+            element={<GoogleCallback />}
           ></Route>
         </Routes>
       </BrowserRouter>
