@@ -3,6 +3,7 @@ package main
 import (
 	"backend/db"
 	models_auth "backend/models/auth"
+	models_oauth "backend/models/oauth"
 	"backend/routes"
 	"time"
 
@@ -35,7 +36,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 	db.ConnectToDB()
-	db.DB.AutoMigrate(&models_auth.User{})
+	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{})
 
 	routes.AuthRoutes(r)
 

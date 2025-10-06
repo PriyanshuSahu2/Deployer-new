@@ -35,9 +35,12 @@ const GithubCallback = () => {
       try {
         setMessage("Verifying credentials...");
 
-        const res = await publicRequest.post("/auth/github/callback", {
-          code,
-          state,
+        const res = await publicRequest.get("/auth/github/callback", {
+          params: {
+            code,
+            state,
+          },
+          withCredentials: true,
         });
 
         setMessage("Setting up your account...");
@@ -46,11 +49,10 @@ const GithubCallback = () => {
         setStatus("success");
         setMessage("Successfully authenticated!");
 
-        // TODO: Store token
-        // localStorage.setItem('accessToken', response.data.access_token);
+        localStorage.setItem("accessToken", res.data.access_token);
 
         setTimeout(() => {
-          navigate("/dashboard"); 
+          navigate("/", { replace: true });
         }, 2000);
       } catch (err) {
         console.error(err);

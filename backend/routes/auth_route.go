@@ -11,6 +11,6 @@ func AuthRoutes(r *gin.Engine) {
 	{
 		auth.POST("/login", controllers_auth.Login)
 		auth.POST("/register", controllers_auth.Register)
-		auth.POST("/github/callback", controllers_auth.Register)
+		auth.GET("/github/callback", controllers_auth.GithubCallback)
 	}
 }
