@@ -4,10 +4,13 @@ import (
 	"backend/db"
 	dtos_auth "backend/dtos/auth"
 	models_auth "backend/models/auth"
+	"backend/services"
 	"backend/utils"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -49,6 +52,31 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong credentials"})
 		return
 	}
+	if !foundUser.EmailVerified {
+		token, err := utils.GenerateVerificationToken()
+		if err == nil {
+			otpRecord := models_auth.OTP{
+				Email:     foundUser.Email,
+				OTPCode:   token,
+				Purpose:   "email_verification",
+				ExpiresAt: time.Now().Add(24 * time.Hour),
+				Used:      false,
+			}
+			db.DB.Create(&otpRecord)
+
+			frontendURL := os.Getenv("FRONTEND_URL")
+			if frontendURL == "" {
+				frontendURL = "http://localhost:5173"
+			}
+			verificationLink := frontendURL + "/verify-email?token=" + token
+			emailService := services.NewEmailService()
+			go emailService.SendEmailVerification(foundUser.Email, foundUser.Username, verificationLink)
+		}
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Account not verified. Please check your email for the verification link.",
+		})
+		return
+	}
 	payload := map[string]interface{}{
 		"id": foundUser.ID,
 	}
@@ -75,6 +103,12 @@ func Login(c *gin.Context) {
 		false,
 		true,
 	)
+
+	// Send login notification email
+	ipAddress := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+	emailService := services.NewEmailService()
+	go emailService.SendLoginNotification(foundUser.Email, foundUser.Username, ipAddress, userAgent)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "Login successful",

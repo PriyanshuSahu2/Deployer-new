@@ -36,7 +36,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 	db.ConnectToDB()
-	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{})
+	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{})
 
 	routes.AuthRoutes(r)
 

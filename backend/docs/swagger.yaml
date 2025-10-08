@@ -1,4 +1,11 @@
 definitions:
+  dtos_auth.ForgotPasswordDTO:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   dtos_auth.LoginDTO:
     properties:
       identifier:
@@ -13,18 +20,69 @@ definitions:
     properties:
       email:
         type: string
-      name:
-        type: string
       password:
+        type: string
+      username:
         type: string
     required:
     - email
-    - name
     - password
+    - username
+    type: object
+  dtos_auth.ResetPasswordDTO:
+    properties:
+      email:
+        type: string
+      new_password:
+        minLength: 8
+        type: string
+      otp:
+        type: string
+    required:
+    - email
+    - new_password
+    - otp
+    type: object
+  dtos_auth.VerifyEmailDTO:
+    properties:
+      token:
+        type: string
+    required:
+    - token
     type: object
 info:
   contact: {}
 paths:
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send OTP to email for password reset
+      parameters:
+      - description: Email
+        in: body
+        name: forgotPassword
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_auth.ForgotPasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request password reset OTP
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -59,7 +117,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register
+      description: Register new user
       parameters:
       - description: Register credentials
         in: body
@@ -82,7 +140,97 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Login user
+      summary: Register user
+      tags:
+      - auth
+  /auth/resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Resend email verification link
+      parameters:
+      - description: Email
+        in: body
+        name: email
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_auth.ForgotPasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Resend verification email
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using OTP
+      parameters:
+      - description: Reset credentials
+        in: body
+        name: resetPassword
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_auth.ResetPasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Reset password with OTP
+      tags:
+      - auth
+  /auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Verify user email with token
+      parameters:
+      - description: Verification token
+        in: body
+        name: verifyEmail
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_auth.VerifyEmailDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Verify email address
       tags:
       - auth
 swagger: "2.0"
