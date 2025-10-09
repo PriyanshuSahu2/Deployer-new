@@ -5,6 +5,7 @@ import (
 	models_auth "backend/models/auth"
 	models_oauth "backend/models/oauth"
 	"backend/routes"
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -39,6 +40,17 @@ func main() {
 	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{})
 
 	routes.AuthRoutes(r)
+	r.GET("/status", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": "Good",
+		})
+	})
+
+	r.GET("/refresh-token", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": "Good",
+		})
+	})
 
 	// Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
