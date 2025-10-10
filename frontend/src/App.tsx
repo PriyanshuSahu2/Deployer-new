@@ -8,13 +8,14 @@ import VerifyEmail from "./pages/auth/VerifyEmail";
 import EmailNotVerified from "./pages/auth/EmailNotVerified";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import DeploymentConfig from "./pages/projects/DeployementConfig";
 
 function App() {
   return (
     <>
       <BrowserRouter>
         <Routes>
-          <Route index element={<Dashboard />}></Route>
+          <Route index element={<DeploymentConfig />}></Route>
           <Route path="/login" element={<Login />}></Route>
           <Route path="/register" element={<Register />}></Route>
           <Route path="/forgot-password" element={<ForgotPassword />}></Route>

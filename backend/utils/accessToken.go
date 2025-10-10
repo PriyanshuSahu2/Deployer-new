@@ -25,7 +25,6 @@ func GenerateRefreshToken(payload map[string]interface{}) (string, error) {
 }
 
 func ValidateToken(tokenString string, jwtSecret string) (map[string]interface{}, error) {
-	print(jwtSecret)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			print("unexpected signing method")

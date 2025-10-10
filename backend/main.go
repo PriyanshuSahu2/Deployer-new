@@ -40,6 +40,7 @@ func main() {
 	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{})
 
 	routes.AuthRoutes(r)
+	routes.ProjectRoute(r)
 	r.GET("/status", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": "Good",

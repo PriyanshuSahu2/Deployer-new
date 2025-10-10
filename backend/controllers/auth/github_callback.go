@@ -4,6 +4,7 @@ import (
 	"backend/db"
 	dtos_oauth "backend/dtos/oauth"
 	models_auth "backend/models/auth"
+	models_oauth "backend/models/oauth"
 	"backend/utils"
 	utils_array "backend/utils/array_utils"
 	"bytes"
@@ -69,6 +70,52 @@ func GetGithubUserEmail(accessToken string) (dtos_oauth.GitHubEmail, error) {
 
 	return found_email, nil
 }
+func GenerateGithubToken(state string, code string) (string, error) {
+	body := map[string]string{
+		"client_id":     os.Getenv("GITHUB_CLIENT_ID"),
+		"client_secret": os.Getenv("GITHUB_CLIENT_SECRET"),
+		"code":          code,
+		"redirect_uri":  os.Getenv("GITHUB_CALLBACK_URL"),
+		"state":         state,
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return "", errors.New("failed to encode request body")
+	}
+
+	req, err := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return "", errors.New("request creation failed")
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", errors.New("request failed")
+	}
+	defer resp.Body.Close()
+
+	resultBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.New("failed to read response body")
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(resultBody, &result); err != nil {
+		return "", errors.New("failed to parse response")
+	}
+
+	githubAccessToken, ok := result["access_token"].(string)
+	if !ok || githubAccessToken == "" {
+		return "", errors.New("no access token returned")
+	}
+
+	return githubAccessToken, nil
+}
 
 func GithubCallback(c *gin.Context) {
 	state := c.Query("state")
@@ -77,45 +124,12 @@ func GithubCallback(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Authentication Failed"})
 		return
 	}
-	body := map[string]string{
-		"client_id":     os.Getenv("GITHUB_CLIENT_ID"),
-		"client_secret": os.Getenv("GITHUB_CLIENT_SECRET"),
-		"code":          code,
-		"redirect_uri":  os.Getenv("GITHUB_CALLBACK_URL"),
-		"state":         state,
-	}
-	jsonBody, _ := json.Marshal(body)
-	req, err := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewBuffer(jsonBody))
+	githubAccessToken, err := GenerateGithubToken(state, code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Request creation failed"})
-		return
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Request failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	defer resp.Body.Close()
-
-	resultBody, _ := io.ReadAll(resp.Body)
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBody, &result); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse token"})
-		return
-	}
-	githubAccessToken, ok := result["access_token"].(string)
-
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No access token returned"})
-		return
-	}
 	userProfile, err := GetGithubUserProfile(githubAccessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error Retrieving user profile"})
@@ -128,6 +142,7 @@ func GithubCallback(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error Retrieving user email"})
 		return
 	}
+
 	var foundUser models_auth.User
 	foundUserResult := db.DB.Where("email = ?", emailDetails.Email).First(&foundUser)
 
@@ -135,7 +150,14 @@ func GithubCallback(c *gin.Context) {
 		payload := map[string]interface{}{
 			"id": foundUser.ID,
 		}
+		newAccessToken := models_oauth.OAuthToken{UserID: uint(foundUser.ID), Username: userProfile.Login, Provider: "GITHUB", AccessToken: githubAccessToken, TokenType: "REPO", Scope: "REPO"}
+		db.DB.Where("user_id = ? AND provider = ? AND token_type = ?", foundUser.ID, "GITHUB", "REPO").
+			Delete(&models_oauth.OAuthToken{})
+		if err := db.DB.Create(&newAccessToken).Error; err != nil {
+			fmt.Println("Error inserting GitHub token:", err)
+		}
 		access_token, err := utils.GenerateAccessToken(payload)
+
 		if err != nil {
 			fmt.Print("Error Generating Access Token", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Something Went Wrong!. Please Try After sometime"})
@@ -183,6 +205,8 @@ func GithubCallback(c *gin.Context) {
 		return
 	}
 
+	newAccessToken := models_oauth.OAuthToken{UserID: uint(newUser.ID), Username: userProfile.Login, Provider: "GITHUB", AccessToken: githubAccessToken, TokenType: "REPO", Scope: "REPO"}
+	db.DB.Create(newAccessToken)
 	payload := map[string]interface{}{
 		"id": newUser.ID,
 	}

@@ -3,24 +3,32 @@ import axios from "axios";
 export const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export const publicRequest = axios.create({ baseURL: BASE_URL });
-export const privateRequest = axios.create({ baseURL: BASE_URL });
+export const privateRequest = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: true,
+});
 
 let isRefreshing = false;
 let requestQueue = [];
 
 privateRequest.interceptors.request.use(
   (request) => {
+    const token = localStorage.getItem("accessToken"); // or wherever you store it
+    if (token) {
+      request.headers.Authorization = `Bearer ${token}`;
+    }
+
     if (isRefreshing && !request.url.includes("/refresh-token")) {
-      // Return a promise that waits until refresh completes
+      // Queue requests if refresh in progress
       return new Promise((resolve) => {
         requestQueue.push({ request, resolve });
       });
     }
+
     return request;
   },
   (error) => Promise.reject(error)
 );
-
 privateRequest.interceptors.response.use(
   (response) => response,
   async (error) => {

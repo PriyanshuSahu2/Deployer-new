@@ -6,7 +6,8 @@ import (
 
 type OAuthToken struct {
 	ID           uint       `gorm:"primaryKey"`
-	UserID       uint       `gorm:"index"`                // reference to User
+	UserID       uint       `gorm:"index"`
+	Username     string     `gorm:"type:text"`            // reference to User
 	Provider     string     `gorm:"size:50;index"`        // e.g., "github", "google"
 	AccessToken  string     `gorm:"type:text"`            // store securely
 	TokenType    string     `gorm:"size:50"`              // e.g., "bearer"

@@ -14,3 +14,17 @@ type GithubUserProfile struct {
 	Email     string `json:"email"`      // Public email (can be empty)
 	AvatarURL string `json:"avatar_url"` // Profile picture
 }
+
+type GithubRepo struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	FullName    string `json:"full_name"`
+	Private     bool   `json:"private"`
+	HTMLURL     string `json:"html_url"`
+	Description string `json:"description"`
+	Fork        bool   `json:"fork"`
+	Owner       struct {
+		Login string `json:"login"`
+		ID    int64  `json:"id"`
+	} `json:"owner"`
+}
