@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Container,
   Paper,
@@ -12,10 +12,15 @@ import {
   Textarea,
   Text,
   Card,
+  Switch,
+  ActionIcon,
   Badge,
-  rem,
-  Center,
+  Divider,
   Box,
+  Center,
+  PasswordInput,
+  Alert,
+  Grid,
 } from "@mantine/core";
 import {
   IconUpload,
@@ -26,69 +31,218 @@ import {
   IconServer,
   IconCloud,
   IconKey,
+  IconPlus,
+  IconTrash,
+  IconGitBranch,
+  IconInfoCircle,
+  IconRocket,
+  IconCheck,
 } from "@tabler/icons-react";
-import { privateRequest } from "../../config/requestMethod";
 
 export default function DeploymentConfig() {
-  const [activeImportTab, setActiveImportTab] = useState("zip");
+  const [activeImportTab, setActiveImportTab] = useState("github");
   const [selectedRepo, setSelectedRepo] = useState("");
   const [repos, setRepos] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deployTarget, setDeployTarget] = useState("");
 
-  // Mock repositories data
+  // Form state matching the Go DTOs
+  const [formData, setFormData] = useState({
+    user_id: 1,
+    project_type: "web",
+    status: "pending",
+    provider_type: "",
+    provider_config: {
+      repo_link: "",
+      branch: "",
+      access_token: "",
+      ssh_key: "",
+    },
+    zip_config: {
+      file_path: "",
+    },
+    project_config: {
+      build_path: "",
+      build_commands: [""],
+      run_commands: [""],
+      environment: {},
+      port: "",
+      auto_deploy: false,
+    },
+    deployment_config: {
+      type: "",
+      ssh_config: {
+        host: "",
+        port: "22",
+        username: "",
+        private_key: "",
+        passphrase: "",
+      },
+      token_config: {
+        token: "",
+        api_url: "",
+        scopes: "",
+      },
+    },
+  });
+
+  const [envVars, setEnvVars] = useState([{ key: "", value: "" }]);
+
+  // Mock repositories and branches
   const mockRepos = {
     github: [
-      { value: "user/project-1", label: "project-1", stars: 45 },
-      { value: "user/project-2", label: "project-2", stars: 23 },
-      { value: "user/my-app", label: "my-app", stars: 102 },
+      { value: "https://github.com/user/project-1", label: "user/project-1" },
+      { value: "https://github.com/user/project-2", label: "user/project-2" },
+      { value: "https://github.com/user/my-app", label: "user/my-app" },
     ],
     bitbucket: [
-      { value: "workspace/repo-1", label: "repo-1" },
-      { value: "workspace/repo-2", label: "repo-2" },
-      { value: "workspace/api-service", label: "api-service" },
+      {
+        value: "https://bitbucket.org/workspace/repo-1",
+        label: "workspace/repo-1",
+      },
+      {
+        value: "https://bitbucket.org/workspace/repo-2",
+        label: "workspace/repo-2",
+      },
     ],
     gitlab: [
-      { value: "group/project-a", label: "project-a" },
-      { value: "group/project-b", label: "project-b" },
-      { value: "group/frontend-app", label: "frontend-app" },
+      { value: "https://gitlab.com/group/project-a", label: "group/project-a" },
+      { value: "https://gitlab.com/group/project-b", label: "group/project-b" },
     ],
   };
 
-  useEffect(() => {
-    privateRequest
-      .get("/project/github/repo")
-      .then((res) => console.log(res.data))
-      .catch((err) => console.error(err));
-  }, []);
+  const mockBranches = [
+    { value: "main", label: "main" },
+    { value: "develop", label: "develop" },
+    { value: "staging", label: "staging" },
+    { value: "feature/new-ui", label: "feature/new-ui" },
+  ];
 
-  const handleConnectProvider = (provider) => {
-    try {
-      const REDIRECT_URI = `${window.location.origin}/auth/github/callback`;
+  const handleConnectProvider = (provider:string) => {
+    setLoading(true);
+    setTimeout(() => {
+      setRepos(mockRepos[provider] || []);
+      setFormData((prev) => ({ ...prev, provider_type: provider }));
+      setLoading(false);
+    }, 800);
+  };
 
-      const userId = "3";
-      const stateData = {
-        uuid: crypto.randomUUID(),
-        userId: userId,
-      };
+  const handleRepoSelect = (repoUrl:string) => {
+    setSelectedRepo(repoUrl);
+    setBranches(mockBranches);
+    setFormData((prev) => ({
+      ...prev,
+      provider_config: { ...prev.provider_config, repo_link: repoUrl },
+    }));
+  };
 
-      const oAuthUrl =
-        import.meta.env.VITE_GITHUB_OAUTH_URL +
-        `?client_id=${
-          import.meta.env.VITE_GITHUB_CLIENT_ID
-        }&redirect_uri=${REDIRECT_URI}&scope=user%20repo&state=${encodeURIComponent(
-          JSON.stringify(stateData)
-        )}`;
+  const handleBranchSelect = (branch:string) => {
+    setFormData((prev) => ({
+      ...prev,
+      provider_config: { ...prev.provider_config, branch },
+    }));
+  };
 
-      window.location.href = oAuthUrl;
-    } catch (error) {}
+  const addBuildCommand = () => {
+    setFormData((prev) => ({
+      ...prev,
+      project_config: {
+        ...prev.project_config,
+        build_commands: [...prev.project_config.build_commands, ""],
+      },
+    }));
+  };
+
+  const updateBuildCommand = (index, value) => {
+    const newCommands = [...formData.project_config.build_commands];
+    newCommands[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      project_config: { ...prev.project_config, build_commands: newCommands },
+    }));
+  };
+
+  const removeBuildCommand = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      project_config: {
+        ...prev.project_config,
+        build_commands: prev.project_config.build_commands.filter(
+          (_, i) => i !== index
+        ),
+      },
+    }));
+  };
+
+  const addRunCommand = () => {
+    setFormData((prev) => ({
+      ...prev,
+      project_config: {
+        ...prev.project_config,
+        run_commands: [...prev.project_config.run_commands, ""],
+      },
+    }));
+  };
+
+  const updateRunCommand = (index, value) => {
+    const newCommands = [...formData.project_config.run_commands];
+    newCommands[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      project_config: { ...prev.project_config, run_commands: newCommands },
+    }));
+  };
+
+  const removeRunCommand = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      project_config: {
+        ...prev.project_config,
+        run_commands: prev.project_config.run_commands.filter(
+          (_, i) => i !== index
+        ),
+      },
+    }));
+  };
+
+  const addEnvVar = () => {
+    setEnvVars([...envVars, { key: "", value: "" }]);
+  };
+
+  const updateEnvVar = (
+    index: number,
+    field:string,
+    value: string
+  ) => {
+    const newEnvVars = [...envVars];
+    newEnvVars[index][field] = value;
+    setEnvVars(newEnvVars);
+
+    const envObj = {};
+    newEnvVars.forEach((env) => {
+      if (env.key) envObj[env.key] = env.value;
+    });
+    setFormData((prev) => ({
+      ...prev,
+      project_config: { ...prev.project_config, environment: envObj },
+    }));
+  };
+
+  const removeEnvVar = (index: number) => {
+    const newEnvVars = envVars.filter((_, i) => i !== index);
+    setEnvVars(newEnvVars);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      console.log("Dropped file:", files[0].name);
+      setFormData((prev) => ({
+        ...prev,
+        provider_type: "zip",
+        zip_config: { file_path: files[0].name },
+      }));
     }
   };
 
@@ -96,44 +250,70 @@ export default function DeploymentConfig() {
     e.preventDefault();
   };
 
-  return (
-    <Container size="lg" py="xl">
-      <Title order={1} mb="xl">
-        Deploy Your Project
-      </Title>
+  const handleDeploy = () => {
+    console.log("Deployment Payload:", JSON.stringify(formData, null, 2));
+    alert("Check console for deployment payload!");
+  };
 
-      <Stack gap="xs">
+  return (
+    <Container size="xl" py="xl">
+      <Stack gap="xl">
+        <Group justify="space-between" align="center">
+          <div>
+            <Title order={1}>Deploy Your Project</Title>
+            <Text c="dimmed" size="sm" mt={4}>
+              Configure and deploy your application with ease
+            </Text>
+          </div>
+          <Badge
+            size="lg"
+            variant="gradient"
+            gradient={{ from: "blue", to: "cyan" }}
+          >
+            v2.0
+          </Badge>
+        </Group>
+
         {/* Import Source Section */}
-        <Paper shadow="sm" p="xl" radius="md" withBorder>
-          <Title order={2} size="h3" mb="md">
-            Import Project
-          </Title>
+        <Paper
+          shadow="md"
+          p="xl"
+          radius="lg"
+          withBorder
+          style={{ background: "linear-gradient(to bottom, #ffffff, #f8f9fa)" }}
+        >
+          <Group mb="md">
+            <IconFolder size={24} color="#228BE6" />
+            <Title order={2} size="h3">
+              Import Project Source
+            </Title>
+          </Group>
 
           <Tabs value={activeImportTab} onChange={setActiveImportTab}>
             <Tabs.List>
               <Tabs.Tab
+                value="zip"
+                leftSection={<IconUpload size={16} color="#228BE6" />}
+              >
+                Zip Folder
+              </Tabs.Tab>
+              <Tabs.Tab
                 value="github"
-                leftSection={<IconBrandGithub size={20} color="#24292e" />}
+                leftSection={<IconBrandGithub size={16} color="#24292e" />}
               >
                 GitHub
               </Tabs.Tab>
               <Tabs.Tab
                 value="bitbucket"
-                leftSection={<IconBrandBitbucket size={20} color="#0052CC" />}
+                leftSection={<IconBrandBitbucket size={16} color="#0052CC" />}
               >
                 Bitbucket
               </Tabs.Tab>
               <Tabs.Tab
                 value="gitlab"
-                leftSection={<IconBrandGitlab size={20} color="#FC6D26" />}
+                leftSection={<IconBrandGitlab size={16} color="#FC6D26" />}
               >
                 GitLab
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="zip"
-                leftSection={<IconUpload size={20} color="#228BE6" />}
-              >
-                Zip Folder
               </Tabs.Tab>
             </Tabs.List>
 
@@ -142,26 +322,40 @@ export default function DeploymentConfig() {
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 style={{
-                  border: "2px dashed #dee2e6",
-                  borderRadius: "8px",
+                  border: "2px dashed #228BE6",
+                  borderRadius: "12px",
                   padding: "3rem",
                   textAlign: "center",
-                  backgroundColor: "#f8f9fa",
+                  backgroundColor: "#f0f7ff",
                   cursor: "pointer",
+                  transition: "all 0.3s ease",
                 }}
               >
                 <Center>
                   <Stack align="center" gap="sm">
-                    <IconUpload size={48} stroke={1.5} color="#868e96" />
-                    <Text size="lg" fw={500}>
+                    <IconUpload size={56} stroke={1.5} color="#228BE6" />
+                    <Text size="lg" fw={600}>
                       Drag & Drop your ZIP file here
                     </Text>
                     <Text size="sm" c="dimmed">
-                      or click to browse
+                      or click to browse files
                     </Text>
-                    <Button variant="light" mt="sm">
+                    <Button
+                      variant="gradient"
+                      gradient={{ from: "blue", to: "cyan" }}
+                      mt="md"
+                    >
                       Choose File
                     </Button>
+                    {formData.zip_config?.file_path && (
+                      <Badge
+                        color="green"
+                        mt="sm"
+                        leftSection={<IconCheck size={14} />}
+                      >
+                        {formData.zip_config.file_path}
+                      </Badge>
+                    )}
                   </Stack>
                 </Center>
               </Box>
@@ -171,21 +365,58 @@ export default function DeploymentConfig() {
               <Stack gap="md">
                 {repos.length === 0 ? (
                   <Button
-                    leftSection={<IconBrandGithub size={20} color="#24292e" />}
+                    size="lg"
+                    leftSection={<IconBrandGithub size={20} color="#fff" />}
                     loading={loading}
                     onClick={() => handleConnectProvider("github")}
+                    variant="gradient"
+                    gradient={{ from: "#24292e", to: "#555" }}
                   >
                     Connect GitHub Account
                   </Button>
                 ) : (
-                  <Select
-                    label="Select Repository"
-                    placeholder="Choose a repository"
-                    data={repos}
-                    value={selectedRepo}
-                    onChange={setSelectedRepo}
-                    searchable
-                  />
+                  <>
+                    <Select
+                      label="Select Repository"
+                      placeholder="Choose a repository"
+                      data={repos}
+                      value={selectedRepo}
+                      onChange={handleRepoSelect}
+                      searchable
+                      size="md"
+                      leftSection={
+                        <IconBrandGithub size={18} color="#24292e" />
+                      }
+                    />
+                    {selectedRepo && (
+                      <Select
+                        label="Select Branch"
+                        placeholder="Choose a branch"
+                        data={branches}
+                        value={formData.provider_config.branch}
+                        onChange={handleBranchSelect}
+                        searchable
+                        size="md"
+                        leftSection={
+                          <IconGitBranch size={18} color="#228BE6" />
+                        }
+                      />
+                    )}
+                    <PasswordInput
+                      label="Access Token (Optional)"
+                      placeholder="ghp_xxxxxxxxxxxx"
+                      description="Required for private repositories"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          provider_config: {
+                            ...prev.provider_config,
+                            access_token: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </>
                 )}
               </Stack>
             </Tabs.Panel>
@@ -194,23 +425,56 @@ export default function DeploymentConfig() {
               <Stack gap="md">
                 {repos.length === 0 ? (
                   <Button
-                    leftSection={
-                      <IconBrandBitbucket size={20} color="#0052CC" />
-                    }
+                    size="lg"
+                    leftSection={<IconBrandBitbucket size={20} color="#fff" />}
                     loading={loading}
                     onClick={() => handleConnectProvider("bitbucket")}
+                    style={{ backgroundColor: "#0052CC" }}
                   >
                     Connect Bitbucket Account
                   </Button>
                 ) : (
-                  <Select
-                    label="Select Repository"
-                    placeholder="Choose a repository"
-                    data={repos}
-                    value={selectedRepo}
-                    onChange={setSelectedRepo}
-                    searchable
-                  />
+                  <>
+                    <Select
+                      label="Select Repository"
+                      placeholder="Choose a repository"
+                      data={repos}
+                      value={selectedRepo}
+                      onChange={handleRepoSelect}
+                      searchable
+                      size="md"
+                      leftSection={
+                        <IconBrandBitbucket size={18} color="#0052CC" />
+                      }
+                    />
+                    {selectedRepo && (
+                      <Select
+                        label="Select Branch"
+                        placeholder="Choose a branch"
+                        data={branches}
+                        value={formData.provider_config.branch}
+                        onChange={handleBranchSelect}
+                        searchable
+                        size="md"
+                        leftSection={
+                          <IconGitBranch size={18} color="#228BE6" />
+                        }
+                      />
+                    )}
+                    <PasswordInput
+                      label="Access Token (Optional)"
+                      placeholder="Your Bitbucket token"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          provider_config: {
+                            ...prev.provider_config,
+                            access_token: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </>
                 )}
               </Stack>
             </Tabs.Panel>
@@ -219,21 +483,56 @@ export default function DeploymentConfig() {
               <Stack gap="md">
                 {repos.length === 0 ? (
                   <Button
-                    leftSection={<IconBrandGitlab size={20} color="#FC6D26" />}
+                    size="lg"
+                    leftSection={<IconBrandGitlab size={20} color="#fff" />}
                     loading={loading}
                     onClick={() => handleConnectProvider("gitlab")}
+                    style={{ backgroundColor: "#FC6D26" }}
                   >
                     Connect GitLab Account
                   </Button>
                 ) : (
-                  <Select
-                    label="Select Repository"
-                    placeholder="Choose a repository"
-                    data={repos}
-                    value={selectedRepo}
-                    onChange={setSelectedRepo}
-                    searchable
-                  />
+                  <>
+                    <Select
+                      label="Select Repository"
+                      placeholder="Choose a repository"
+                      data={repos}
+                      value={selectedRepo}
+                      onChange={handleRepoSelect}
+                      searchable
+                      size="md"
+                      leftSection={
+                        <IconBrandGitlab size={18} color="#FC6D26" />
+                      }
+                    />
+                    {selectedRepo && (
+                      <Select
+                        label="Select Branch"
+                        placeholder="Choose a branch"
+                        data={branches}
+                        value={formData.provider_config.branch}
+                        onChange={handleBranchSelect}
+                        searchable
+                        size="md"
+                        leftSection={
+                          <IconGitBranch size={18} color="#228BE6" />
+                        }
+                      />
+                    )}
+                    <PasswordInput
+                      label="Access Token (Optional)"
+                      placeholder="glpat-xxxxxxxxxxxx"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          provider_config: {
+                            ...prev.provider_config,
+                            access_token: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </>
                 )}
               </Stack>
             </Tabs.Panel>
@@ -241,148 +540,518 @@ export default function DeploymentConfig() {
         </Paper>
 
         {/* Project Configuration Section */}
-        <Paper shadow="sm" p="xl" radius="md" withBorder>
-          <Title order={2} size="h3" mb="md">
-            Project Configuration
-          </Title>
+        <Paper shadow="md" p="xl" radius="lg" withBorder>
+          <Group mb="md">
+            <IconRocket size={24} color="#40C057" />
+            <Title order={2} size="h3">
+              Project Configuration
+            </Title>
+          </Group>
 
-          <Stack gap="md">
-            <TextInput
-              label="Project Name"
-              placeholder="my-awesome-project"
-              required
-              leftSection={<IconFolder size={16} />}
-            />
+          <Stack gap="lg">
+            <Grid>
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <TextInput
+                  label="Build Output Path"
+                  placeholder="dist/ or build/"
+                  description="Directory where built files are located"
+                  size="md"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      project_config: {
+                        ...prev.project_config,
+                        build_path: e.target.value,
+                      },
+                    }))
+                  }
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <TextInput
+                  label="Application Port"
+                  placeholder="3000"
+                  description="Port your application runs on"
+                  size="md"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      project_config: {
+                        ...prev.project_config,
+                        port: e.target.value,
+                      },
+                    }))
+                  }
+                />
+              </Grid.Col>
+            </Grid>
 
-            <TextInput
-              label="Build Path"
-              placeholder="dist/"
-              description="The directory where your built files are located"
-            />
+            <Divider label="Build Commands" labelPosition="center" />
 
-            <Textarea
-              label="Custom Commands"
-              placeholder="npm install && npm run custom-script"
-              description="Custom commands to run before build"
-              minRows={3}
-            />
+            {formData.project_config.build_commands.map((cmd, index) => (
+              <Group key={index} align="flex-end">
+                <TextInput
+                  label={index === 0 ? "Build Commands" : ""}
+                  placeholder="npm run build"
+                  style={{ flex: 1 }}
+                  value={cmd}
+                  onChange={(e) => updateBuildCommand(index, e.target.value)}
+                  size="md"
+                />
+                <ActionIcon
+                  color="red"
+                  size="lg"
+                  variant="subtle"
+                  onClick={() => removeBuildCommand(index)}
+                  disabled={formData.project_config.build_commands.length === 1}
+                >
+                  <IconTrash size={18} />
+                </ActionIcon>
+              </Group>
+            ))}
+            <Button
+              variant="light"
+              leftSection={<IconPlus size={16} />}
+              onClick={addBuildCommand}
+            >
+              Add Build Command
+            </Button>
 
-            <TextInput
-              label="Build Command"
-              placeholder="npm run build"
-              description="Command to build your project"
+            <Divider label="Run Commands" labelPosition="center" />
+
+            {formData.project_config.run_commands.map((cmd, index) => (
+              <Group key={index} align="flex-end">
+                <TextInput
+                  label={index === 0 ? "Run Commands" : ""}
+                  placeholder="npm start"
+                  style={{ flex: 1 }}
+                  value={cmd}
+                  onChange={(e) => updateRunCommand(index, e.target.value)}
+                  size="md"
+                />
+                <ActionIcon
+                  color="red"
+                  size="lg"
+                  variant="subtle"
+                  onClick={() => removeRunCommand(index)}
+                  disabled={formData.project_config.run_commands.length === 1}
+                >
+                  <IconTrash size={18} />
+                </ActionIcon>
+              </Group>
+            ))}
+            <Button
+              variant="light"
+              leftSection={<IconPlus size={16} />}
+              onClick={addRunCommand}
+            >
+              Add Run Command
+            </Button>
+
+            <Divider label="Environment Variables" labelPosition="center" />
+
+            {envVars.map((env, index) => (
+              <Group key={index} align="flex-end">
+                <TextInput
+                  label={index === 0 ? "Key" : ""}
+                  placeholder="NODE_ENV"
+                  style={{ flex: 1 }}
+                  value={env.key}
+                  onChange={(e) => updateEnvVar(index, "key", e.target.value)}
+                  size="md"
+                />
+                <TextInput
+                  label={index === 0 ? "Value" : ""}
+                  placeholder="production"
+                  style={{ flex: 1 }}
+                  value={env.value}
+                  onChange={(e) => updateEnvVar(index, "value", e.target.value)}
+                  size="md"
+                />
+                <ActionIcon
+                  color="red"
+                  size="lg"
+                  variant="subtle"
+                  onClick={() => removeEnvVar(index)}
+                >
+                  <IconTrash size={18} />
+                </ActionIcon>
+              </Group>
+            ))}
+            <Button
+              variant="light"
+              leftSection={<IconPlus size={16} />}
+              onClick={addEnvVar}
+            >
+              Add Environment Variable
+            </Button>
+
+            <Switch
+              label="Enable Auto-Deploy"
+              description="Automatically deploy on new commits"
+              size="md"
+              checked={formData.project_config.auto_deploy}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  project_config: {
+                    ...prev.project_config,
+                    auto_deploy: e.currentTarget.checked,
+                  },
+                }))
+              }
             />
           </Stack>
         </Paper>
 
         {/* Deploy Target Section */}
-        <Paper shadow="sm" p="xl" radius="md" withBorder>
-          <Title order={2} size="h3" mb="md">
-            Deploy Target
-          </Title>
+        <Paper shadow="md" p="xl" radius="lg" withBorder>
+          <Group mb="md">
+            <IconCloud size={24} color="#7950F2" />
+            <Title order={2} size="h3">
+              Deployment Target
+            </Title>
+          </Group>
 
-          <Select
-            label="Select Deployment Platform"
-            placeholder="Choose where to deploy"
-            data={[
-              { value: "vps", label: "VPS Server" },
-              { value: "netlify", label: "Netlify" },
-              { value: "vercel", label: "Vercel" },
-              { value: "render", label: "Render" },
-            ]}
-            value={deployTarget}
-            onChange={setDeployTarget}
-            required
-          />
+          <Stack gap="md">
+            <Select
+              label="Select Deployment Platform"
+              placeholder="Choose where to deploy"
+              data={[
+                { value: "vps", label: "🖥️ VPS Server (SSH)" },
+                { value: "netlify", label: "🌐 Netlify" },
+                { value: "vercel", label: "▲ Vercel" },
+                { value: "render", label: "🎨 Render" },
+              ]}
+              value={deployTarget}
+              onChange={(value) => {
+                setDeployTarget(value);
+                setFormData((prev) => ({
+                  ...prev,
+                  deployment_config: {
+                    ...prev.deployment_config,
+                    type: value === "vps" ? "ssh" : "token",
+                  },
+                }));
+              }}
+              size="md"
+              required
+            />
 
-          {deployTarget === "vps" && (
-            <Card mt="md" padding="md" radius="md" withBorder>
-              <Stack gap="md">
-                <Text fw={500} size="sm">
-                  VPS Server Configuration
-                </Text>
-                <TextInput
-                  label="SSH Host"
-                  placeholder="192.168.1.100"
-                  leftSection={<IconServer size={16} />}
-                />
-                <TextInput
-                  label="SSH Port"
-                  placeholder="22"
-                  defaultValue="22"
-                />
-                <TextInput label="SSH Username" placeholder="root" />
-                <Textarea
-                  label="SSH Private Key"
-                  placeholder="-----BEGIN RSA PRIVATE KEY-----"
-                  minRows={4}
-                  leftSection={<IconKey size={16} />}
-                />
-              </Stack>
-            </Card>
-          )}
+            {deployTarget === "vps" && (
+              <Card
+                mt="md"
+                padding="lg"
+                radius="md"
+                withBorder
+                style={{ backgroundColor: "#f8f9fa" }}
+              >
+                <Stack gap="md">
+                  <Group>
+                    <IconServer size={20} color="#495057" />
+                    <Text fw={600} size="sm">
+                      VPS Server Configuration (SSH)
+                    </Text>
+                  </Group>
+                  <Grid>
+                    <Grid.Col span={{ base: 12, md: 8 }}>
+                      <TextInput
+                        label="SSH Host"
+                        placeholder="192.168.1.100 or example.com"
+                        leftSection={<IconServer size={16} />}
+                        required
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            deployment_config: {
+                              ...prev.deployment_config,
+                              ssh_config: {
+                                ...prev.deployment_config.ssh_config,
+                                host: e.target.value,
+                              },
+                            },
+                          }))
+                        }
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 4 }}>
+                      <TextInput
+                        label="SSH Port"
+                        placeholder="22"
+                        defaultValue="22"
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            deployment_config: {
+                              ...prev.deployment_config,
+                              ssh_config: {
+                                ...prev.deployment_config.ssh_config,
+                                port: e.target.value,
+                              },
+                            },
+                          }))
+                        }
+                      />
+                    </Grid.Col>
+                  </Grid>
+                  <TextInput
+                    label="SSH Username"
+                    placeholder="root or ubuntu"
+                    required
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          ssh_config: {
+                            ...prev.deployment_config.ssh_config,
+                            username: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <Textarea
+                    label="SSH Private Key"
+                    placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEpAIBAAKCAQEA...&#10;-----END RSA PRIVATE KEY-----"
+                    minRows={5}
+                    leftSection={<IconKey size={16} />}
+                    required
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          ssh_config: {
+                            ...prev.deployment_config.ssh_config,
+                            private_key: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <PasswordInput
+                    label="Passphrase (Optional)"
+                    placeholder="Enter passphrase if key is encrypted"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          ssh_config: {
+                            ...prev.deployment_config.ssh_config,
+                            passphrase: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <Alert
+                    icon={<IconInfoCircle size={16} />}
+                    color="blue"
+                    variant="light"
+                  >
+                    Make sure your VPS has the necessary ports open and your SSH
+                    key is properly configured
+                  </Alert>
+                </Stack>
+              </Card>
+            )}
 
-          {deployTarget === "netlify" && (
-            <Card mt="md" padding="md" radius="md" withBorder>
-              <Stack gap="md">
-                <Text fw={500} size="sm">
-                  Netlify Configuration
-                </Text>
-                <TextInput
-                  label="Access Token"
-                  placeholder="nfp_xxxxxxxxxxxxxxxxxxxxx"
-                  type="password"
-                  leftSection={<IconCloud size={16} />}
-                  description="Get your token from Netlify dashboard"
-                />
-              </Stack>
-            </Card>
-          )}
+            {deployTarget === "netlify" && (
+              <Card
+                mt="md"
+                padding="lg"
+                radius="md"
+                withBorder
+                style={{ backgroundColor: "#f0f7ff" }}
+              >
+                <Stack gap="md">
+                  <Group>
+                    <IconCloud size={20} color="#00C7B7" />
+                    <Text fw={600} size="sm">
+                      Netlify Configuration
+                    </Text>
+                  </Group>
+                  <PasswordInput
+                    label="Access Token"
+                    placeholder="nfp_xxxxxxxxxxxxxxxxxxxxx"
+                    description="Get your token from Netlify dashboard → User settings → Applications"
+                    leftSection={<IconKey size={16} />}
+                    required
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          token_config: {
+                            ...prev.deployment_config.token_config,
+                            token: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <TextInput
+                    label="API URL (Optional)"
+                    placeholder="https://api.netlify.com"
+                    defaultValue="https://api.netlify.com"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          token_config: {
+                            ...prev.deployment_config.token_config,
+                            api_url: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </Stack>
+              </Card>
+            )}
 
-          {deployTarget === "vercel" && (
-            <Card mt="md" padding="md" radius="md" withBorder>
-              <Stack gap="md">
-                <Text fw={500} size="sm">
-                  Vercel Configuration
-                </Text>
-                <TextInput
-                  label="Access Token"
-                  placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  type="password"
-                  leftSection={<IconCloud size={16} />}
-                  description="Get your token from Vercel settings"
-                />
-              </Stack>
-            </Card>
-          )}
+            {deployTarget === "vercel" && (
+              <Card
+                mt="md"
+                padding="lg"
+                radius="md"
+                withBorder
+                style={{ backgroundColor: "#fafafa" }}
+              >
+                <Stack gap="md">
+                  <Group>
+                    <IconCloud size={20} color="#000" />
+                    <Text fw={600} size="sm">
+                      Vercel Configuration
+                    </Text>
+                  </Group>
+                  <PasswordInput
+                    label="Access Token"
+                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    description="Get your token from Vercel dashboard → Settings → Tokens"
+                    leftSection={<IconKey size={16} />}
+                    required
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          token_config: {
+                            ...prev.deployment_config.token_config,
+                            token: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <TextInput
+                    label="API URL (Optional)"
+                    placeholder="https://api.vercel.com"
+                    defaultValue="https://api.vercel.com"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          token_config: {
+                            ...prev.deployment_config.token_config,
+                            api_url: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </Stack>
+              </Card>
+            )}
 
-          {deployTarget === "render" && (
-            <Card mt="md" padding="md" radius="md" withBorder>
-              <Stack gap="md">
-                <Text fw={500} size="sm">
-                  Render Configuration
-                </Text>
-                <TextInput
-                  label="API Key"
-                  placeholder="rnd_xxxxxxxxxxxxxxxxxxxxx"
-                  type="password"
-                  leftSection={<IconCloud size={16} />}
-                  description="Get your API key from Render dashboard"
-                />
-              </Stack>
-            </Card>
-          )}
+            {deployTarget === "render" && (
+              <Card
+                mt="md"
+                padding="lg"
+                radius="md"
+                withBorder
+                style={{ backgroundColor: "#f5f0ff" }}
+              >
+                <Stack gap="md">
+                  <Group>
+                    <IconCloud size={20} color="#7950F2" />
+                    <Text fw={600} size="sm">
+                      Render Configuration
+                    </Text>
+                  </Group>
+                  <PasswordInput
+                    label="API Key"
+                    placeholder="rnd_xxxxxxxxxxxxxxxxxxxxx"
+                    description="Get your API key from Render dashboard → Account Settings → API Keys"
+                    leftSection={<IconKey size={16} />}
+                    required
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          token_config: {
+                            ...prev.deployment_config.token_config,
+                            token: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <TextInput
+                    label="API URL (Optional)"
+                    placeholder="https://api.render.com"
+                    defaultValue="https://api.render.com"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deployment_config: {
+                          ...prev.deployment_config,
+                          token_config: {
+                            ...prev.deployment_config.token_config,
+                            api_url: e.target.value,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </Stack>
+              </Card>
+            )}
+          </Stack>
         </Paper>
 
         {/* Deploy Button */}
-        <Group justify="flex-end">
-          <Button variant="default" size="lg">
-            Cancel
-          </Button>
-          <Button size="lg" leftSection={<IconCloud size={20} />}>
-            Deploy Project
-          </Button>
-        </Group>
+        <Paper
+          p="md"
+          withBorder
+          radius="lg"
+          style={{ backgroundColor: "#f8f9fa" }}
+        >
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
+              Review your configuration and deploy
+            </Text>
+            <Group>
+              <Button variant="default" size="lg">
+                Cancel
+              </Button>
+              <Button
+                size="lg"
+                leftSection={<IconRocket size={20} />}
+                variant="gradient"
+                gradient={{ from: "blue", to: "cyan" }}
+                onClick={handleDeploy}
+              >
+                Deploy Project
+              </Button>
+            </Group>
+          </Group>
+        </Paper>
       </Stack>
     </Container>
   );
