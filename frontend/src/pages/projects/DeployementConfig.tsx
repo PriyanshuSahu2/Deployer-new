@@ -21,6 +21,9 @@ import {
   PasswordInput,
   Alert,
   Grid,
+  MantineProvider,
+  useMantineColorScheme,
+  useComputedColorScheme,
 } from "@mantine/core";
 import {
   IconUpload,
@@ -37,9 +40,22 @@ import {
   IconInfoCircle,
   IconRocket,
   IconCheck,
+  IconMoon,
+  IconSun,
 } from "@tabler/icons-react";
 
 export default function DeploymentConfig() {
+  return (
+    <MantineProvider defaultColorScheme="dark">
+      <DeploymentConfigContent />
+    </MantineProvider>
+  );
+}
+
+function DeploymentConfigContent() {
+  const { setColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme("dark");
+
   const [activeImportTab, setActiveImportTab] = useState("github");
   const [selectedRepo, setSelectedRepo] = useState("");
   const [repos, setRepos] = useState([]);
@@ -119,7 +135,7 @@ export default function DeploymentConfig() {
     { value: "feature/new-ui", label: "feature/new-ui" },
   ];
 
-  const handleConnectProvider = (provider:string) => {
+  const handleConnectProvider = (provider) => {
     setLoading(true);
     setTimeout(() => {
       setRepos(mockRepos[provider] || []);
@@ -128,7 +144,7 @@ export default function DeploymentConfig() {
     }, 800);
   };
 
-  const handleRepoSelect = (repoUrl:string) => {
+  const handleRepoSelect = (repoUrl) => {
     setSelectedRepo(repoUrl);
     setBranches(mockBranches);
     setFormData((prev) => ({
@@ -137,7 +153,7 @@ export default function DeploymentConfig() {
     }));
   };
 
-  const handleBranchSelect = (branch:string) => {
+  const handleBranchSelect = (branch) => {
     setFormData((prev) => ({
       ...prev,
       provider_config: { ...prev.provider_config, branch },
@@ -210,11 +226,7 @@ export default function DeploymentConfig() {
     setEnvVars([...envVars, { key: "", value: "" }]);
   };
 
-  const updateEnvVar = (
-    index: number,
-    field:string,
-    value: string
-  ) => {
+  const updateEnvVar = (index, field, value) => {
     const newEnvVars = [...envVars];
     newEnvVars[index][field] = value;
     setEnvVars(newEnvVars);
@@ -229,7 +241,7 @@ export default function DeploymentConfig() {
     }));
   };
 
-  const removeEnvVar = (index: number) => {
+  const removeEnvVar = (index) => {
     const newEnvVars = envVars.filter((_, i) => i !== index);
     setEnvVars(newEnvVars);
   };
@@ -255,36 +267,20 @@ export default function DeploymentConfig() {
     alert("Check console for deployment payload!");
   };
 
+  const toggleColorScheme = () => {
+    setColorScheme(computedColorScheme === "dark" ? "light" : "dark");
+  };
+
   return (
     <Container size="xl" py="xl">
       <Stack gap="xl">
-        <Group justify="space-between" align="center">
-          <div>
-            <Title order={1}>Deploy Your Project</Title>
-            <Text c="dimmed" size="sm" mt={4}>
-              Configure and deploy your application with ease
-            </Text>
-          </div>
-          <Badge
-            size="lg"
-            variant="gradient"
-            gradient={{ from: "blue", to: "cyan" }}
-          >
-            v2.0
-          </Badge>
-        </Group>
+
 
         {/* Import Source Section */}
-        <Paper
-          shadow="md"
-          p="xl"
-          radius="lg"
-          withBorder
-          style={{ background: "linear-gradient(to bottom, #ffffff, #f8f9fa)" }}
-        >
+        <Paper shadow="md" p="xl" radius="lg" withBorder>
           <Group mb="md">
             <IconFolder size={24} color="#228BE6" />
-            <Title order={2} size="h3">
+            <Title order={2} size="h3" c={'white'}>
               Import Project Source
             </Title>
           </Group>
@@ -326,7 +322,8 @@ export default function DeploymentConfig() {
                   borderRadius: "12px",
                   padding: "3rem",
                   textAlign: "center",
-                  backgroundColor: "#f0f7ff",
+                  backgroundColor:
+                    computedColorScheme === "dark" ? "#1A1B1E" : "#f0f7ff",
                   cursor: "pointer",
                   transition: "all 0.3s ease",
                 }}
@@ -739,13 +736,7 @@ export default function DeploymentConfig() {
             />
 
             {deployTarget === "vps" && (
-              <Card
-                mt="md"
-                padding="lg"
-                radius="md"
-                withBorder
-                style={{ backgroundColor: "#f8f9fa" }}
-              >
+              <Card mt="md" padding="lg" radius="md" withBorder>
                 <Stack gap="md">
                   <Group>
                     <IconServer size={20} color="#495057" />
@@ -859,13 +850,7 @@ export default function DeploymentConfig() {
             )}
 
             {deployTarget === "netlify" && (
-              <Card
-                mt="md"
-                padding="lg"
-                radius="md"
-                withBorder
-                style={{ backgroundColor: "#f0f7ff" }}
-              >
+              <Card mt="md" padding="lg" radius="md" withBorder>
                 <Stack gap="md">
                   <Group>
                     <IconCloud size={20} color="#00C7B7" />
@@ -914,13 +899,7 @@ export default function DeploymentConfig() {
             )}
 
             {deployTarget === "vercel" && (
-              <Card
-                mt="md"
-                padding="lg"
-                radius="md"
-                withBorder
-                style={{ backgroundColor: "#fafafa" }}
-              >
+              <Card mt="md" padding="lg" radius="md" withBorder>
                 <Stack gap="md">
                   <Group>
                     <IconCloud size={20} color="#000" />
@@ -969,13 +948,7 @@ export default function DeploymentConfig() {
             )}
 
             {deployTarget === "render" && (
-              <Card
-                mt="md"
-                padding="lg"
-                radius="md"
-                withBorder
-                style={{ backgroundColor: "#f5f0ff" }}
-              >
+              <Card mt="md" padding="lg" radius="md" withBorder>
                 <Stack gap="md">
                   <Group>
                     <IconCloud size={20} color="#7950F2" />

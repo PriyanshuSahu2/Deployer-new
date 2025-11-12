@@ -9,13 +9,17 @@ import EmailNotVerified from "./pages/auth/EmailNotVerified";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import DeploymentConfig from "./pages/projects/DeployementConfig";
+import Layout from "./components/layout/Layout";
 
 function App() {
   return (
     <>
       <BrowserRouter>
         <Routes>
-          <Route index element={<DeploymentConfig />}></Route>
+          <Route path="/app" element={<Layout />}>
+            <Route index element={<DeploymentConfig />} />
+
+          </Route>
           <Route path="/login" element={<Login />}></Route>
           <Route path="/register" element={<Register />}></Route>
           <Route path="/forgot-password" element={<ForgotPassword />}></Route>
