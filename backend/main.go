@@ -42,9 +42,16 @@ func main() {
 
 	routes.AuthRoutes(r)
 	routes.ProjectRoute(r)
+	r.GET("/", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"status":  200,
+			"message": "Working",
+		})
+	})
 	r.GET("/status", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": "Good",
+			"status":  200,
+			"message": "Working",
 		})
 	})
 
