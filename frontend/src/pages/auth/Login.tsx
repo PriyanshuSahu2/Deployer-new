@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { IconBrandGithub, IconCheck, IconRocket } from "@tabler/icons-react";
 import { LeftSection } from "./components/LeftSection";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLogin } from "./queries/useAuth";
 import { useState } from "react";
 import { toast } from "react-toastify";
@@ -29,6 +29,7 @@ const Login = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  const navigate = useNavigate()
   const validateField = (name: string, value: string): string | undefined => {
     switch (name) {
       case "identifier":
@@ -109,6 +110,7 @@ const Login = () => {
         sessionStorage.setItem("accessToken", data["access_token"]);
       }
 
+      navigate('/app', { replace: true })
       toast.update(toastId, {
         type: "success",
         render: "Login Successful!",
@@ -137,8 +139,7 @@ const Login = () => {
 
     const oAuthUrl =
       import.meta.env.VITE_GITHUB_OAUTH_URL +
-      `?client_id=${
-        import.meta.env.VITE_GITHUB_CLIENT_ID
+      `?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID
       }&redirect_uri=${REDIRECT_URI}&scope=user:email&state=${crypto.randomUUID()}`;
     window.location.href = oAuthUrl;
   };

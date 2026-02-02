@@ -7,7 +7,7 @@ const Header = () => {
 
     // Extract current route name (like '/dashboard' → 'Dashboard')
     const getPageTitle = () => {
-        const path = location.pathname.replace("/", "");
+        const path = location.pathname.replace("/app", "");
         if (!path) return "Home";
         return path.charAt(0).toUpperCase() + path.slice(1);
     };
