@@ -4,7 +4,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    
+    console.log("Login request body:", process.env.BACKEND_URL);
     const res = await fetch(`${process.env.BACKEND_URL}/auth/login`, {
       method: "POST",
       headers: {
