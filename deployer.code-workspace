@@ -1,31 +1,77 @@
 {
-	"folders": [
-		{
-			"path": "frontend"
-		},
-		{
-			"path": "backend"
-		},
-		{
-			"path": "frontend-new"
-		}
-	],
-	"settings": {
-		"files.exclude": {
-			"**/.git": true,
-			"**/.svn": true,
-			"**/.hg": true,
-			"**/CVS": true,
-			"**/.DS_Store": true,
-			"**/Thumbs.db": true,
-			".history": true
-		},
-		"explorerExclude.backup": {},
-		"cSpell.words": [
-			"godoc",
-			"gonic",
-			"swaggo",
-			"VITE"
-		]
-	}
+  "folders": [
+    {
+      "path": "frontend",
+    },
+    {
+      "path": "backend",
+    },
+    {
+      "path": "frontend-new",
+    },
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true,
+      ".history": true,
+    },
+    "explorerExclude.backup": {},
+    "cSpell.words": ["godoc", "gonic", "swaggo", "VITE"],
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      /* ============================
+       NEXT.JS – SERVER
+    ============================ */
+      {
+        "name": "Next.js: Server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder:frontend-new}/node_modules/next/dist/bin/next",
+        "args": ["dev"],
+        "cwd": "${workspaceFolder:frontend-new}",
+        "runtimeArgs": ["--inspect"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+      },
+
+      /* ============================
+       NEXT.JS – CLIENT
+    ============================ */
+      {
+        "name": "Next.js: Client",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:3000",
+        "webRoot": "${workspaceFolder:frontend-new}",
+        "sourceMaps": true,
+      },
+
+      /* ============================
+       GO BACKEND
+    ============================ */
+      {
+        "name": "Go: Backend",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "program": "${workspaceFolder:backend}",
+        "env": {},
+        "args": [],
+      },
+    ],
+
+    "compounds": [
+      {
+        "name": "Full Stack: Next.js + Go",
+        "configurations": ["Next.js: Server", "Next.js: Client", "Go: Backend"],
+      },
+    ],
+  },
 }

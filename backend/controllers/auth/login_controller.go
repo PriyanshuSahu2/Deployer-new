@@ -94,15 +94,15 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie(
-		"refresh_token",
-		refresh_token,
-		7*24*60*60,
-		"/",
-		"",
-		false,
-		true,
-	)
+	// c.SetCookie(
+	// 	"refresh_token",
+	// 	refresh_token,
+	// 	7*24*60*60,
+	// 	"/",
+	// 	"",
+	// 	false,
+	// 	true,
+	// )
 
 	// Send login notification email
 	ipAddress := c.ClientIP()
@@ -111,8 +111,9 @@ func Login(c *gin.Context) {
 	go emailService.SendLoginNotification(foundUser.Email, foundUser.Username, ipAddress, userAgent)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Login successful",
-		"user":         foundUser.ID,
-		"access_token": access_token,
+		"message":       "Login successful",
+		"user":          foundUser.ID,
+		"access_token":  access_token,
+		"refresh_token": refresh_token,
 	})
 }

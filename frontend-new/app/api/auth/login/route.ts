@@ -12,26 +12,27 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify(body),
     });
+    debugger;
 
     const data = await res.json();
-
+    
     if (!res.ok) {
       return NextResponse.json(
-        { message: data.message || "Login failed" },
+        { message: data.error || "Login failed" },
         { status: res.status },
       );
     }
 
     const response = NextResponse.json({ user: data.user }, { status: 200 });
 
-    response.cookies.set("access_token", data.accessToken, {
+    response.cookies.set("access_token", data.access_token, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
       path: "/",
     });
 
-    response.cookies.set("refresh_token", data.refreshToken, {
+    response.cookies.set("refresh_token", data.refresh_token, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
