@@ -231,7 +231,7 @@ const SignupForm = () => {
 
         <Text size="sm" ta="center" mt="md">
           Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 font-semibold">
+          <Link href="/auth/login" className="text-blue-600 font-semibold">
             Sign in
           </Link>
         </Text>

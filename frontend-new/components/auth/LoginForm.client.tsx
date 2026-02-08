@@ -110,7 +110,7 @@ export default function LoginForm() {
         </Button>
         <Text size="sm" ta="center" mt="md">
           Don't have an account?{" "}
-          <Link href="/signup" className="text-blue-600 font-semibold">
+          <Link href="/auth/signup" className="text-blue-600 font-semibold">
             Sign up
           </Link>
         </Text>

@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { IconKey, IconMail, IconArrowLeft } from "@tabler/icons-react";
 import { TextInput, Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useForgotPassword } from "@/hooks/useAuth";
 
 const ForgotPassword = () => {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  const { mutateAsync: handleForgotPassword, isPending } = useForgotPassword();
 
   const handleSubmit = async () => {
     if (!email.trim()) {
@@ -33,30 +35,13 @@ const ForgotPassword = () => {
       return;
     }
 
-    setLoading(true);
-
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/forgot-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to send reset email");
-      }
+      const res = await handleForgotPassword({ email });
 
       notifications.show({
         color: "green",
         title: "Email sent",
-        message: data.message || "Password reset email sent!",
+        message: res.message || "Password reset email sent!",
       });
 
       setEmailSent(true);
@@ -71,10 +56,10 @@ const ForgotPassword = () => {
         title: "Request failed",
         message: err.message || "Failed to send reset email",
       });
-    } finally {
-      setLoading(false);
     }
-  };
+
+  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-6 py-12">
@@ -108,7 +93,7 @@ const ForgotPassword = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={loading || emailSent}
+              disabled={isPending || emailSent}
               leftSection={<IconMail size={18} />}
             />
 
@@ -116,8 +101,8 @@ const ForgotPassword = () => {
               fullWidth
               size="md"
               type="submit"
-              disabled={loading || emailSent}
-              loading={loading}
+              disabled={isPending || emailSent}
+              loading={isPending}
               className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 transition-all duration-200"
             >
               {emailSent ? "Email Sent!" : "Send Reset Link"}
@@ -127,8 +112,8 @@ const ForgotPassword = () => {
               fullWidth
               variant="subtle"
               size="md"
-              disabled={loading}
-              onClick={() => router.push("/login")}
+              disabled={isPending}
+              onClick={() => router.push("/auth/login")}
               leftSection={<IconArrowLeft size={18} />}
               className="text-slate-600 hover:text-slate-800 hover:bg-slate-100"
             >
