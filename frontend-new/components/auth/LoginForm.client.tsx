@@ -16,6 +16,7 @@ import { useState } from "react";
 import OAuthButtons from "./OAuthButtons.client";
 import { useLogin } from "@/hooks/useAuth";
 import { notifications } from "@mantine/notifications";
+import Link from "next/link";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -107,6 +108,12 @@ export default function LoginForm() {
         <Button fullWidth mt="xl" onClick={handleSubmit} loading={isPending}>
           Sign In
         </Button>
+        <Text size="sm" ta="center" mt="md">
+          Don't have an account?{" "}
+          <Link href="/signup" className="text-blue-600 font-semibold">
+            Sign up
+          </Link>
+        </Text>
 
         <div className="mt-6 flex justify-center gap-4 text-xs text-slate-500">
           <span className="flex items-center gap-1">

@@ -23,3 +23,22 @@ export const register = (body: {
     method: "POST",
     body: body,
   });
+
+  export const forgotPassword = (body: {
+  email: string;
+}) =>
+  apiFetch("/api/auth/forgot-password", {
+    method: "POST",
+    body: body,
+  });
+
+
+  export const resetPassword = (body: {
+  otp: string;
+  email: string;
+  new_password: string;
+}) =>
+  apiFetch("/api/auth/reset-password", {
+    method: "POST",
+    body: body,
+  });
