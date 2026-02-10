@@ -40,13 +40,6 @@ export default function LoginForm() {
     try {
       const res = await login(form);
 
-      const token = res.data.access_token;
-      form.rememberMe
-        ? localStorage.setItem("accessToken", token)
-        : sessionStorage.setItem("accessToken", token);
-
-      router.replace("/app");
-
       notifications.update({
         id: notificationId,
         title: "Login successful!",
@@ -55,6 +48,8 @@ export default function LoginForm() {
         loading: false,
         autoClose: 3000,
       });
+
+      router.replace("/app");
     } catch (err: any) {
       notifications.update({
         id: notificationId,
