@@ -4,7 +4,6 @@ import (
 	"backend/db"
 	models_auth "backend/models/auth"
 	models_oauth "backend/models/oauth"
-	models_project "backend/models/project"
 	"backend/routes"
 	"net/http"
 	"time"
@@ -38,10 +37,10 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 	db.ConnectToDB()
-	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{}, &models_project.Project{}, &models_project.ProjectConfig{}, &models_project.DeploymentConfig{}, &models_project.SSHDeploymentConfig{}, &models_project.TokenDeploymentConfig{})
+	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{})
 
 	routes.AuthRoutes(r)
-	routes.ProjectRoute(r)
+	// routes.ProjectRoute(r)
 	r.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"status":  200,
