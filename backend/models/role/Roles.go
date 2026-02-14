@@ -1,22 +1,16 @@
 package models_role
 
 import (
-	"time"
-
 	models_auth "backend/models/auth"
-
-	"github.com/google/uuid"
+	models_base "backend/models/base"
 )
 
 type Role struct {
 	ID          uint             `gorm:"primaryKey"`
-	UUID        uuid.UUID        `gorm:"type:varchar(255)"`
 	RoleName    string           `gorm:"type:varchar(255)"`
-	WorkspaceID uint             `gorm:"index"`
-	CreatedBy   uint             `gorm:"index"`
-	Creator     models_auth.User `gorm:"foreignKey:CreatedBy"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   time.Time
-	IsDeleted   bool `gorm:"default:false"`
+	WorkspaceID *uint            `gorm:"index"`
+	CreatedByID uint             `gorm:"index"`
+	CreatedBy   models_auth.User `gorm:"foreignKey:CreatedByID"`
+	IsSystem    bool             `gorm:"default:false"`
+	models_base.BaseModel
 }

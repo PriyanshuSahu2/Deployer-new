@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Workspace Invitation</title>
+	<style>
+		body {
+			font-family: Arial, Helvetica, sans-serif;
+			background-color: #f6f9fc;
+			margin: 0;
+			padding: 0;
+		}
+		.container {
+			max-width: 600px;
+			margin: 40px auto;
+			background-color: #ffffff;
+			padding: 32px;
+			border-radius: 8px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+		}
+		h1 {
+			font-size: 22px;
+			color: #111827;
+		}
+		p {
+			font-size: 15px;
+			color: #374151;
+			line-height: 1.6;
+		}
+		.button {
+			display: inline-block;
+			margin-top: 24px;
+			padding: 12px 20px;
+			background-color: #2563eb;
+			color: #ffffff !important;
+			text-decoration: none;
+			border-radius: 6px;
+			font-weight: bold;
+		}
+		.footer {
+			margin-top: 32px;
+			font-size: 12px;
+			color: #6b7280;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>You’ve been invited to join {{ .WorkspaceName }}</h1>
+
+		<p>
+			{{ .InviterName }} has invited you to join the workspace
+			<strong>{{ .WorkspaceName }}</strong>.
+		</p>
+
+		<p>
+			Click the button below to accept the invitation:
+		</p>
+
+		<a href="{{ .InviteURL }}" class="button">
+			Accept Invitation
+		</a>
+
+		<p style="margin-top: 24px;">
+			This invitation will expire in {{ .ExpiryHours }} hours.
+		</p>
+
+		<div class="footer">
+			If you did not expect this invitation, you can safely ignore this email.
+		</div>
+	</div>
+</body>
+</html>

@@ -50,6 +50,29 @@ definitions:
     required:
     - token
     type: object
+  dtos_workspace.AddMemberDTO:
+    properties:
+      role_uuid:
+        type: string
+      user_email:
+        type: string
+      user_uuid:
+        type: string
+      workspace_uuid:
+        type: string
+    required:
+    - role_uuid
+    - user_email
+    - user_uuid
+    - workspace_uuid
+    type: object
+  dtos_workspace.CreateWorkspaceDTO:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
 info:
   contact: {}
 paths:
@@ -233,4 +256,105 @@ paths:
       summary: Verify email address
       tags:
       - auth
+  /workspace:
+    post:
+      consumes:
+      - application/json
+      description: Create a workspace for the authenticated user
+      parameters:
+      - description: Workspace payload
+        in: body
+        name: workspace
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_workspace.CreateWorkspaceDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to create workspace
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new workspace
+      tags:
+      - Workspace
+  /workspace/members:
+    post:
+      consumes:
+      - application/json
+      description: Invite an existing user to join a workspace with a specific role.
+        An invitation email will be sent to the user.
+      parameters:
+      - description: Add workspace member payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_workspace.AddMemberDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Member invited successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request or resource not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden - insufficient permissions
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: User already exists in workspace
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Invite a user to a workspace
+      tags:
+      - Workspace Members
 swagger: "2.0"

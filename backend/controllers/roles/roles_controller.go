@@ -1,4 +1,4 @@
-package roles_controller
+package controller_roles
 
 import (
 	"backend/db"
@@ -21,6 +21,7 @@ func CreateRole(c *gin.Context) {
 	newRole := models_role.Role{
 		RoleName:    roleBody.RoleName,
 		WorkspaceID: roleBody.WorkspaceID,
+		CreatedByID: *roleBody.WorkspaceID,
 	}
 
 	result := db.DB.Create(&newRole)

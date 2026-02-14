@@ -267,3 +267,32 @@ func (s *EmailService) SendEmailVerification(to, username, verificationLink stri
 
 	return s.SendEmail(to, subject, body.String())
 }
+
+func (s *EmailService) SendWorkspaceInvitation(to, inviterName, workspaceName, invitationLink string) error {
+	subject := fmt.Sprintf("Invitation to Join %s's Workspace", inviterName)
+	tmpl, err := template.ParseFiles("templates/workspace_member_invite_email.html")
+
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		WorkspaceName string
+		InviterName   string
+		InviteURL     string
+		ExpiryHours   string
+	}{
+		WorkspaceName: workspaceName,
+		InviterName:   inviterName,
+		InviteURL:     invitationLink,
+		ExpiryHours:   "24",
+	}
+	var body bytes.Buffer
+
+	if err := tmpl.Execute(&body, data); err != nil {
+
+		return err
+	}
+	return s.SendEmail(to, subject, body.String())
+
+}

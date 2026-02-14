@@ -1,4 +1,4 @@
-package workspace_controller
+package controller_workspace
 
 import (
 	"backend/db"
@@ -8,6 +8,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+func CreateWorkspaceInternal(workspaceBody dtos_workspace.CreateWorkspaceDTO, userID uint) (models_workspace.Workspace, error) {
+	newWorkspace := models_workspace.Workspace{
+		WorkspaceName: workspaceBody.Name,
+		OwnerID:       userID,
+		CreatedByID:   userID,
+	}
+	result := db.DB.Create(&newWorkspace)
+	return newWorkspace, result.Error
+}
 
 // CreateWorkspace godoc
 // @Summary      Create a new workspace
@@ -30,17 +40,13 @@ func CreateWorkspace(c *gin.Context) {
 		return
 	}
 
-	newWorkspace := models_workspace.Workspace{
-		WorkspaceName: workspaceBody.Name,
-		OwnerID:       c.GetUint("userID"),
-	}
-	result := db.DB.Create(&newWorkspace)
-	if err := result.Error; err != nil {
+	workspace, err := CreateWorkspaceInternal(workspaceBody, c.GetUint("userID"))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create workspace"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Workspace created successfully"})
+	c.JSON(http.StatusCreated, gin.H{"message": "Workspace created successfully", "workspace": workspace})
 }
 
 func UpdateWorkspace(c *gin.Context) {
@@ -66,5 +72,4 @@ func UpdateWorkspace(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Workspace updated successfully"})
-
 }

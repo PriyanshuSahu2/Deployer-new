@@ -4,6 +4,9 @@ import (
 	"backend/db"
 	models_auth "backend/models/auth"
 	models_oauth "backend/models/oauth"
+	models_permission "backend/models/permission"
+	models_role "backend/models/role"
+	models_workspace "backend/models/workspace"
 	"backend/routes"
 	"net/http"
 	"time"
@@ -37,7 +40,10 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 	db.ConnectToDB()
-	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{})
+
+	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{}, &models_workspace.Workspace{}, &models_workspace.WorkspaceMember{},
+		&models_permission.Permission{}, &models_role.Role{},
+	)
 
 	routes.AuthRoutes(r)
 	// routes.ProjectRoute(r)

@@ -2,7 +2,7 @@ package dtos_roles
 
 type CreateRoleDTO struct {
 	RoleName    string `json:"role_name" binding:"required"`
-	WorkspaceID uint   `json:"workspace_id" binding:"required"`
+	WorkspaceID *uint  `json:"workspace_id" binding:"required"`
 }
 
 type UpdateRoleDTO struct {

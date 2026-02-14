@@ -19,7 +19,7 @@ export const register = (body: {
   email: string;
   password: string;
 }) =>
-  apiFetch("/api/auth/login", {
+  apiFetch("/api/auth/signup", {
     method: "POST",
     body: body,
   });
