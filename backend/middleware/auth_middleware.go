@@ -55,22 +55,29 @@ func ValidateRequest() gin.HandlerFunc {
 			return
 		}
 
-		var userID string
+		var userID uint
 
 		switch v := rawID.(type) {
 		case float64:
-			// Convert float64 to string
-			userID = fmt.Sprintf("%.0f", v)
+			// Convert float64 to uint
+			userID = uint(v)
 		case string:
-			userID = v
+			// Parse string to uint
+			var tempID uint64
+			if _, err := fmt.Sscanf(v, "%d", &tempID); err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id format in token"})
+				c.Abort()
+				return
+			}
+			userID = uint(tempID)
 		default:
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id type in token"})
 			c.Abort()
 			return
 		}
 
-		// Set user id in header/context
-		c.Set("user_id", userID)
+		// Set user id in context with the key that controllers expect
+		c.Set("userID", userID)
 
 		c.Next()
 	}

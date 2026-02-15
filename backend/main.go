@@ -33,7 +33,7 @@ func main() {
 	r := gin.Default()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // frontend origin
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"}, // Next.js frontend origin
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -48,6 +48,8 @@ func main() {
 	r.Use(middleware.ValidateRequest())
 	routes.AuthRoutes(r)
 	routes.WorkspaceRoutes(r)
+	routes.RoleRoutes(r)
+
 	// routes.ProjectRoute(r)
 	r.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
