@@ -70,3 +70,14 @@ func UpdateRole(c *gin.Context) {
 	})
 
 }
+
+func ListRoles(c *gin.Context) {
+	var roles []models_role.Role
+	result := db.DB.Where("workspace_id = ?", c.GetUint("workspaceID")).Find(&roles)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list roles"})
+		return
+	}
+
+	c.JSON(http.StatusOK, roles)
+}

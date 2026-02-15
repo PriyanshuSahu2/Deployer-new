@@ -73,3 +73,14 @@ func UpdateWorkspace(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Workspace updated successfully"})
 }
+
+func ListWorkspaces(c *gin.Context) {
+	var workspaces []models_workspace.Workspace
+	result := db.DB.Where("owner_id = ?", c.GetUint("userID")).Find(&workspaces)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list workspaces"})
+		return
+	}
+
+	c.JSON(http.StatusOK, workspaces)
+}
