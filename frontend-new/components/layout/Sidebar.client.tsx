@@ -36,6 +36,7 @@ import {
   IconUserPlus,
   IconPlus,
 } from "@tabler/icons-react";
+import { useGetUserWorkspace } from "@/hooks/useWorkspace";
 
 interface NavItem {
   icon: any;
@@ -138,7 +139,8 @@ function NavGroup({ label, items }: NavGroupType) {
   const theme = useMantineTheme();
 
   const primary = theme.colors[theme.primaryColor][6];
-
+  const { data: workspaces } = useGetUserWorkspace(true);
+  console.log("User workspaces:", workspaces);
   return (
     <div>
       <button
@@ -292,7 +294,6 @@ function WorkspaceSwitcher({
 
 export default function Sidebar() {
   const theme = useMantineTheme();
-  
 
   return (
     <div
@@ -303,7 +304,9 @@ export default function Sidebar() {
       }}
     >
       {/* Workspace Switcher */}
-      <WorkspaceSwitcher onNewWorkspace={() => console.log("New workspace clicked")} />
+      <WorkspaceSwitcher
+        onNewWorkspace={() => console.log("New workspace clicked")}
+      />
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">

@@ -4,6 +4,7 @@ import (
 	"backend/db"
 	dtos_workspace "backend/dtos/workspace"
 	models_workspace "backend/models/workspace"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -77,6 +78,8 @@ func UpdateWorkspace(c *gin.Context) {
 func ListWorkspaces(c *gin.Context) {
 	var workspaces []models_workspace.Workspace
 	result := db.DB.Where("owner_id = ?", c.GetUint("userID")).Find(&workspaces)
+	var abc = c.GetUint("userID")
+	fmt.Println(abc)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list workspaces"})
 		return

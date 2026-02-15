@@ -13,23 +13,28 @@ import (
 func ValidateRequest() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Optional: exclude routes
-		// url := c.Request.URL.Path
-		// excluded := []string{"/login", "/register", "refresh-token", "/swagger"}
-		// for _, v := range excluded {
-		// 	if strings.Contains(url, v) {
-		// 		c.Next()
-		// 		return
-		// 	}
-		// }
+		url := c.Request.URL.Path
+		excluded := []string{"/login", "/register", "refresh-token", "/swagger"}
+		for _, v := range excluded {
+			if strings.Contains(url, v) {
+				c.Next()
+				return
+			}
+		}
 
-		authHeaders := c.Request.Header["Authorization"]
+		authHeaders, err := c.Cookie("access_token")
+		if err != nil || authHeaders == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token Not Found"})
+			c.Abort()
+			return
+		}
 		if len(authHeaders) == 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token Not Found"})
 			c.Abort()
 			return
 		}
 
-		access_token := strings.Split(authHeaders[0], " ")[1]
+		access_token := authHeaders
 		if access_token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token Not Found"})
 			c.Abort()

@@ -11,6 +11,6 @@ func WorkspaceRoutes(r *gin.Engine) {
 	{
 		workspace.POST("/workspaces", controller_workspace.CreateWorkspace)
 		workspace.PUT("/workspaces", controller_workspace.UpdateWorkspace)
-		workspace.GET("/workspaces", controller_workspace.ListWorkspaces)
+		workspace.GET("/get-user-workspaces", controller_workspace.ListWorkspaces)
 	}
 }

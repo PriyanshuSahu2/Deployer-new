@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/db"
+	"backend/middleware"
 	models_auth "backend/models/auth"
 	models_oauth "backend/models/oauth"
 	models_permission "backend/models/permission"
@@ -44,8 +45,9 @@ func main() {
 	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{}, &models_workspace.Workspace{}, &models_workspace.WorkspaceMember{},
 		&models_permission.Permission{}, &models_role.Role{},
 	)
-
+	r.Use(middleware.ValidateRequest())
 	routes.AuthRoutes(r)
+	routes.WorkspaceRoutes(r)
 	// routes.ProjectRoute(r)
 	r.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
