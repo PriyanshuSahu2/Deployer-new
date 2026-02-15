@@ -139,8 +139,7 @@ function NavGroup({ label, items }: NavGroupType) {
   const theme = useMantineTheme();
 
   const primary = theme.colors[theme.primaryColor][6];
-  const { data: workspaces } = useGetUserWorkspace(true);
-  console.log("User workspaces:", workspaces);
+
   return (
     <div>
       <button
@@ -180,20 +179,15 @@ interface Workspace {
 
 function WorkspaceSwitcher({
   onNewWorkspace,
+  workspaces = [],
 }: {
+  workspaces?: Workspace[];
   onNewWorkspace?: () => void;
 }) {
   const theme = useMantineTheme();
 
   const [popoverOpened, setPopoverOpened] = useState(false);
   const [currentWorkspace, setCurrentWorkspace] = useState("Global");
-
-  const workspaces: Workspace[] = [
-    { name: "Global" },
-    { name: "Production" },
-    { name: "Staging" },
-    { name: "Development" },
-  ];
 
   const primary = theme.colors[theme.primaryColor][6];
   const primaryLight = theme.colors[theme.primaryColor][0];
@@ -236,7 +230,7 @@ function WorkspaceSwitcher({
             WORKSPACES
           </Text>
 
-          {workspaces.map((workspace) => {
+          {Array.isArray(workspaces) && workspaces.map((workspace) => {
             const isActive = workspace.name === currentWorkspace;
 
             return (
@@ -294,7 +288,8 @@ function WorkspaceSwitcher({
 
 export default function Sidebar() {
   const theme = useMantineTheme();
-
+  const { data: workspaces } = useGetUserWorkspace(true);
+  console.log("User workspaces:", workspaces);
   return (
     <div
       className="w-64 h-screen border-r flex flex-col"
@@ -304,7 +299,8 @@ export default function Sidebar() {
       }}
     >
       {/* Workspace Switcher */}
-      <WorkspaceSwitcher
+      <WorkspaceSwitcher  
+      workspaces={workspaces}
         onNewWorkspace={() => console.log("New workspace clicked")}
       />
 

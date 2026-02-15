@@ -1,5 +1,11 @@
 package dtos_workspace
 
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
 type CreateWorkspaceDTO struct {
 	Name string `json:"name" binding:"required"`
 }
@@ -10,8 +16,8 @@ type UpdateWorkspaceDTO struct {
 }
 
 type ListWorkspaceDTO struct {
-	UUID      string `json:"uuid"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	UUID      uuid.UUID `json:"uuid"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

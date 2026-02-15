@@ -4,7 +4,6 @@ import (
 	"backend/db"
 	dtos_workspace "backend/dtos/workspace"
 	models_workspace "backend/models/workspace"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -77,13 +76,24 @@ func UpdateWorkspace(c *gin.Context) {
 
 func ListWorkspaces(c *gin.Context) {
 	var workspaces []models_workspace.Workspace
-	result := db.DB.Where("owner_id = ?", c.GetUint("userID")).Find(&workspaces)
-	var abc = c.GetUint("userID")
-	fmt.Println(abc)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in context"})
+		return
+	}
+	result := db.DB.Where("owner_id = ?", userID).Find(&workspaces)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list workspaces"})
 		return
 	}
-
-	c.JSON(http.StatusOK, workspaces)
+	workspaceDTO := make([]dtos_workspace.ListWorkspaceDTO, 0, len(workspaces))
+	for _, w := range workspaces {
+		workspaceDTO = append(workspaceDTO, dtos_workspace.ListWorkspaceDTO{
+			UUID:      w.UUID,
+			Name:      w.WorkspaceName,
+			CreatedAt: w.CreatedAt,
+			UpdatedAt: w.UpdatedAt,
+		})
+	}
+	c.JSON(http.StatusOK, workspaceDTO)
 }
