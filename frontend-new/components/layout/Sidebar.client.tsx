@@ -3,7 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Button, Collapse, Divider, Group, Popover, Stack, Text, UnstyledButton, useMantineTheme } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Collapse,
+  Divider,
+  Group,
+  Popover,
+  Stack,
+  Text,
+  UnstyledButton,
+  useMantineTheme,
+} from "@mantine/core";
 import {
   IconChevronDown,
   IconLayoutDashboard,
@@ -65,14 +76,22 @@ const navigationGroups: NavGroupType[] = [
     label: "Automation",
     items: [
       { icon: IconGitBranch, label: "CI / CD", href: "/app/cicd" },
-      { icon: IconPlugConnected, label: "Integrations", href: "/app/integrations" },
+      {
+        icon: IconPlugConnected,
+        label: "Integrations",
+        href: "/app/integrations",
+      },
     ],
   },
   {
     label: "Management",
     items: [
       { icon: IconUsers, label: "Members", href: "/app/members" },
-      { icon: IconSettings, label: "Workspace Settings", href: "/app/settings" },
+      {
+        icon: IconSettings,
+        label: "Workspace Settings",
+        href: "/app/settings",
+      },
       { icon: IconCreditCard, label: "Billing & Usage", href: "/app/billing" },
     ],
   },
@@ -153,13 +172,15 @@ function NavGroup({ label, items }: NavGroupType) {
   );
 }
 
-
-
 interface Workspace {
   name: string;
 }
 
-function WorkspaceSwitcher() {
+function WorkspaceSwitcher({
+  onNewWorkspace,
+}: {
+  onNewWorkspace?: () => void;
+}) {
   const theme = useMantineTheme();
 
   const [popoverOpened, setPopoverOpened] = useState(false);
@@ -183,7 +204,6 @@ function WorkspaceSwitcher() {
       opened={popoverOpened}
       onChange={setPopoverOpened}
     >
-      
       <Popover.Target>
         <UnstyledButton
           onClick={() => setPopoverOpened((o) => !o)}
@@ -208,7 +228,6 @@ function WorkspaceSwitcher() {
         </UnstyledButton>
       </Popover.Target>
 
-      {/* Dropdown */}
       <Popover.Dropdown p="xs">
         <Stack gap="xs">
           <Text size="xs" fw={600} c="dimmed" px="xs" pt={4}>
@@ -235,11 +254,7 @@ function WorkspaceSwitcher() {
                 </Text>
 
                 {isActive && (
-                  <IconCheck
-                    size={16}
-                    stroke={2}
-                    style={{ color: primary }}
-                  />
+                  <IconCheck size={16} stroke={2} style={{ color: primary }} />
                 )}
               </UnstyledButton>
             );
@@ -263,6 +278,7 @@ function WorkspaceSwitcher() {
             color="gray"
             size="sm"
             fullWidth
+            onClick={onNewWorkspace}
             leftSection={<IconPlus size={16} />}
             styles={{ root: { justifyContent: "flex-start" } }}
           >
@@ -274,9 +290,9 @@ function WorkspaceSwitcher() {
   );
 }
 
-
 export default function Sidebar() {
   const theme = useMantineTheme();
+  
 
   return (
     <div
@@ -287,7 +303,7 @@ export default function Sidebar() {
       }}
     >
       {/* Workspace Switcher */}
-      <WorkspaceSwitcher />
+      <WorkspaceSwitcher onNewWorkspace={() => console.log("New workspace clicked")} />
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -301,11 +317,7 @@ export default function Sidebar() {
         className="border-t p-3"
         style={{ borderColor: theme.colors.gray[3] }}
       >
-        <NavButton
-          icon={IconBook}
-          label="Docs / Support"
-          href="/app/docs"
-        />
+        <NavButton icon={IconBook} label="Docs / Support" href="/app/docs" />
       </div>
     </div>
   );
