@@ -54,7 +54,7 @@ export default function LoginForm() {
       notifications.update({
         id: notificationId,
         title: "Login failed",
-        message: err.response?.data?.message || "An error occurred.",
+        message: err.message || err.error || "An error occurred.",
         color: "red",
         loading: false,
         autoClose: 3000,

@@ -16,9 +16,19 @@ export async function apiFetch<T>(
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
+  const isJson = res.headers
+    .get("content-type")
+    ?.includes("application/json");
+
+  const data = isJson ? await res.json() : await res.text();
+
   if (!res.ok) {
-    throw new Error("Request failed");
+    throw {
+      message: data?.message ?? data?.error ?? "Something went wrong",
+      status: res.status,
+      errors: data?.errors, 
+    };
   }
 
-  return res.json();
+  return data as T;
 }
