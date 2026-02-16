@@ -76,7 +76,6 @@ func ValidateRequest() gin.HandlerFunc {
 			return
 		}
 
-		// Set user id in context with the key that controllers expect
 		c.Set("userID", userID)
 
 		c.Next()

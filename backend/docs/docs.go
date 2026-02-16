@@ -360,7 +360,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/workspace/members": {
+        "/workspace/invite-member": {
             "post": {
                 "security": [
                     {

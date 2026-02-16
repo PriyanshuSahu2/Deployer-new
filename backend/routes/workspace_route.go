@@ -9,8 +9,10 @@ import (
 func WorkspaceRoutes(r *gin.Engine) {
 	workspace := r.Group("/workspace")
 	{
-		workspace.POST("/workspaces", controller_workspace.CreateWorkspace)
+		workspace.POST("/invite-member", controller_workspace.AddWorkspaceMember)
+		workspace.POST("/", controller_workspace.CreateWorkspace)
 		workspace.PUT("/workspaces", controller_workspace.UpdateWorkspace)
 		workspace.GET("/get-user-workspaces", controller_workspace.ListWorkspaces)
+
 	}
 }

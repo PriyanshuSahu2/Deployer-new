@@ -10,7 +10,7 @@ import (
 
 func GenerateAccessToken(payload map[string]interface{}) (string, error) {
 	claims := jwt.MapClaims(payload)
-	claims["exp"] = time.Now().Add(15 * time.Minute).Unix()
+	claims["exp"] = time.Now().Add(1 * 24 * time.Minute).Unix() //TODO at production make it 15 minutes ok ___:___
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	accessToken, err := token.SignedString([]byte(os.Getenv("ACCESS_SECRET_KEY")))
 	return accessToken, err

@@ -76,7 +76,7 @@ func UpdateWorkspace(c *gin.Context) {
 
 func ListWorkspaces(c *gin.Context) {
 	var workspaces []models_workspace.Workspace
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in context"})
 		return

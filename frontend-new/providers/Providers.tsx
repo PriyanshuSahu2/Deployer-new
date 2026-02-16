@@ -1,15 +1,12 @@
 "use client";
 
 import { MantineProvider } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
-export default function Providers({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
@@ -20,7 +17,7 @@ export default function Providers({
     >
       <QueryClientProvider client={queryClient}>
         <Notifications position="top-right" />
-        {children}
+        <ModalsProvider>{children}</ModalsProvider>
       </QueryClientProvider>
     </MantineProvider>
   );

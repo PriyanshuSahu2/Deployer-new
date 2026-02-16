@@ -300,7 +300,7 @@ paths:
       summary: Create a new workspace
       tags:
       - Workspace
-  /workspace/members:
+  /workspace/invite-member:
     post:
       consumes:
       - application/json

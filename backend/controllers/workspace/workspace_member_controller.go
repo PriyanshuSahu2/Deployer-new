@@ -45,7 +45,7 @@ func AddWorkspaceMemberInternal(addMemberDTO dtos_workspace.AddMemberDTOInternal
 // @Failure      403  {object}  map[string]string  "Forbidden - insufficient permissions"
 // @Failure      409  {object}  map[string]string  "User already exists in workspace"
 // @Failure      500  {object}  map[string]string  "Internal server error"
-// @Router       /workspace/members [post]
+// @Router       /workspace/invite-member [post]
 func AddWorkspaceMember(c *gin.Context) {
 
 	var memberBody dtos_workspace.AddMemberDTO
