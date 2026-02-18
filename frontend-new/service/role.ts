@@ -1,28 +1,16 @@
-//service/role.ts
-
-import { apiFetch } from '@/lib/api';
+import { privateRequest } from '@/lib/requestMethod';
 import { Role } from '@/types/role';
+import { Axios } from 'axios';
 
-export const roleService = {
-  async createRole(role: Role, options?: RequestInit) {
-    await apiFetch(`/api/roles`, {
-      method: 'POST',
-      body: role,
-      ...options,
-    });
-  },
-  async updatedRole(role: Role, options?: RequestInit) {
-    await apiFetch(`/api/roles`, {
-      method: 'PUT',
-      body: role,
-      ...options,
-    });
-  },
-  async listRoles(options?: RequestInit) {
-    const response = await apiFetch(`/api/roles`, {
-      method: 'GET',
-      ...options,
-    });
-    return response;
-  },
-};
+export const createRole = (role: Role) =>
+  privateRequest.post('/roles', role);
+
+export const updateRole = (role: Role) =>
+  privateRequest.put(`/roles/${role.uuid}`, role);
+
+
+export const listRoles = () =>
+  privateRequest.get<Role[]>('/roles/');
+
+export const getRoles = (workspaceId: string) =>
+  privateRequest.get<Role[]>(`/roles/${workspaceId}`);

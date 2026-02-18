@@ -97,3 +97,24 @@ func ListWorkspaces(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, workspaceDTO)
 }
+
+func GetUserDefaultWorkspace(c *gin.Context) {
+	var workspaces models_workspace.Workspace
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in context"})
+		return
+	}
+	result := db.DB.Where("owner_id = ?", userID).Order("created_at DESC").Find(&workspaces)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list workspaces"})
+		return
+	}
+	workspaceDTO := dtos_workspace.ListWorkspaceDTO{
+		UUID:      workspaces.UUID,
+		Name:      workspaces.WorkspaceName,
+		CreatedAt: workspaces.CreatedAt,
+		UpdatedAt: workspaces.UpdatedAt,
+	}
+	c.JSON(http.StatusOK, workspaceDTO)
+}

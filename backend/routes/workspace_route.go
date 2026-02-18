@@ -14,5 +14,7 @@ func WorkspaceRoutes(r *gin.Engine) {
 		workspace.PUT("/workspaces", controller_workspace.UpdateWorkspace)
 		workspace.GET("/get-user-workspaces", controller_workspace.ListWorkspaces)
 
+		workspace.GET("/default", controller_workspace.GetUserDefaultWorkspace)
+
 	}
 }

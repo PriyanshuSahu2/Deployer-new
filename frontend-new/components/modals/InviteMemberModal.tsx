@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Modal,
   TextInput,
@@ -13,6 +13,8 @@ import {
 } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import { useInviteMember } from "@/hooks/useMember";
+import { useGetRoles } from "@/hooks/useRoles";
+import { useParams } from "next/navigation";
 
 interface Invitee {
   email: string;
@@ -31,7 +33,19 @@ export default function InviteMemberModal() {
   const [error, setError] = useState("");
 
   const { mutateAsync: inviteMemberAsync } = useInviteMember();
+  const params = useParams();
 
+  const workspaceId = params.workspaceId as string;
+  const { data: rolesData } = useGetRoles(workspaceId, !!workspaceId);
+
+  const roles = useMemo(() => {
+    return (
+      rolesData?.map((role) => ({
+        value: role.uuid,
+        label: role?.role_name || "",
+      })) ?? []
+    );
+  }, []);
   const validateEmail = (value: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   };
@@ -70,7 +84,11 @@ export default function InviteMemberModal() {
     try {
       await Promise.all(
         invitees.map((invitee) =>
-          inviteMemberAsync({ email: invitee.email, role: invitee.role }),
+          inviteMemberAsync({
+            user_email: invitee.email,
+            role_uuid: invitee.role,
+            workspace_uuid: workspaceId,
+          }),
         ),
       );
       setInvitees([]);

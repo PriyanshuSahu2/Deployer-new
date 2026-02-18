@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import {
   Box,
   Button,
@@ -37,10 +37,10 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { useGetUserWorkspace } from "@/hooks/useWorkspace";
-import { OpenCreateWorkspaceModal } from "../modals/OpenCreateWorkspaceModal";
 import { modals } from "@mantine/modals";
 import CreateWorkspaceModal from "../modals/CreateWorkspaceModal";
 import InviteMemberModal from "../modals/InviteMemberModal";
+import { useRouter } from "next/navigation";
 
 interface NavItem {
   icon: any;
@@ -181,25 +181,37 @@ function NavGroup({ label, items }: NavGroupType) {
 
 interface Workspace {
   name: string;
+  created_at: Date;
+  updated_at: Date;
+  uuid: string;
 }
 
 function WorkspaceSwitcher({
   onNewWorkspace,
   workspaces = [],
   onInviteMembers,
+  onWorkspaceChange,
 }: {
   workspaces?: Workspace[];
   onNewWorkspace?: () => void;
   onInviteMembers?: () => void;
+  onWorkspaceChange?: (workspace: Workspace) => void;
 }) {
   const theme = useMantineTheme();
+  const params = useParams();
 
   const [popoverOpened, setPopoverOpened] = useState(false);
-  const [currentWorkspace, setCurrentWorkspace] = useState("Global");
-
+  const currentWorkspace = params.workspaceId as string;
   const primary = theme.colors[theme.primaryColor][6];
   const primaryLight = theme.colors[theme.primaryColor][0];
 
+  const selectedWorkspace = useMemo(() => {
+    return Array.isArray(workspaces)
+      ? workspaces.find((ws) => ws.uuid === currentWorkspace)
+      : undefined;
+  }, [workspaces, currentWorkspace]);
+
+  console.log("Current workspace:", workspaces);
   return (
     <Popover
       width={280}
@@ -220,7 +232,7 @@ function WorkspaceSwitcher({
           <Group justify="space-between">
             <Box>
               <Text size="sm" fw={700}>
-                {currentWorkspace}
+                {selectedWorkspace?.name || "Select workspace"}
               </Text>
               <Text size="xs" c={theme.primaryColor}>
                 Switch workspace
@@ -240,13 +252,13 @@ function WorkspaceSwitcher({
 
           {Array.isArray(workspaces) &&
             workspaces.map((workspace) => {
-              const isActive = workspace.name === currentWorkspace;
+              const isActive = workspace.uuid === currentWorkspace;
 
               return (
                 <UnstyledButton
                   key={workspace.name}
                   onClick={() => {
-                    setCurrentWorkspace(workspace.name);
+                    onWorkspaceChange?.(workspace);
                     setPopoverOpened(false);
                   }}
                   className="w-full px-3! py-2! rounded-md transition-all flex items-center justify-between"
@@ -309,7 +321,8 @@ function WorkspaceSwitcher({
 export default function Sidebar() {
   const theme = useMantineTheme();
   const { data: workspaces } = useGetUserWorkspace(true);
-
+  const router = useRouter();
+  const pathname = usePathname();
 
   const openCreateWorkspaceModal = () => {
     modals.open({
@@ -320,12 +333,19 @@ export default function Sidebar() {
   };
 
   const openInviteMembersModal = () => {
-
     modals.open({
       title: "Invite members",
       size: "lg",
-      children: <InviteMemberModal  />,
+      children: <InviteMemberModal />,
     });
+  };
+
+  const handleWorkspaceChange = (workspace: Workspace) => {
+    const segments = pathname.split("/");
+    segments[2] = workspace.uuid;
+
+    const newPath = segments.join("/");
+    router.replace(newPath);
   };
   return (
     <div
@@ -340,6 +360,7 @@ export default function Sidebar() {
         workspaces={workspaces}
         onInviteMembers={() => openInviteMembersModal()}
         onNewWorkspace={() => openCreateWorkspaceModal()}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       {/* Navigation */}

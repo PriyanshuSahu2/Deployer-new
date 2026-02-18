@@ -1,13 +1,7 @@
-import { apiFetch } from "@/lib/api";
+import { privateRequest } from "@/lib/requestMethod";
 
 export const getUserWorkspace = () =>
-    apiFetch("/api/workspace/get-user-workspace", {
-        method: "GET",
-    });
+  privateRequest.get("/workspace/get-user-workspaces");
 
 export const createWorkspace = (name: string) =>
-    apiFetch("/api/workspace", {
-        method: "POST",
-        body: { name },
-    });
-
+  privateRequest.post("/workspace", { name });

@@ -1,17 +1,12 @@
 // services/auth.ts
-import { apiFetch } from "@/lib/api";
+import { privateRequest } from "@/lib/requestMethod";
 
 export function login(data: { identifier: string; password: string }) {
-  return apiFetch("/api/auth/login", {
-    method: "POST",
-    body: data,
-  });
+  return privateRequest.post("/auth/login", data);
 }
 
 export function logout() {
-  return apiFetch("/api/auth/logout", {
-    method: "POST",
-  });
+  return privateRequest.post("/auth/logout");
 }
 
 export const register = (body: {
@@ -19,26 +14,17 @@ export const register = (body: {
   email: string;
   password: string;
 }) =>
-  apiFetch("/api/auth/signup", {
-    method: "POST",
-    body: body,
-  });
+  privateRequest.post("/auth/register", body);
 
-  export const forgotPassword = (body: {
+export const forgotPassword = (body: {
   email: string;
 }) =>
-  apiFetch("/api/auth/forgot-password", {
-    method: "POST",
-    body: body,
-  });
+  privateRequest.post("/auth/forgot-password", body);
 
 
-  export const resetPassword = (body: {
+export const resetPassword = (body: {
   otp: string;
   email: string;
   new_password: string;
 }) =>
-  apiFetch("/api/auth/reset-password", {
-    method: "POST",
-    body: body,
-  });
+    privateRequest.post("/auth/reset-password", body);

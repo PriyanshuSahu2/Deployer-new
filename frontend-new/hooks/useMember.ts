@@ -5,7 +5,7 @@ export const useInviteMember = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (params: any) => inviteMember(params.email, params.role),
+        mutationFn: (params: any) => inviteMember(params),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["user-workspace"] });
         },

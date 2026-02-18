@@ -12,7 +12,6 @@ export async function POST(req: Request) {
             },
             body: JSON.stringify(body),
         });
-        debugger;
 
         const data = await res.json();
 

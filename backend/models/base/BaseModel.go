@@ -12,7 +12,7 @@ type BaseModel struct {
 	UUID      uuid.UUID `gorm:"type:uuid;uniqueIndex"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	DeletedAt gorm.DeletedAt `gorm:"index" swaggerignore:"true"`
 }
 
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) (err error) {

@@ -1,5 +1,7 @@
 package dtos_roles
 
+import "github.com/google/uuid"
+
 type CreateRoleDTO struct {
 	RoleName    string `json:"role_name" binding:"required"`
 	WorkspaceID *uint  `json:"workspace_id" binding:"required"`
@@ -11,7 +13,7 @@ type UpdateRoleDTO struct {
 }
 
 type RoleResponseDTO struct {
-	UUID      string `json:"uuid"`
-	RoleName  string `json:"role_name"`
-	CreatedAt string `json:"created_at"`
+	UUID      uuid.UUID `json:"uuid"`
+	RoleName  string    `json:"role_name"`
+	CreatedAt string    `json:"created_at"`
 }

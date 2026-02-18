@@ -5,7 +5,7 @@ import "github.com/google/uuid"
 type AddMemberDTO struct {
 	WorkspaceUUID string     `json:"workspace_uuid" binding:"required"`
 	UserEmail     string     `json:"user_email" binding:"required,email"`
-	UserUUID      *uuid.UUID `json:"user_uuid" binding:"required"`
+	UserUUID      *uuid.UUID `json:"user_uuid"`
 	RoleUUID      *string    `json:"role_uuid" binding:"required"`
 }
 

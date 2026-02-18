@@ -1,6 +1,6 @@
 export interface Role {
   uuid: string;
-  name: string;
+  role_name: string;
   description: string;
   created_at: string;
 }

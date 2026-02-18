@@ -6,7 +6,7 @@ export const useGetUserWorkspace = (enabled = false) => {
         queryKey: ["user-workspace"],
         queryFn: () => getUserWorkspace(),
         enabled: enabled,
-        select: (data) => data,
+        select: (res) => res.data,
     })
 }
 

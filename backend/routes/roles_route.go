@@ -7,10 +7,10 @@ import (
 )
 
 func RoleRoutes(r *gin.Engine) {
-	role := r.Group("/role")
+	role := r.Group("/roles")
 	{
-		role.POST("/roles", controller_roles.CreateRole)
-		role.PUT("/roles", controller_roles.UpdateRole)
-		role.GET("/roles", controller_roles.ListRoles)
+		role.GET("/:workspaceUUID", controller_roles.ListRoles)
+		role.POST("", controller_roles.CreateRole)
+		role.PUT("/:id", controller_roles.UpdateRole)
 	}
 }

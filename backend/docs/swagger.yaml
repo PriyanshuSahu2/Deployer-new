@@ -50,6 +50,26 @@ definitions:
     required:
     - token
     type: object
+  dtos_roles.CreateRoleDTO:
+    properties:
+      role_name:
+        type: string
+      workspace_id:
+        type: integer
+    required:
+    - role_name
+    - workspace_id
+    type: object
+  dtos_roles.UpdateRoleDTO:
+    properties:
+      role_name:
+        type: string
+      uuid:
+        type: string
+    required:
+    - role_name
+    - uuid
+    type: object
   dtos_workspace.AddMemberDTO:
     properties:
       role_uuid:
@@ -63,7 +83,6 @@ definitions:
     required:
     - role_uuid
     - user_email
-    - user_uuid
     - workspace_uuid
     type: object
   dtos_workspace.CreateWorkspaceDTO:
@@ -72,6 +91,46 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  models_auth.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: integer
+      name:
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+      uuid:
+        type: string
+    type: object
+  models_role.Role:
+    properties:
+      createdAt:
+        type: string
+      createdBy:
+        $ref: '#/definitions/models_auth.User'
+      createdByID:
+        type: integer
+      id:
+        type: integer
+      isSystem:
+        type: boolean
+      roleName:
+        type: string
+      updatedAt:
+        type: string
+      uuid:
+        type: string
+      workspaceID:
+        type: integer
     type: object
 info:
   contact: {}
@@ -256,6 +315,91 @@ paths:
       summary: Verify email address
       tags:
       - auth
+  /roles:
+    get:
+      description: Get all roles for a workspace
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models_role.Role'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      description: Create a role inside a workspace
+      parameters:
+      - description: Create Role DTO
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_roles.CreateRoleDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new role
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: Update role name using role UUID
+      parameters:
+      - description: Update Role DTO
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dtos_roles.UpdateRoleDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update role
+      tags:
+      - Roles
   /workspace:
     post:
       consumes:

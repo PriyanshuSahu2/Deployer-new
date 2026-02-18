@@ -1,7 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { privateRequest } from "@/lib/requestMethod";
 
-export const inviteMember = (email: string, role: string) =>
-    apiFetch("/api/workspace/invite-member", {
-        method: "POST",
-        body: { email, role },
-    });
+export const inviteMember = (params) =>
+    privateRequest.post("/workspace/invite-member", params);

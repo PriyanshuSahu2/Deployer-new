@@ -191,12 +191,13 @@ func GithubCallback(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": foundUserResult.Error.Error()})
 		return
 	}
+	providerID := fmt.Sprint(userProfile.ID)
 
 	newUser := models_auth.User{
 		Name:     userProfile.Name,
 		Username: utils.GenerateUsername(userProfile.Name),
 		Email:    emailDetails.Email,
-		GithubID: fmt.Sprint(userProfile.ID),
+		GithubID: &providerID,
 	}
 
 	createResult := db.DB.Create(&newUser)
