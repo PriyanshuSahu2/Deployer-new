@@ -66,7 +66,7 @@ func Login(c *gin.Context) {
 
 			frontendURL := os.Getenv("FRONTEND_URL")
 			if frontendURL == "" {
-				frontendURL = "http://localhost:5173"
+				frontendURL = "http://localhost:5173/auth"
 			}
 			verificationLink := frontendURL + "/verify-email?token=" + token
 			emailService := services.NewEmailService()

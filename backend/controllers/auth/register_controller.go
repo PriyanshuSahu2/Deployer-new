@@ -74,7 +74,7 @@ func Register(c *gin.Context) {
 		if frontendURL == "" {
 			frontendURL = "http://localhost:5173"
 		}
-		verificationLink := frontendURL + "/verify-email?token=" + token
+		verificationLink := frontendURL + "/auth/verify-email?token=" + token
 		emailService := services.NewEmailService()
 		go emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
 	}

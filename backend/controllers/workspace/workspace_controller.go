@@ -81,7 +81,7 @@ func ListWorkspaces(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in context"})
 		return
 	}
-	result := db.DB.Where("owner_id = ?", userID).Find(&workspaces)
+	result := db.DB.Joins("INNER JOIN workspace_members WM on WM.workspace_id = Workspaces.id").Where("WM.user_id = ?", userID).Find(&workspaces)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list workspaces"})
 		return

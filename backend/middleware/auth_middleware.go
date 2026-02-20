@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,14 +12,14 @@ import (
 func ValidateRequest() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Optional: exclude routes
-		url := c.Request.URL.Path
-		excluded := []string{"/login", "/register", "refresh-token", "/swagger"}
-		for _, v := range excluded {
-			if strings.Contains(url, v) {
-				c.Next()
-				return
-			}
-		}
+		// url := c.Request.URL.Path
+		// excluded := []string{"/login", "/register", "refresh-token", "/workspace-invites/", "/swagger"}
+		// for _, v := range excluded {
+		// 	if strings.HasPrefix(url, v) {
+		// 		c.Next()
+		// 		return
+		// 	}
+		// }
 
 		authHeaders, err := c.Cookie("access_token")
 		if err != nil || authHeaders == "" {

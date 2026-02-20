@@ -35,6 +35,7 @@ import {
   IconCheck,
   IconUserPlus,
   IconPlus,
+  IconMail,
 } from "@tabler/icons-react";
 import { useGetUserWorkspace } from "@/hooks/useWorkspace";
 import { modals } from "@mantine/modals";
@@ -88,6 +89,7 @@ const navigationGroups: NavGroupType[] = [
       },
     ],
   },
+
   {
     label: "Management",
     items: [
@@ -100,7 +102,7 @@ const navigationGroups: NavGroupType[] = [
       { icon: IconCreditCard, label: "Billing & Usage", href: "/app/billing" },
       { icon: IconBook, label: "Roles", href: "/app/roles" },
     ],
-  },
+  }
 ];
 
 function NavButton({ icon: Icon, label, href }: NavItem) {

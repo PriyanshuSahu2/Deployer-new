@@ -200,7 +200,7 @@ func ResendVerificationEmail(c *gin.Context) {
 		return
 	}
 
-	verificationLink := "http://localhost:5173/verify-email?token=" + token
+	verificationLink := "http://localhost:5173/auth/verify-email?token=" + token
 
 	emailService := services.NewEmailService()
 	go emailService.SendEmailVerification(body.Email, user.Username, verificationLink)
