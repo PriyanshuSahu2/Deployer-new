@@ -11,6 +11,7 @@ import {
   Box,
   Divider,
   Badge,
+  useComputedColorScheme,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import {
@@ -26,6 +27,10 @@ import {
 import InvitesModal from "@/components/modals/InvitesModal";
 
 export default function Header() {
+  const colorScheme = useComputedColorScheme("light");
+  const isDark = colorScheme === "dark";
+
+  console.log("Current color scheme:", colorScheme);
   const openInviteModal = () => {
     modals.open({
       title: "Invitations",
@@ -38,6 +43,7 @@ export default function Header() {
       },
     });
   };
+
   return (
     <Box
       h={70}
@@ -46,9 +52,9 @@ export default function Header() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "1px solid rgba(0,0,0,0.1)",
+        borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
         boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
-        background: "white",
+
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         position: "sticky",
@@ -77,7 +83,7 @@ export default function Header() {
           size="sm"
           style={{
             letterSpacing: "-0.02em",
-            color: "#111",
+
             fontFamily: "inherit",
           }}
         >
@@ -161,11 +167,7 @@ export default function Header() {
               <Group gap={9}>
                 <Avatar name="Priyanshu" size={40} color="indigo" />
                 <Box style={{ lineHeight: 1 }}>
-                  <Text
-                    size="sm"
-                    fw={600}
-                    style={{ color: "#111", letterSpacing: "-0.01em" }}
-                  >
+                  <Text size="sm" fw={600} style={{ letterSpacing: "-0.01em" }}>
                     Priyanshu
                   </Text>
                   <Text size="xs" c="dimmed" mt={1}>
@@ -188,7 +190,7 @@ export default function Header() {
               <Group gap={10}>
                 <Avatar name="Priyanshu" size={36} radius="xl" color="indigo" />
                 <Box>
-                  <Text size="sm" fw={600} style={{ color: "#111" }}>
+                  <Text size="sm" fw={600} >
                     Priyanshu
                   </Text>
                   <Text size="xs" c="dimmed">

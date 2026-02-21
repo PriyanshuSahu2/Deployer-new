@@ -15,3 +15,12 @@ type AddMemberDTOInternal struct {
 	RoleID      uint `json:"role_id" binding:"required"`
 	InvitedByID uint `json:"invited_by_id"`
 }
+
+type MemberResponseDTO struct {
+	UserUUID  uuid.UUID `json:"user_uuid"`
+	UserEmail string    `json:"email"`
+	UserName  string    `json:"name"`
+	RoleName  string    `json:"role"`
+	RoleUUID  uuid.UUID `json:"role_uuid"`
+	InvitedBy string    `json:"invited_by"`
+}

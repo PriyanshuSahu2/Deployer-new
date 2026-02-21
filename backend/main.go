@@ -49,6 +49,7 @@ func main() {
 	routes.WorkspaceRoutes(r)
 	routes.RoleRoutes(r)
 	routes.InviteRoutes(r)
+	routes.MemberRoutes(r)
 
 	// routes.ProjectRoute(r)
 	r.GET("/", func(ctx *gin.Context) {

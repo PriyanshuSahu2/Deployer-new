@@ -13,3 +13,7 @@ export const declineWorkspaceInvite = (token: string) =>
 
 export const getInvites = () =>
     privateRequest.get("/invites");
+
+
+
+export const getWorkspaceInvites = (workspaceUUID: string) => privateRequest.get(`/members/${workspaceUUID}`)

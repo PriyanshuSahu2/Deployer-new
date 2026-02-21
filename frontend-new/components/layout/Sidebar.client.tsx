@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import {
@@ -10,9 +10,11 @@ import {
   Divider,
   Group,
   Popover,
+  ScrollArea,
   Stack,
   Text,
   UnstyledButton,
+  useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import {
@@ -35,7 +37,6 @@ import {
   IconCheck,
   IconUserPlus,
   IconPlus,
-  IconMail,
 } from "@tabler/icons-react";
 import { useGetUserWorkspace } from "@/hooks/useWorkspace";
 import { modals } from "@mantine/modals";
@@ -58,126 +59,131 @@ const navigationGroups: NavGroupType[] = [
   {
     label: "Core",
     items: [
-      { icon: IconLayoutDashboard, label: "Overview", href: "/app" },
-      { icon: IconFolders, label: "Projects", href: "/app/projects" },
-      { icon: IconRocket, label: "Deployments", href: "/app/deployments" },
+      { icon: IconLayoutDashboard, label: "Overview", href: "/app/:workspaceId/overview" },
+      { icon: IconFolders, label: "Projects", href: "/app/:workspaceId/projects" },
+      { icon: IconRocket, label: "Deployments", href: "/app/:workspaceId/deployments" },
     ],
   },
   {
     label: "Infrastructure",
     items: [
-      { icon: IconVariable, label: "Environments", href: "/app/environments" },
-      { icon: IconServer, label: "Servers / Infra", href: "/app/servers" },
-      { icon: IconWorld, label: "Domains", href: "/app/domains" },
+      { icon: IconVariable, label: "Environments", href: "/app/:workspaceId/environments" },
+      { icon: IconServer, label: "Servers / Infra", href: "/app/:workspaceId/servers" },
+      { icon: IconWorld, label: "Domains", href: "/app/:workspaceId/domains" },
     ],
   },
   {
     label: "Monitoring",
     items: [
-      { icon: IconFileText, label: "Logs", href: "/app/logs" },
-      { icon: IconHistory, label: "Activity / Audit", href: "/app/activity" },
+      { icon: IconFileText, label: "Logs", href: "/app/:workspaceId/logs" },
+      { icon: IconHistory, label: "Activity / Audit", href: "/app/:workspaceId/activity" },
     ],
   },
   {
     label: "Automation",
     items: [
-      { icon: IconGitBranch, label: "CI / CD", href: "/app/cicd" },
-      {
-        icon: IconPlugConnected,
-        label: "Integrations",
-        href: "/app/integrations",
-      },
+      { icon: IconGitBranch, label: "CI / CD", href: "/app/:workspaceId/cicd" },
+      { icon: IconPlugConnected, label: "Integrations", href: "/app/:workspaceId/integrations" },
     ],
   },
-
   {
     label: "Management",
     items: [
-      { icon: IconUsers, label: "Members", href: "/app/members" },
-      {
-        icon: IconSettings,
-        label: "Workspace Settings",
-        href: "/app/settings",
-      },
-      { icon: IconCreditCard, label: "Billing & Usage", href: "/app/billing" },
-      { icon: IconBook, label: "Roles", href: "/app/roles" },
+      { icon: IconUsers, label: "Members", href: "/app/:workspaceId/members" },
+      { icon: IconBook, label: "Roles", href: "/app/:workspaceId/roles" },
+      { icon: IconSettings, label: "Workspace Settings", href: "/app/:workspaceId/settings" },
+      { icon: IconCreditCard, label: "Billing & Usage", href: "/app/:workspaceId/billing" },
     ],
-  }
+  },
 ];
 
 function NavButton({ icon: Icon, label, href }: NavItem) {
   const pathname = usePathname();
   const theme = useMantineTheme();
+  const params = useParams();
 
-  const active = pathname === href;
-
+  const resolvedHref = href.replace(":workspaceId", params.workspaceId as string);
+  const active = pathname === resolvedHref;
   const primary = theme.colors[theme.primaryColor][6];
-  const primaryLight = theme.colors[theme.primaryColor][0];
-
+  const colorScheme = useComputedColorScheme("light");
+  const isDark = colorScheme === "dark";
   return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200"
+    <UnstyledButton
+      component={Link}
+      href={resolvedHref}
       style={{
-        backgroundColor: active ? primary : undefined,
+        display: "flex",
+        alignItems: "center",
+        gap: theme.spacing.sm,
+        padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+        borderRadius: theme.radius.md,
+        backgroundColor: active ? primary : "transparent",
+        transition: "background-color 150ms ease",
+        textDecoration: "none",
+        width: "100%",
       }}
     >
       <Icon
         size={18}
         stroke={1.5}
-        style={{
-          color: active ? "white" : theme.colors.gray[6],
-        }}
+        style={{ color: active ? theme.white : isDark ? theme.colors.gray[0] : theme.colors.gray[7] }}
       />
-      <span
-        className="text-sm font-medium truncate"
-        style={{
-          color: active ? "white" : theme.colors.gray[8],
-        }}
+      <Text
+        size="sm"
+        fw={500}
+        truncate
+        style={{ color: active ? theme.white : isDark ? theme.colors.gray[0] : theme.colors.gray[7] }}
       >
         {label}
-      </span>
-    </Link>
+      </Text>
+    </UnstyledButton>
   );
 }
 
 function NavGroup({ label, items }: NavGroupType) {
   const [opened, setOpened] = useState(true);
   const theme = useMantineTheme();
-
   const primary = theme.colors[theme.primaryColor][6];
-  const { data: workspaces } = useGetUserWorkspace(true);
-  console.log("User workspaces:", workspaces);
+  const colorScheme = useComputedColorScheme("light");
+  const isDark = colorScheme === "dark";
   return (
-    <div>
-      <button
+    <Box>
+      <UnstyledButton
         onClick={() => setOpened((o) => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 rounded-lg transition"
+        style={{
+          display: "flex",
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+          borderRadius: theme.radius.md,
+        }}
       >
-        <span
-          className="text-xs font-bold uppercase"
-          style={{ color: primary }}
+        <Text
+          size="xs"
+          fw={700}
+          style={{ color: primary, textTransform: "uppercase", letterSpacing: "0.05em" }}
         >
           {label}
-        </span>
-
+        </Text>
         <IconChevronDown
           size={14}
-          className={`transition-transform duration-300 ${
-            opened ? "rotate-180" : ""
-          }`}
-          style={{ color: primary }}
+          style={{
+            color: primary,
+            transform: opened ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 300ms ease",
+          }}
         />
-      </button>
+      </UnstyledButton>
 
       <Collapse in={opened}>
-        <div className="mt-2 space-y-1">
+        <Stack gap={4} mt={4}>
           {items.map((item, index) => (
             <NavButton key={index} {...item} />
           ))}
-        </div>
+        </Stack>
       </Collapse>
-    </div>
+    </Box>
   );
 }
 
@@ -201,19 +207,22 @@ function WorkspaceSwitcher({
 }) {
   const theme = useMantineTheme();
   const params = useParams();
-
   const [popoverOpened, setPopoverOpened] = useState(false);
+    const colorScheme = useComputedColorScheme("light");
+  const isDark = colorScheme === "dark";
+
   const currentWorkspace = params.workspaceId as string;
   const primary = theme.colors[theme.primaryColor][6];
   const primaryLight = theme.colors[theme.primaryColor][0];
 
-  const selectedWorkspace = useMemo(() => {
-    return Array.isArray(workspaces)
-      ? workspaces.find((ws) => ws.uuid === currentWorkspace)
-      : undefined;
-  }, [workspaces, currentWorkspace]);
+  const selectedWorkspace = useMemo(
+    () =>
+      Array.isArray(workspaces)
+        ? workspaces.find((ws) => ws.uuid === currentWorkspace)
+        : undefined,
+    [workspaces, currentWorkspace]
+  );
 
-  console.log("Current workspace:", workspaces);
   return (
     <Popover
       width={280}
@@ -225,10 +234,11 @@ function WorkspaceSwitcher({
       <Popover.Target>
         <UnstyledButton
           onClick={() => setPopoverOpened((o) => !o)}
-          className="w-full p-4! !border-b transition-all duration-200"
           style={{
-            borderColor: theme.colors.gray[3],
-            backgroundColor: theme.white,
+            width: "100%",
+            padding: theme.spacing.md,
+            borderBottom: `1px solid ${isDark ? theme.colors.gray[7] : theme.colors.gray[3]}`,
+            transition: "background-color 150ms ease",
           }}
         >
           <Group justify="space-between">
@@ -240,8 +250,7 @@ function WorkspaceSwitcher({
                 Switch workspace
               </Text>
             </Box>
-
-            <IconSelector size={18} stroke={1.5} />
+            <IconSelector size={18} stroke={1.5} color={theme.colors.gray[6]} />
           </Group>
         </UnstyledButton>
       </Popover.Target>
@@ -255,29 +264,29 @@ function WorkspaceSwitcher({
           {Array.isArray(workspaces) &&
             workspaces.map((workspace) => {
               const isActive = workspace.uuid === currentWorkspace;
-
               return (
                 <UnstyledButton
-                  key={workspace.name}
+                  key={workspace.uuid}
                   onClick={() => {
                     onWorkspaceChange?.(workspace);
                     setPopoverOpened(false);
                   }}
-                  className="w-full px-3! py-2! rounded-md transition-all flex items-center justify-between"
                   style={{
-                    backgroundColor: isActive ? primaryLight : undefined,
+                    width: "100%",
+                    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                    borderRadius: theme.radius.md,
+                    backgroundColor: isActive ? primaryLight : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    transition: "background-color 150ms ease",
                   }}
                 >
                   <Text size="sm" fw={isActive ? 600 : 400}>
                     {workspace.name}
                   </Text>
-
                   {isActive && (
-                    <IconCheck
-                      size={16}
-                      stroke={2}
-                      style={{ color: primary }}
-                    />
+                    <IconCheck size={16} stroke={2} style={{ color: primary }} />
                   )}
                 </UnstyledButton>
               );
@@ -295,7 +304,7 @@ function WorkspaceSwitcher({
               onInviteMembers?.();
             }}
             leftSection={<IconUserPlus size={16} />}
-            styles={{ root: { justifyContent: "flex-start" } }}
+            justify="flex-start"
           >
             Invite Members
           </Button>
@@ -310,7 +319,7 @@ function WorkspaceSwitcher({
               onNewWorkspace?.();
             }}
             leftSection={<IconPlus size={16} />}
-            styles={{ root: { justifyContent: "flex-start" } }}
+            justify="flex-start"
           >
             Add New Workspace
           </Button>
@@ -325,6 +334,8 @@ export default function Sidebar() {
   const { data: workspaces } = useGetUserWorkspace(true);
   const router = useRouter();
   const pathname = usePathname();
+  const colorScheme = useComputedColorScheme("light");
+  const isDark = colorScheme === "dark";
 
   const openCreateWorkspaceModal = () => {
     modals.open({
@@ -345,40 +356,43 @@ export default function Sidebar() {
   const handleWorkspaceChange = (workspace: Workspace) => {
     const segments = pathname.split("/");
     segments[2] = workspace.uuid;
-
-    const newPath = segments.join("/");
-    router.replace(newPath);
+    router.replace(segments.join("/"));
   };
+
   return (
-    <div
-      className="w-64 h-screen border-r flex flex-col"
+    <Box
       style={{
-        backgroundColor: theme.white,
-        borderColor: theme.colors.gray[3],
+        width: 256,
+        height: "100vh",
+        borderRight: `1px solid ${isDark ? theme.colors.gray[7] : theme.colors.gray[3]}`,
+
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Workspace Switcher */}
       <WorkspaceSwitcher
         workspaces={workspaces}
-        onInviteMembers={() => openInviteMembersModal()}
-        onNewWorkspace={() => openCreateWorkspaceModal()}
+        onInviteMembers={openInviteMembersModal}
+        onNewWorkspace={openCreateWorkspaceModal}
         onWorkspaceChange={handleWorkspaceChange}
       />
 
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {navigationGroups.map((group, index) => (
-          <NavGroup key={index} {...group} />
-        ))}
-      </div>
+      <ScrollArea flex={1} p="sm">
+        <Stack gap="sm">
+          {navigationGroups.map((group, index) => (
+            <NavGroup key={index} {...group} />
+          ))}
+        </Stack>
+      </ScrollArea>
 
-      {/* Docs */}
-      <div
-        className="border-t p-3"
-        style={{ borderColor: theme.colors.gray[3] }}
+      <Box
+        style={{
+          borderTop: `1px solid ${isDark ? theme.colors.gray[7] : theme.colors.gray[3]}`,
+          padding: theme.spacing.sm,
+        }}
       >
         <NavButton icon={IconBook} label="Docs / Support" href="/app/docs" />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

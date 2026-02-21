@@ -1,7 +1,7 @@
 package routes
 
 import (
-	controller_workspace "backend/controllers/workspace"
+	controller_invite "backend/controllers/invite"
 	"backend/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -9,17 +9,18 @@ import (
 
 func InviteRoutes(r *gin.Engine) {
 
-	//so this are public routes user without authentication can access these routes to get invite details but to accept or decline the invite user need to be authenticated and have valid token
 	invites := r.Group("/invites")
-	{
-		invites.GET("/:token", controller_workspace.GetWorkspaceInviteDetails)
-	}
 
-	invitesAuth := r.Group("/invites")
-	invitesAuth.Use(middleware.ValidateRequest())
+	// Public route
+	invites.GET("/token/:token", controller_invite.GetWorkspaceInviteDetails)
+
+	// Protected routes
+	invites.Use(middleware.ValidateRequest())
 	{
-		invitesAuth.GET("", controller_workspace.GetUserInvites)
-		invitesAuth.POST("/:token/accept", controller_workspace.AcceptWorkspaceInvite)
-		invitesAuth.POST("/:token/decline", controller_workspace.DeclineWorkspaceInvite)
+		invites.GET("", controller_invite.GetUserInvites)
+		invites.GET("/workspace/:workspaceUUID", controller_invite.GetWorkspaceInvites)
+
+		invites.POST("/:token/accept", controller_invite.AcceptWorkspaceInvite)
+		invites.POST("/:token/decline", controller_invite.DeclineWorkspaceInvite)
 	}
 }
