@@ -14,7 +14,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       theme={{
         primaryColor: "indigo",
       }}
-      defaultColorScheme="dark"
+    
     >
       <QueryClientProvider client={queryClient}>
         <Notifications position="top-right" />
