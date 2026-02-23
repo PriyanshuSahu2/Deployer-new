@@ -98,7 +98,7 @@ func Register(c *gin.Context) {
 	workspaceMember.InvitedByID = newUser.ID
 	workspaceMember.RoleID = 1                                                                                                      //TODO: later i will add to fix role to take owner role from db not
 	memberResult := memberService.AddInternalMember(workspaceMember.WorkspaceID, workspaceMember.UserID, workspaceMember.RoleID, 1) //TODO AddWorkspaceMemberInternal
-	if memberResult.Error != nil {
+	if memberResult != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
 		return
 	}
