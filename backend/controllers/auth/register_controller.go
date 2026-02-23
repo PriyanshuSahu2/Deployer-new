@@ -1,11 +1,11 @@
 package controllers_auth
 
 import (
-	workspace_controller "backend/controllers/workspace"
 	"backend/db"
 	dtos_auth "backend/dtos/auth"
 	dtos_workspace "backend/dtos/workspace"
 	models_auth "backend/models/auth"
+	"backend/repositories"
 	"backend/services"
 	"backend/utils"
 	"net/http"
@@ -78,20 +78,28 @@ func Register(c *gin.Context) {
 		emailService := services.NewEmailService()
 		go emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
 	}
+	workspaceRepo := repositories.NewWorkspaceRepository()
+	memberRepo := repositories.NewMemberRepository()
+	workspaceService := services.NewWorkspaceService(
+		workspaceRepo,
+		memberRepo,
+	)
+
+	// newWorkspaceMemberService := services.NewWorkspaceMemberService(userRe)
 	var workspaceBody dtos_workspace.CreateWorkspaceDTO
 	workspaceBody.Name = userBody.Username + "'s Workspace" //TODO: later i will add to fix if username is too big or i should just put usernma validation at registertion
-	workspace, err := workspace_controller.CreateWorkspaceInternal(workspaceBody, newUser.ID)
+	workspace, err := workspaceService.CreateWorkspace(newUser.ID, workspaceBody)
 
 	var workspaceMember dtos_workspace.AddMemberDTOInternal
 	workspaceMember.UserID = newUser.ID
 	workspaceMember.WorkspaceID = workspace.ID
 	workspaceMember.InvitedByID = newUser.ID
 	workspaceMember.RoleID = 1 //TODO: later i will add to fix role to take owner role from db not
-	_, err = workspace_controller.AddWorkspaceMemberInternal(workspaceMember)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
-		return
-	}
+	// _, err = .AddWorkspaceMemberInternal(workspaceMember) //TODO AddWorkspaceMemberInternal
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
+	// 	return
+	// }
 
 	emailService := services.NewEmailService()
 	go emailService.SendWelcomeEmail(newUser.Email, newUser.Username)
