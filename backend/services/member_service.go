@@ -66,3 +66,29 @@ func (s *MemberService) mapToDTO(members []models_workspace.WorkspaceMember) []d
 
 	return response
 }
+
+func (s *MemberService) AddInternalMember(
+	workspaceID uint,
+	userID uint,
+	roleID uint,
+	invitedByID uint,
+) error {
+
+	exists, err := s.MemberRepo.Exists(nil, workspaceID, userID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("user already a member of workspace")
+	}
+
+	member := models_workspace.WorkspaceMember{
+		WorkspaceID: workspaceID,
+		UserId:      userID,
+		RoleID:      roleID,
+		Status:      "ACTIVE",
+		InvitedByID: invitedByID,
+	}
+
+	return s.MemberRepo.Create(nil, member)
+}

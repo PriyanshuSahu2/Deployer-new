@@ -85,6 +85,8 @@ func Register(c *gin.Context) {
 		memberRepo,
 	)
 
+	memberService := services.NewMemberService(memberRepo, workspaceRepo)
+
 	// newWorkspaceMemberService := services.NewWorkspaceMemberService(userRe)
 	var workspaceBody dtos_workspace.CreateWorkspaceDTO
 	workspaceBody.Name = userBody.Username + "'s Workspace" //TODO: later i will add to fix if username is too big or i should just put usernma validation at registertion
@@ -94,12 +96,12 @@ func Register(c *gin.Context) {
 	workspaceMember.UserID = newUser.ID
 	workspaceMember.WorkspaceID = workspace.ID
 	workspaceMember.InvitedByID = newUser.ID
-	workspaceMember.RoleID = 1 //TODO: later i will add to fix role to take owner role from db not
-	// _, err = .AddWorkspaceMemberInternal(workspaceMember) //TODO AddWorkspaceMemberInternal
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
-	// 	return
-	// }
+	workspaceMember.RoleID = 1                                                                                                      //TODO: later i will add to fix role to take owner role from db not
+	memberResult := memberService.AddInternalMember(workspaceMember.WorkspaceID, workspaceMember.UserID, workspaceMember.RoleID, 1) //TODO AddWorkspaceMemberInternal
+	if memberResult.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
+		return
+	}
 
 	emailService := services.NewEmailService()
 	go emailService.SendWelcomeEmail(newUser.Email, newUser.Username)
