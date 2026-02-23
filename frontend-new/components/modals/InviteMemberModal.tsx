@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
-  Modal,
   TextInput,
   Button,
   Group,
@@ -10,30 +9,27 @@ import {
   ActionIcon,
   Badge,
   Divider,
-} from "@mantine/core";
-import { IconPlus, IconX } from "@tabler/icons-react";
-import { useInviteMember } from "@/hooks/useMember";
-import { useGetRoles } from "@/hooks/useRoles";
-import { useParams } from "next/navigation";
+} from '@mantine/core';
+import { IconPlus, IconX } from '@tabler/icons-react';
+import { useInviteMember } from '@/hooks/useMember';
+import { useGetRoles } from '@/hooks/useRoles';
+import { useParams } from 'next/navigation';
+import { modals } from '@mantine/modals';
+import { useGetMe } from '@/hooks/useAuth';
 
 interface Invitee {
   email: string;
   role: string;
 }
 
-const roles = [
-  { value: "admin", label: "Admin" },
-  { value: "member", label: "Member" },
-  { value: "viewer", label: "Viewer" },
-];
-
 export default function InviteMemberModal() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [invitees, setInvitees] = useState<Invitee[]>([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const { mutateAsync: inviteMemberAsync } = useInviteMember();
   const params = useParams();
+  const { data: me } = useGetMe();
 
   const workspaceId = params.workspaceId as string;
   const { data: rolesData } = useGetRoles(workspaceId, !!workspaceId);
@@ -42,10 +38,11 @@ export default function InviteMemberModal() {
     return (
       rolesData?.map((role) => ({
         value: role.uuid,
-        label: role?.role_name || "",
+        label: role?.role_name || '',
       })) ?? []
     );
-  }, []);
+  }, [rolesData]);
+
   const validateEmail = (value: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   };
@@ -54,18 +51,23 @@ export default function InviteMemberModal() {
     if (!email.trim()) return;
 
     if (!validateEmail(email)) {
-      setError("Invalid email address");
+      setError('Invalid email address');
+      return;
+    }
+
+    if (me?.email && email.toLowerCase() === me.email.toLowerCase()) {
+      setError('You cannot invite yourself');
       return;
     }
 
     if (invitees.some((i) => i.email === email)) {
-      setError("Email already added");
+      setError('Email already added');
       return;
     }
 
-    setInvitees([...invitees, { email, role: "member" }]);
-    setEmail("");
-    setError("");
+    setInvitees([...invitees, { email, role: 'member' }]);
+    setEmail('');
+    setError('');
   };
 
   const removeInvitee = (emailToRemove: string) => {
@@ -75,7 +77,7 @@ export default function InviteMemberModal() {
   const updateRole = (emailToUpdate: string, role: string | null) => {
     setInvitees((prev) =>
       prev.map((i) =>
-        i.email === emailToUpdate ? { ...i, role: role || "member" } : i,
+        i.email === emailToUpdate ? { ...i, role: role || 'member' } : i,
       ),
     );
   };
@@ -92,26 +94,27 @@ export default function InviteMemberModal() {
         ),
       );
       setInvitees([]);
+      modals.closeAll();
     } catch (error) {
-      console.error("Failed to invite members:", error);
+      console.error('Failed to invite members:', error);
     }
   };
 
   return (
-    <Stack gap="md">
-      <Text size="sm" c="dimmed">
+    <Stack gap='md'>
+      <Text size='sm' c='dimmed'>
         Add teammates to collaborate on deployments and projects.
       </Text>
 
-      <Group align="flex-end">
+      <Group align='flex-end'>
         <TextInput
-          label="Email address"
-          placeholder="john@company.com"
+          label='Email address'
+          placeholder='john@company.com'
           value={email}
           onChange={(e) => setEmail(e.currentTarget.value)}
           error={error}
           style={{ flex: 1 }}
-          onKeyDown={(e) => e.key === "Enter" && addInvitee()}
+          onKeyDown={(e) => e.key === 'Enter' && addInvitee()}
         />
         <Button leftSection={<IconPlus size={16} />} onClick={addInvitee}>
           Add
@@ -120,12 +123,12 @@ export default function InviteMemberModal() {
 
       {invitees.length > 0 && (
         <>
-          <Divider label="Invited members" labelPosition="center" />
+          <Divider label='Invited members' labelPosition='center' />
 
-          <Stack gap="sm">
+          <Stack gap='sm'>
             {invitees.map((invitee) => (
-              <Group key={invitee.email} justify="space-between">
-                <Badge variant="light">{invitee.email}</Badge>
+              <Group key={invitee.email} justify='space-between'>
+                <Badge variant='light'>{invitee.email}</Badge>
 
                 <Group>
                   <Select
@@ -136,10 +139,9 @@ export default function InviteMemberModal() {
                   />
 
                   <ActionIcon
-                    color="red"
-                    variant="subtle"
-                    onClick={() => removeInvitee(invitee.email)}
-                  >
+                    color='red'
+                    variant='subtle'
+                    onClick={() => removeInvitee(invitee.email)}>
                     <IconX size={16} />
                   </ActionIcon>
                 </Group>
@@ -152,8 +154,10 @@ export default function InviteMemberModal() {
       <Divider />
 
       {/* Footer */}
-      <Group justify="flex-end">
-        <Button variant="default">Cancel</Button>
+      <Group justify='flex-end'>
+        <Button variant='default' onClick={() => modals.closeAll()}>
+          Cancel
+        </Button>
         <Button disabled={invitees.length === 0} onClick={handleSubmit}>
           Send Invites
         </Button>

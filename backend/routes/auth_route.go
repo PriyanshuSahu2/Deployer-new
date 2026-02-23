@@ -2,6 +2,7 @@ package routes
 
 import (
 	controllers_auth "backend/controllers/auth"
+	"backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,5 +19,6 @@ func AuthRoutes(r *gin.Engine) {
 		auth.POST("/resend-verification", controllers_auth.ResendVerificationEmail)
 		auth.GET("/github/callback", controllers_auth.GithubCallback)
 		auth.GET("/google/callback", controllers_auth.GoogleCallback)
+		auth.GET("/me", middleware.ValidateRequest(), controllers_auth.GetMe)
 	}
 }

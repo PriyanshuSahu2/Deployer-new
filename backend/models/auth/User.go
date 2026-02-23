@@ -12,6 +12,7 @@ type User struct {
 	Username      string  `gorm:"size:100;" json:"username"`
 	Email         string  `gorm:"unique;not null" json:"email"`
 	EmailVerified bool    `gorm:"default:false" json:"email_verified"`
+	Image         *string `json:"image"`
 	Password      string  `json:"-"`
 	GithubID      *string `gorm:"uniqueIndex" json:"-"`
 	GoogleID      *string `gorm:"uniqueIndex" json:"-"`
