@@ -13,11 +13,20 @@ import { useGetWorkspaceInvites, useInviteMember } from '@/hooks/useMember';
 import { useParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
 
+interface WorkspaceInvite {
+  email: string;
+  role: string;
+  role_uuid: string;
+  status: string;
+  workspace_name?: string;
+  invited_by?: string;
+}
+
 function InviteRow({
   invite,
   workspaceId,
 }: {
-  invite: any;
+  invite: WorkspaceInvite;
   workspaceId: string;
 }) {
   const { mutateAsync: resendInvite, isPending } = useInviteMember();
@@ -34,10 +43,12 @@ function InviteRow({
         message: 'Invite resent successfully',
         color: 'green',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to resend invite';
       notifications.show({
         title: 'Error',
-        message: err.message || 'Failed to resend invite',
+        message,
         color: 'red',
       });
     }
@@ -99,7 +110,7 @@ export default function InvitesList() {
 
   return (
     <Stack gap='xs'>
-      {invites.map((i: any) => (
+      {invites.map((i: WorkspaceInvite) => (
         <InviteRow key={i.email} invite={i} workspaceId={workspaceId} />
       ))}
     </Stack>

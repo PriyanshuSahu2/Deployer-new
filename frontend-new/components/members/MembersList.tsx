@@ -17,11 +17,15 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 
-interface Props {
-  members: any[];
+interface Member {
+  user_uuid: string;
+  name: string;
+  email: string;
+  role: string;
+  joined?: string;
 }
 
-function MemberRow({ member }) {
+function MemberRow({ member }: { member: Member }) {
   return (
     <Paper withBorder p='md' radius='sm'>
       <Group justify='space-between'>
@@ -76,7 +80,7 @@ export default function MembersList() {
   const { data: members = [] } = useGetWorkspaceMembers(workspaceId, true);
   return (
     <Stack gap='xs'>
-      {members.map((m) => (
+      {members.map((m: Member) => (
         <MemberRow key={m.user_uuid} member={m} />
       ))}
     </Stack>
