@@ -20,5 +20,6 @@ func AuthRoutes(r *gin.Engine) {
 		auth.GET("/github/callback", controllers_auth.GithubCallback)
 		auth.GET("/google/callback", controllers_auth.GoogleCallback)
 		auth.GET("/me", middleware.ValidateRequest(), controllers_auth.GetMe)
+		auth.POST("/logout", controllers_auth.Logout)
 	}
 }

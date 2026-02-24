@@ -1,22 +1,24 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 export default async function AppRootPage() {
   const cookieStore = cookies();
 
-  const cookiesHeader = (await cookieStore).toString()
+  const cookiesHeader = (await cookieStore).toString();
 
- 
-
-  const res = await fetch(`${process.env.NEXT_BACKEND_URL}/workspace/default`, {
+  const res = await fetch(`${process.env.BACKEND_URL}/workspace/default`, {
     headers: {
       Cookie: cookiesHeader,
     },
-    cache: "no-store",
+    cache: 'no-store',
   });
 
   if (!res.ok) {
-    redirect("/login");
+    if (res.status === 404) {
+      redirect('/app/onboarding');
+    }
+    // Missing token or other errors should go back to the real login page
+    redirect('/auth/login');
   }
 
   const data = await res.json();

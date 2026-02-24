@@ -82,7 +82,7 @@ func (s *WorkspaceService) ListWorkspaces(userID uint) ([]dtos_workspace.ListWor
 
 func (s *WorkspaceService) GetUserDefaultWorkspace(userID uint) (*dtos_workspace.ListWorkspaceDTO, error) {
 
-	workspace, err := s.WorkspaceRepo.GetLatestOwnedWorkspace(userID)
+	workspace, err := s.WorkspaceRepo.GetFirstAccessibleWorkspace(userID)
 	if err != nil {
 		return nil, err
 	}

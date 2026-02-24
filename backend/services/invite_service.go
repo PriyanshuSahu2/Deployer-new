@@ -159,6 +159,8 @@ func (s *InviteService) mapSingleToDTO(invite models_workspace.WorkspaceInvite) 
 		Email:         invite.Email,
 		WorkspaceName: invite.Workspace.WorkspaceName,
 		Role:          invite.Role.RoleName,
+		RoleUUID:      invite.Role.UUID.String(),
+		Token:         invite.Token,
 		InvitedBy:     invite.Inviter.Username,
 		Status:        status,
 	}

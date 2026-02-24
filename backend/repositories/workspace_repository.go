@@ -58,3 +58,15 @@ func (r *WorkspaceRepository) GetLatestOwnedWorkspace(userID uint) (*models_work
 
 	return &workspace, err
 }
+
+func (r *WorkspaceRepository) GetFirstAccessibleWorkspace(userID uint) (*models_workspace.Workspace, error) {
+	var workspace models_workspace.Workspace
+
+	err := db.DB.
+		Joins("INNER JOIN workspace_members WM on WM.workspace_id = workspaces.id").
+		Where("WM.user_id = ?", userID).
+		Order("workspaces.created_at ASC").
+		First(&workspace).Error
+
+	return &workspace, err
+}

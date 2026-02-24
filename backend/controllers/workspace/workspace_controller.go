@@ -74,6 +74,10 @@ func (wc *WorkspaceController) GetUserDefaultWorkspace(c *gin.Context) {
 
 	workspace, err := wc.Service.GetUserDefaultWorkspace(userID)
 	if err != nil {
+		if err.Error() == "record not found" || err.Error() == "workspace not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No workspaces found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

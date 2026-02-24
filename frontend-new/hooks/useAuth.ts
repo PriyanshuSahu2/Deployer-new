@@ -2,6 +2,7 @@ import {
   forgotPassword,
   getMe,
   login,
+  logout,
   register,
   resetPassword,
 } from '@/service/auth';
@@ -10,6 +11,12 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 export const useLogin = () => {
   return useMutation({
     mutationFn: login,
+  });
+};
+
+export const useLogout = () => {
+  return useMutation({
+    mutationFn: logout,
   });
 };
 

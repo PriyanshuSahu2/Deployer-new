@@ -29,13 +29,24 @@ import {
 } from '@tabler/icons-react';
 
 import InvitesModal from '@/components/modals/InvitesModal';
-import { useGetMe } from '@/hooks/useAuth';
+import { useGetMe, useLogout } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const { toggleColorScheme } = useMantineColorScheme();
   const colorScheme = useComputedColorScheme('light');
   const isDark = colorScheme === 'dark';
+  const router = useRouter();
   const { data: me, isLoading: meLoading } = useGetMe();
+  const logoutMutation = useLogout();
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSettled: () => {
+        router.push('/auth/login');
+      },
+    });
+  };
 
   const displayName = me?.username ?? 'Unknown User';
   const displayEmail = me?.email ?? 'No email';
@@ -256,7 +267,8 @@ export default function Header() {
             <Menu.Item
               color='red'
               leftSection={<IconLogout size={15} stroke={1.75} />}
-              style={{ fontSize: 13 }}>
+              style={{ fontSize: 13 }}
+              onClick={handleLogout}>
               Logout
             </Menu.Item>
           </Menu.Dropdown>
