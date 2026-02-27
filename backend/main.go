@@ -7,8 +7,12 @@ import (
 	models_permission "backend/models/permission"
 	models_role "backend/models/role"
 	models_workspace "backend/models/workspace"
+	"backend/rabbitmq"
 	"backend/routes"
+	"backend/services"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -41,18 +45,33 @@ func main() {
 	}))
 	db.ConnectToDB()
 
+	rabbitURL := os.Getenv("RABBITMQ_URL")
+
+	rmq, err := rabbitmq.NewRabbitMQ(rabbitURL)
+
+	if err != nil {
+		log.Fatal("Failed to connect to RabbitMQ:", err)
+	}
+	err = rmq.DeclareTopology()
+	if err != nil {
+		log.Fatal("Failed to declare topology:", err)
+	}
+	emailService := services.NewEmailService(rmq)
+
+	defer rmq.Close()
 	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{}, &models_workspace.Workspace{}, &models_workspace.WorkspaceMember{},
 		&models_permission.Permission{}, &models_role.Role{}, &models_workspace.WorkspaceInvite{},
 	)
 
-	routes.AuthRoutes(r)
-	routes.WorkspaceRoutes(r)
-	routes.RoleRoutes(r)
-	routes.InviteRoutes(r)
-	routes.MemberRoutes(r)
+	routes.AuthRoutes(r, emailService)
+	routes.WorkspaceRoutes(r, emailService)
+	routes.RoleRoutes(r, emailService)
+	routes.InviteRoutes(r, emailService)
+	routes.MemberRoutes(r, emailService)
 
 	// routes.ProjectRoute(r)
 	r.GET("/", func(ctx *gin.Context) {
+
 		ctx.JSON(http.StatusOK, gin.H{
 			"status":  200,
 			"message": "Working",

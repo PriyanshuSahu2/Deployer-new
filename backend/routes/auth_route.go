@@ -3,23 +3,26 @@ package routes
 import (
 	controllers_auth "backend/controllers/auth"
 	"backend/middleware"
+	"backend/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthRoutes(r *gin.Engine) {
+func AuthRoutes(r *gin.Engine, emailService *services.EmailService) {
+	authController := controllers_auth.NewAuthController(emailService)
+
 	auth := r.Group("/auth")
 	{
-		auth.POST("/login", controllers_auth.Login)
-		auth.POST("/register", controllers_auth.Register)
-		auth.POST("/refresh-token", controllers_auth.RefreshController)
-		auth.POST("/forgot-password", controllers_auth.ForgotPassword)
-		auth.POST("/reset-password", controllers_auth.ResetPassword)
-		auth.POST("/verify-email", controllers_auth.VerifyEmail)
-		auth.POST("/resend-verification", controllers_auth.ResendVerificationEmail)
-		auth.GET("/github/callback", controllers_auth.GithubCallback)
-		auth.GET("/google/callback", controllers_auth.GoogleCallback)
-		auth.GET("/me", middleware.ValidateRequest(), controllers_auth.GetMe)
-		auth.POST("/logout", controllers_auth.Logout)
+		auth.POST("/login", authController.Login)
+		auth.POST("/register", authController.Register)
+		auth.POST("/refresh-token", authController.RefreshController)
+		auth.POST("/forgot-password", authController.ForgotPassword)
+		auth.POST("/reset-password", authController.ResetPassword)
+		auth.POST("/verify-email", authController.VerifyEmail)
+		auth.POST("/resend-verification", authController.ResendVerificationEmail)
+		auth.GET("/github/callback", authController.GithubCallback)
+		auth.GET("/google/callback", authController.GoogleCallback)
+		auth.GET("/me", middleware.ValidateRequest(), authController.GetMe)
+		auth.POST("/logout", authController.Logout)
 	}
 }

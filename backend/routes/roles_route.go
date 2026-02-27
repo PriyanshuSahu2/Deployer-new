@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RoleRoutes(r *gin.Engine) {
+func RoleRoutes(r *gin.Engine, emailService *services.EmailService) {
 
 	roleRepo := repositories.NewRoleRepository()
 	workspaceRepo := repositories.NewWorkspaceRepository()

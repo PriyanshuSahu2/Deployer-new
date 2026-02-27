@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InviteRoutes(r *gin.Engine) {
+func InviteRoutes(r *gin.Engine, emailService *services.EmailService) {
 
 	inviteRepo := repositories.NewInviteRepository()
 	memberRepo := repositories.NewMemberRepository()

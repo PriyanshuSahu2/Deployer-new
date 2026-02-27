@@ -13,7 +13,7 @@ import (
 // @Produce json
 // @Success 200 {object} map[string]string
 // @Router /auth/logout [post]
-func Logout(c *gin.Context) {
+func (a *AuthController) Logout(c *gin.Context) {
 	c.SetCookie(
 		"access_token",
 		"",

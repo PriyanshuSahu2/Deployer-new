@@ -2,6 +2,7 @@ package services
 
 import (
 	"backend/config"
+	"backend/rabbitmq"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -10,11 +11,13 @@ import (
 
 type EmailService struct {
 	config *config.EmailConfig
+	rmq    *rabbitmq.RabbitMQ
 }
 
-func NewEmailService() *EmailService {
+func NewEmailService(rmq *rabbitmq.RabbitMQ) *EmailService {
 	return &EmailService{
 		config: config.GetEmailConfig(),
+		rmq:    rmq,
 	}
 }
 
@@ -37,7 +40,16 @@ func (s *EmailService) SendEmail(to, subject, htmlBody string) error {
 	addr := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
 	return smtp.SendMail(addr, auth, s.config.FromEmail, []string{to}, []byte(message))
 }
+func (s *EmailService) QueueEmail(to, subject, htmlBody string) error {
+	message := map[string]interface{}{
+		"type":     "generic",
+		"to":       to,
+		"subject":  subject,
+		"htmlBody": htmlBody,
+	}
 
+	return s.rmq.PublishEmail(message)
+}
 func (s *EmailService) SendWelcomeEmail(to, username string) error {
 	subject := "Welcome to Our Platform!"
 	tmpl := `
@@ -83,7 +95,7 @@ func (s *EmailService) SendWelcomeEmail(to, username string) error {
 		return err
 	}
 
-	return s.SendEmail(to, subject, body.String())
+	return s.QueueEmail(to, subject, body.String())
 }
 
 func (s *EmailService) SendLoginNotification(to, username, ipAddress, userAgent string) error {
@@ -145,7 +157,7 @@ func (s *EmailService) SendLoginNotification(to, username, ipAddress, userAgent 
 		return err
 	}
 
-	return s.SendEmail(to, subject, body.String())
+	return s.QueueEmail(to, subject, body.String())
 }
 
 func (s *EmailService) SendPasswordResetOTP(to, username, otp string) error {
@@ -207,7 +219,7 @@ func (s *EmailService) SendPasswordResetOTP(to, username, otp string) error {
 		return err
 	}
 
-	return s.SendEmail(to, subject, body.String())
+	return s.QueueEmail(to, subject, body.String())
 }
 
 func (s *EmailService) SendEmailVerification(to, username, verificationLink string) error {
@@ -265,7 +277,7 @@ func (s *EmailService) SendEmailVerification(to, username, verificationLink stri
 		return err
 	}
 
-	return s.SendEmail(to, subject, body.String())
+	return s.QueueEmail(to, subject, body.String())
 }
 
 func (s *EmailService) SendWorkspaceInvitation(to, inviterName, workspaceName, invitationLink string) error {
@@ -293,6 +305,6 @@ func (s *EmailService) SendWorkspaceInvitation(to, inviterName, workspaceName, i
 
 		return err
 	}
-	return s.SendEmail(to, subject, body.String())
+	return s.QueueEmail(to, subject, body.String())
 
 }

@@ -4,7 +4,6 @@ import (
 	"backend/db"
 	dtos_auth "backend/dtos/auth"
 	models_auth "backend/models/auth"
-	"backend/services"
 	"backend/utils"
 	"net/http"
 	"time"
@@ -23,7 +22,7 @@ import (
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/forgot-password [post]
-func ForgotPassword(c *gin.Context) {
+func (a *AuthController) ForgotPassword(c *gin.Context) {
 	var body dtos_auth.ForgotPasswordDTO
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -64,8 +63,7 @@ func ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	emailService := services.NewEmailService()
-	go emailService.SendPasswordResetOTP(body.Email, user.Username, otp)
+	go a.emailService.SendPasswordResetOTP(body.Email, user.Username, otp)
 
 	c.JSON(http.StatusOK, gin.H{"message": "OTP has been sent to your email"})
 }
@@ -80,7 +78,7 @@ func ForgotPassword(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/reset-password [post]
-func ResetPassword(c *gin.Context) {
+func (a *AuthController) ResetPassword(c *gin.Context) {
 	var body dtos_auth.ResetPasswordDTO
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -125,7 +123,7 @@ func ResetPassword(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/verify-email [post]
-func VerifyEmail(c *gin.Context) {
+func (a *AuthController) VerifyEmail(c *gin.Context) {
 	var body dtos_auth.VerifyEmailDTO
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -164,7 +162,7 @@ func VerifyEmail(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/resend-verification [post]
-func ResendVerificationEmail(c *gin.Context) {
+func (a *AuthController) ResendVerificationEmail(c *gin.Context) {
 	var body dtos_auth.ForgotPasswordDTO
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -202,8 +200,7 @@ func ResendVerificationEmail(c *gin.Context) {
 
 	verificationLink := "http://localhost:5173/auth/verify-email?token=" + token
 
-	emailService := services.NewEmailService()
-	go emailService.SendEmailVerification(body.Email, user.Username, verificationLink)
+	go a.emailService.SendEmailVerification(body.Email, user.Username, verificationLink)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Verification email has been sent"})
 }

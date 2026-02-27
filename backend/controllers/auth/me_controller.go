@@ -16,7 +16,7 @@ import (
 // @Success 200 {object} map[string]interface{}
 // @Failure 401 {object} map[string]string
 // @Router /auth/me [get]
-func GetMe(c *gin.Context) {
+func (a *AuthController) GetMe(c *gin.Context) {
 	userIDRaw, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})

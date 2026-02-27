@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func MemberRoutes(r *gin.Engine) {
+func MemberRoutes(r *gin.Engine, emailService *services.EmailService) {
 
 	memberRepo := repositories.NewMemberRepository()
 	workspaceRepo := repositories.NewWorkspaceRepository()

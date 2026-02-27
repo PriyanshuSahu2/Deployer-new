@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RefreshController(c *gin.Context) {
+func (a *AuthController) RefreshController(c *gin.Context) {
 	token, err := c.Cookie("refresh_token")
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Cookie 'my_cookie' not found"})

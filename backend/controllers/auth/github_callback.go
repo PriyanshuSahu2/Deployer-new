@@ -19,7 +19,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetGithubUserProfile(accessToken string) (dtos_oauth.GithubUserProfile, error) {
+func getGithubUserProfile(accessToken string) (dtos_oauth.GithubUserProfile, error) {
 	var result dtos_oauth.GithubUserProfile
 	client := &http.Client{}
 
@@ -43,7 +43,7 @@ func GetGithubUserProfile(accessToken string) (dtos_oauth.GithubUserProfile, err
 	return result, nil
 }
 
-func GetGithubUserEmail(accessToken string) (dtos_oauth.GitHubEmail, error) {
+func getGithubUserEmail(accessToken string) (dtos_oauth.GitHubEmail, error) {
 	var result dtos_oauth.GitHubEmail
 	client := &http.Client{}
 
@@ -70,7 +70,7 @@ func GetGithubUserEmail(accessToken string) (dtos_oauth.GitHubEmail, error) {
 
 	return found_email, nil
 }
-func GenerateGithubToken(state string, code string) (string, error) {
+func generateGithubToken(state string, code string) (string, error) {
 	body := map[string]string{
 		"client_id":     os.Getenv("GITHUB_CLIENT_ID"),
 		"client_secret": os.Getenv("GITHUB_CLIENT_SECRET"),
@@ -117,26 +117,26 @@ func GenerateGithubToken(state string, code string) (string, error) {
 	return githubAccessToken, nil
 }
 
-func GithubCallback(c *gin.Context) {
+func (a *AuthController) GithubCallback(c *gin.Context) {
 	state := c.Query("state")
 	code := c.Query("code")
 	if state == "" || code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Authentication Failed"})
 		return
 	}
-	githubAccessToken, err := GenerateGithubToken(state, code)
+	githubAccessToken, err := generateGithubToken(state, code)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userProfile, err := GetGithubUserProfile(githubAccessToken)
+	userProfile, err := getGithubUserProfile(githubAccessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error Retrieving user profile"})
 		return
 	}
 
-	emailDetails, err := GetGithubUserEmail(githubAccessToken)
+	emailDetails, err := getGithubUserEmail(githubAccessToken)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error Retrieving user email"})

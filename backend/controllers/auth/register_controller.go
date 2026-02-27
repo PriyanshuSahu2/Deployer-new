@@ -25,7 +25,7 @@ import (
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/register [post]
-func Register(c *gin.Context) {
+func (a *AuthController) Register(c *gin.Context) {
 	var userBody dtos_auth.RegisterDTO
 	var newUser models_auth.User
 	if err := c.ShouldBindJSON(&userBody); err != nil {
@@ -75,8 +75,8 @@ func Register(c *gin.Context) {
 			frontendURL = "http://localhost:5173"
 		}
 		verificationLink := frontendURL + "/auth/verify-email?token=" + token
-		emailService := services.NewEmailService()
-		go emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
+
+		go a.emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
 	}
 	workspaceRepo := repositories.NewWorkspaceRepository()
 	memberRepo := repositories.NewMemberRepository()
@@ -103,8 +103,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	emailService := services.NewEmailService()
-	go emailService.SendWelcomeEmail(newUser.Email, newUser.Username)
+	go a.emailService.SendWelcomeEmail(newUser.Email, newUser.Username)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User created successfully. Please check your email to verify your account.",

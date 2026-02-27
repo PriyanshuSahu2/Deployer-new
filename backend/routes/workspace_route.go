@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func WorkspaceRoutes(r *gin.Engine) {
+func WorkspaceRoutes(r *gin.Engine, emailService *services.EmailService) {
 
 	workspaceRepo := repositories.NewWorkspaceRepository()
 	memberRepo := repositories.NewMemberRepository()
@@ -23,7 +23,6 @@ func WorkspaceRoutes(r *gin.Engine) {
 		memberRepo,
 	)
 
-	emailService := services.NewEmailService()
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,

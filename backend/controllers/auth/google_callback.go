@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func GoogleCallback(c *gin.Context) {
+func (a *AuthController) GoogleCallback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
 

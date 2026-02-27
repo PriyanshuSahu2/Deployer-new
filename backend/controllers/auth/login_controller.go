@@ -4,7 +4,6 @@ import (
 	"backend/db"
 	dtos_auth "backend/dtos/auth"
 	models_auth "backend/models/auth"
-	"backend/services"
 	"backend/utils"
 	"errors"
 	"fmt"
@@ -26,7 +25,7 @@ import (
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /auth/login [post]
-func Login(c *gin.Context) {
+func (a *AuthController) Login(c *gin.Context) {
 	var userBody dtos_auth.LoginDTO
 	var foundUser models_auth.User
 
@@ -69,8 +68,7 @@ func Login(c *gin.Context) {
 				frontendURL = "http://localhost:5173/auth"
 			}
 			verificationLink := frontendURL + "/verify-email?token=" + token
-			emailService := services.NewEmailService()
-			go emailService.SendEmailVerification(foundUser.Email, foundUser.Username, verificationLink)
+			go a.emailService.SendEmailVerification(foundUser.Email, foundUser.Username, verificationLink)
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Account not verified. Please check your email for the verification link.",
@@ -116,8 +114,7 @@ func Login(c *gin.Context) {
 
 	ipAddress := c.ClientIP()
 	userAgent := c.Request.UserAgent()
-	emailService := services.NewEmailService()
-	go emailService.SendLoginNotification(foundUser.Email, foundUser.Username, ipAddress, userAgent)
+	go a.emailService.SendLoginNotification(foundUser.Email, foundUser.Username, ipAddress, userAgent)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
