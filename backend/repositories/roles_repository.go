@@ -16,7 +16,12 @@ func (r *RoleRepository) Create(role *models_role.Role) error {
 }
 
 func (r *RoleRepository) Update(role *models_role.Role) error {
-	return db.DB.Save(role).Error
+	return db.DB.Model(&models_role.Role{}).
+		Where("id = ?", role.ID).
+		Updates(map[string]interface{}{
+			"role_name":   role.RoleName,
+			"description": role.Description,
+		}).Error
 }
 
 func (r *RoleRepository) GetByUUID(uuid *string) (*models_role.Role, error) {
@@ -32,4 +37,8 @@ func (r *RoleRepository) GetWorkspaceAndSystemRoles(workspaceID uint) ([]models_
 		Find(&roles).Error
 
 	return roles, err
+}
+
+func (r *RoleRepository) Delete(role *models_role.Role) error {
+	return db.DB.Delete(role).Error
 }

@@ -6,8 +6,12 @@ import (
 )
 
 type WorkspacePermission struct {
-	RoleID       uint                         `gorm:"index"`
+	RoleID       uint                         `gorm:"primaryKey;type:bigint"`
 	Role         models_role.Role             `gorm:"foreignKey:RoleID" json:"-"`
-	PermissionID uint                         `gorm:"index"`
+	PermissionID uint                         `gorm:"primaryKey;type:bigint"`
 	Permission   models_permission.Permission `gorm:"foreignKey:PermissionID" json:"-"`
+}
+
+func (WorkspacePermission) TableName() string {
+	return "workspace_permissions"
 }

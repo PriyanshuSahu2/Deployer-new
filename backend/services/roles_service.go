@@ -25,7 +25,7 @@ func NewRoleService(
 
 func (s *RoleService) CreateRole(userID uint, dto dtos_roles.CreateRoleDTO) error {
 
-	workspace, err := s.WorkspaceRepo.GetByID(dto.WorkspaceID)
+	workspace, err := s.WorkspaceRepo.GetByUUID(dto.WorkspaceUUID)
 	if err != nil {
 		return errors.New("workspace not found")
 	}
@@ -35,6 +35,7 @@ func (s *RoleService) CreateRole(userID uint, dto dtos_roles.CreateRoleDTO) erro
 
 	role := models_role.Role{
 		RoleName:    dto.RoleName,
+		Description: dto.Description,
 		WorkspaceID: &workspace.ID,
 		CreatedByID: userID,
 	}
@@ -52,6 +53,7 @@ func (s *RoleService) UpdateRole(userID uint, dto dtos_roles.UpdateRoleDTO) erro
 	// 🔐 RBAC check later
 
 	role.RoleName = dto.RoleName
+	role.Description = dto.Description
 	return s.RoleRepo.Update(role)
 }
 
@@ -72,14 +74,29 @@ func (s *RoleService) ListRoles(userID uint, workspaceUUID string) ([]dtos_roles
 	return s.mapToDTO(roles), nil
 }
 
+func (s *RoleService) DeleteRole(userID uint, roleUUID string) error {
+	role, err := s.RoleRepo.GetByUUID(&roleUUID)
+	if err != nil {
+		return errors.New("role not found")
+	}
+
+	if role.IsSystem {
+		return errors.New("system roles cannot be deleted")
+	}
+
+	return s.RoleRepo.Delete(role)
+}
+
 func (s *RoleService) mapToDTO(roles []models_role.Role) []dtos_roles.RoleResponseDTO {
 	response := make([]dtos_roles.RoleResponseDTO, len(roles))
 
 	for i, role := range roles {
 		response[i] = dtos_roles.RoleResponseDTO{
-			UUID:      role.UUID,
-			RoleName:  role.RoleName,
-			CreatedAt: role.CreatedAt.Format("2006-01-02 15:04:05"),
+			UUID:        role.UUID,
+			RoleName:    role.RoleName,
+			Description: role.Description,
+			IsSystem:    role.IsSystem,
+			CreatedAt:   role.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 	}
 

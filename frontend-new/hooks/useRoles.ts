@@ -1,4 +1,10 @@
-import { createRole, getRoles, updateRole } from '@/service/role';
+import {
+  createRole,
+  deleteRole,
+  getRoles,
+  updateRole,
+  type UpdateRolePayload,
+} from '@/service/role';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Role } from '@/types/role';
 
@@ -14,8 +20,8 @@ export const useGetRoles = (workspaceUuid: string, enabled = false) => {
 export const useCreateRole = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (role: Omit<Role, 'uuid' | 'created_at'>) =>
-      createRole(role as Role),
+    mutationFn: (role: Pick<Role, 'role_name' | 'description'>) =>
+      createRole({ ...role, workspace_uuid: workspaceUuid }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles', workspaceUuid] });
     },
@@ -25,7 +31,17 @@ export const useCreateRole = (workspaceUuid: string) => {
 export const useUpdateRole = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (role: Role) => updateRole(role),
+    mutationFn: (role: UpdateRolePayload) => updateRole(role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles', workspaceUuid] });
+    },
+  });
+};
+
+export const useDeleteRole = (workspaceUuid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (roleUuid: string) => deleteRole(roleUuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles', workspaceUuid] });
     },

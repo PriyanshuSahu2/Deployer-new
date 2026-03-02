@@ -69,7 +69,11 @@ export default function EditRoleDrawer({
   const handleSubmit = form.onSubmit(async (values) => {
     try {
       if (isEditing && role) {
-        await update({ ...role, ...values });
+        await update({
+          uuid: role.uuid,
+          role_name: values.role_name,
+          description: values.description,
+        });
         notifications.show({
           title: 'Role updated',
           message: `"${values.role_name}" has been updated.`,
@@ -77,7 +81,7 @@ export default function EditRoleDrawer({
           icon: <IconCheck size={16} />,
         });
       } else {
-        await create(values as Omit<Role, 'uuid' | 'created_at'>);
+        await create(values);
         notifications.show({
           title: 'Role created',
           message: `"${values.role_name}" has been created.`,

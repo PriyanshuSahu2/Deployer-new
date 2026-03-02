@@ -7,10 +7,14 @@ import (
 )
 
 type Permission struct {
-	ID          uint   `gorm:"primaryKey"`
-	Key         string `gorm:"type:varchar(100);uniqueIndex;not null"`
+	ID          uint   `gorm:"primaryKey;autoIncrement;type:bigint"`
+	Key         string `gorm:"type:text;uniqueIndex;not null"`
 	Description string `gorm:"type:text"`
 	IsSystem    bool   `gorm:"default:true"`
 	CreatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
+}
+
+func (Permission) TableName() string {
+	return "role_permissions"
 }

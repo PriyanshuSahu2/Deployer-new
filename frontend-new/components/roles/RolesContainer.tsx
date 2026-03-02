@@ -16,24 +16,25 @@ import {
   ThemeIcon,
   Tooltip,
   Collapse,
-  Transition,
 } from '@mantine/core';
 import {
   IconSearch,
   IconPlus,
   IconPencil,
+  IconTrash,
   IconShield,
   IconX,
   IconChevronDown,
   IconChevronRight,
 } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useGetRoles } from '@/hooks/useRoles';
+import { useDeleteRole, useGetRoles } from '@/hooks/useRoles';
 import { Role } from '@/types/role';
 import EditRoleDrawer from './EditRoleDrawer';
 import PermissionsMatrix from './PermissionsMatrix';
 import dayjs from 'dayjs';
 import classes from './RolesContainer.module.css';
+import { notifications } from '@mantine/notifications';
 
 interface Props {
   workspaceId: string;
@@ -42,11 +43,16 @@ interface Props {
 function RoleRow({
   role,
   onEdit,
+  onDelete,
+  isDeleting,
 }: {
   role: Role;
   onEdit: (role: Role) => void;
+  onDelete: (role: Role) => void;
+  isDeleting: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const isCustom = !role.is_system;
 
   return (
     <>
@@ -96,8 +102,12 @@ function RoleRow({
 
         {/* Type */}
         <Table.Td onClick={(e) => e.stopPropagation()}>
-          <Badge variant='light' color='indigo' size='sm' radius='sm'>
-            Custom
+          <Badge
+            variant='light'
+            color={isCustom ? 'indigo' : 'gray'}
+            size='sm'
+            radius='sm'>
+            {isCustom ? 'Custom' : 'System'}
           </Badge>
         </Table.Td>
 
@@ -112,7 +122,7 @@ function RoleRow({
 
         {/* Actions */}
         <Table.Td onClick={(e) => e.stopPropagation()}>
-          <Group gap={4} justify='flex-end'>
+          <Group gap={4} justify='flex-end' wrap='nowrap'>
             <Tooltip label='Edit role' withArrow position='top' fz='xs'>
               <ActionIcon
                 variant='subtle'
@@ -125,6 +135,21 @@ function RoleRow({
                 <IconPencil size={14} />
               </ActionIcon>
             </Tooltip>
+            {isCustom && (
+              <Tooltip label='Delete role' withArrow position='top' fz='xs'>
+                <ActionIcon
+                  variant='subtle'
+                  color='red'
+                  size='sm'
+                  loading={isDeleting}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(role);
+                  }}>
+                  <IconTrash size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
           </Group>
         </Table.Td>
       </Table.Tr>
@@ -145,6 +170,8 @@ function RoleRow({
 
 export default function RolesContainer({ workspaceId }: Props) {
   const { data: roles = [], isLoading } = useGetRoles(workspaceId, true);
+  const { mutateAsync: removeRole, isPending: isDeleting } =
+    useDeleteRole(workspaceId);
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -163,6 +190,28 @@ export default function RolesContainer({ workspaceId }: Props) {
   const openEdit = (role: Role) => {
     setSelectedRole(role);
     setDrawerOpen(true);
+  };
+
+  const handleDelete = async (role: Role) => {
+    if (role.is_system) return;
+
+    const confirmed = window.confirm(
+      `Delete role "${role.role_name}"? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await removeRole(role.uuid);
+      notifications.show({
+        title: 'Role deleted',
+        message: `"${role.role_name}" has been deleted.`,
+        color: 'teal',
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to delete role';
+      notifications.show({ title: 'Error', message, color: 'red' });
+    }
   };
 
   const skeletonRows = Array.from({ length: 4 }).map((_, i) => (
@@ -247,14 +296,20 @@ export default function RolesContainer({ workspaceId }: Props) {
                     Created
                   </Text>
                 </Table.Th>
-                <Table.Th style={{ width: '7%' }} />
+                <Table.Th style={{ width: '9%' }} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {isLoading
                 ? skeletonRows
                 : filtered.map((role: Role) => (
-                    <RoleRow key={role.uuid} role={role} onEdit={openEdit} />
+                    <RoleRow
+                      key={role.uuid}
+                      role={role}
+                      onEdit={openEdit}
+                      onDelete={handleDelete}
+                      isDeleting={isDeleting}
+                    />
                   ))}
             </Table.Tbody>
           </Table>

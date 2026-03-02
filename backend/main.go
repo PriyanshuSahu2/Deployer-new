@@ -60,7 +60,7 @@ func main() {
 
 	defer rmq.Close()
 	db.DB.AutoMigrate(&models_auth.User{}, &models_oauth.OAuthToken{}, &models_auth.OTP{}, &models_workspace.Workspace{}, &models_workspace.WorkspaceMember{},
-		&models_permission.Permission{}, &models_role.Role{}, &models_workspace.WorkspaceInvite{},
+		&models_permission.Permission{}, &models_role.Role{}, &models_workspace.WorkspaceInvite{}, &models_workspace.WorkspacePermission{},
 	)
 
 	routes.AuthRoutes(r, emailService)

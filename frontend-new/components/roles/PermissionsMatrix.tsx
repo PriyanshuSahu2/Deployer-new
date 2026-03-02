@@ -7,7 +7,6 @@ import {
   Text,
   ThemeIcon,
   Group,
-  Badge,
 } from '@mantine/core';
 import {
   IconCube,
@@ -159,8 +158,8 @@ export default function PermissionsMatrix({ roleUuid: _ }: Props) {
             {ACTIONS.map((action) => (
               <Table.Th
                 key={action}
-                style={{ width: '15%', textAlign: 'center' }}>
-                <Group justify='center' gap={6}>
+                style={{ width: '15%', textAlign: 'left' }}>
+                <Group justify='flex-start' gap={6} wrap='nowrap'>
                   <Checkbox
                     size='xs'
                     checked={allChecked(action)}
@@ -195,8 +194,8 @@ export default function PermissionsMatrix({ roleUuid: _ }: Props) {
                 </Group>
               </Table.Td>
               {ACTIONS.map((action) => (
-                <Table.Td key={action} style={{ textAlign: 'center' }}>
-                  <Group justify='center'>
+                <Table.Td key={action} style={{ textAlign: 'left' }}>
+                  <Group justify='flex-start'>
                     <Checkbox
                       size='xs'
                       checked={row.permissions[action]}

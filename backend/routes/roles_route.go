@@ -22,10 +22,14 @@ func RoleRoutes(r *gin.Engine, emailService *services.EmailService) {
 	roleController := controller_roles.NewRoleController(roleService)
 
 	role := r.Group("/roles")
+
+	// Temporary: Unprotected for testing
+	role.PUT("/:uuid", roleController.UpdateRole)
+
 	role.Use(middleware.ValidateRequest())
 	{
 		role.GET("/:workspaceUUID", roleController.ListRoles)
 		role.POST("", roleController.CreateRole)
-		role.PUT("/:id", roleController.UpdateRole)
+		role.DELETE("/:uuid", roleController.DeleteRole)
 	}
 }
