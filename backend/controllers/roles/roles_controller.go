@@ -80,3 +80,10 @@ func (rc *RoleController) DeleteRole(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Role Deleted Successfully"})
 }
+
+func (rc *RoleController) AssignPermission(c *gin.Context) {
+//bulk 
+
+//single
+}
+// project:read project:write project:update project:delete 
