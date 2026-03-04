@@ -16,6 +16,3 @@ type Permission struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
 
-func (Permission) TableName() string {
-	return "role_permissions"
-}
