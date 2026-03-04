@@ -2,6 +2,7 @@
 
 import {
   Box,
+  Button,
   Checkbox,
   Table,
   Text,
@@ -99,7 +100,8 @@ interface Props {
   roleUuid: string;
 }
 
-export default function PermissionsMatrix({ roleUuid: _ }: Props) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function PermissionsMatrix({ roleUuid }: Props) {
   const [rows, setRows] = useState<PermissionRow[]>(DEFAULT_PERMISSIONS);
 
   const toggle = (key: string, action: Action) => {
@@ -146,10 +148,10 @@ export default function PermissionsMatrix({ roleUuid: _ }: Props) {
         style={{ tableLayout: 'fixed' }}>
         <Table.Thead>
           <Table.Tr
-            style={(theme) => ({
+            style={{
               backgroundColor:
                 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7))',
-            })}>
+            }}>
             <Table.Th style={{ width: '40%', paddingLeft: 48 }}>
               <Text size='xs' fw={600} tt='uppercase' c='dimmed'>
                 General
@@ -179,12 +181,12 @@ export default function PermissionsMatrix({ roleUuid: _ }: Props) {
           {rows.map((row) => (
             <Table.Tr
               key={row.key}
-              style={(theme) => ({
+              style={{
                 '&:hover': {
                   backgroundColor:
                     'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
                 },
-              })}>
+              }}>
               <Table.Td style={{ paddingLeft: 48 }}>
                 <Group gap='xs' wrap='nowrap'>
                   <ThemeIcon size='xs' variant='transparent' c='dimmed'>
@@ -209,6 +211,25 @@ export default function PermissionsMatrix({ roleUuid: _ }: Props) {
           ))}
         </Table.Tbody>
       </Table>
+
+      {/* Save / Cancel action bar */}
+      <Group
+        justify='flex-end'
+        gap='sm'
+        px='md'
+        py='sm'
+        style={(theme) => ({
+          borderTop: `1px solid light-dark(${theme.colors.gray[2]}, ${theme.colors.dark[5]})`,
+          backgroundColor:
+            'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
+        })}>
+        <Button variant='default' size='xs' radius='sm'>
+          Cancel
+        </Button>
+        <Button size='xs' radius='sm'>
+          Save
+        </Button>
+      </Group>
     </Box>
   );
 }
