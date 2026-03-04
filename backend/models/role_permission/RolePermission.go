@@ -3,6 +3,9 @@ package models_role_permission
 import (
 	models_permission "backend/models/permission"
 	models_role "backend/models/role"
+	"time"
+
+	"gorm.io/gorm"
 )
 
 type RolePermission struct {
@@ -10,4 +13,7 @@ type RolePermission struct {
 	Role         models_role.Role             `gorm:"foreignKey:RoleID" json:"-"`
 	PermissionID uint                         `gorm:"primaryKey;type:bigint"`
 	Permission   models_permission.Permission `gorm:"foreignKey:PermissionID" json:"-"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt `gorm:"index" swaggerignore:"true"`
 }
