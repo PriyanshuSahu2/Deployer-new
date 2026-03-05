@@ -22,18 +22,13 @@ import {
 } from '@tabler/icons-react';
 import { useState } from 'react';
 
-export type CRUDMap = {
-  create: boolean;
-  read: boolean;
-  update: boolean;
-  delete: boolean;
-};
+export type PermissionMap = Record<string, boolean>;
 
 export type PermissionRow = {
   key: string;
   label: string;
   icon: React.ReactNode;
-  permissions: CRUDMap;
+  permissions: PermissionMap;
 };
 
 const DEFAULT_PERMISSIONS: PermissionRow[] = [
@@ -93,8 +88,24 @@ const DEFAULT_PERMISSIONS: PermissionRow[] = [
   },
 ];
 
-type Action = 'create' | 'read' | 'update' | 'delete';
-const ACTIONS: Action[] = ['create', 'read', 'update', 'delete'];
+const formatActionLabel = (action: string) =>
+  action
+    .replace(/[_-]/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const getActionColumns = (rows: PermissionRow[]) => {
+  const actions: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    for (const action of Object.keys(row.permissions)) {
+      if (!seen.has(action)) {
+        seen.add(action);
+        actions.push(action);
+      }
+    }
+  }
+  return actions;
+};
 
 interface Props {
   roleUuid: string;
@@ -103,11 +114,15 @@ interface Props {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function PermissionsMatrix({ roleUuid }: Props) {
   const [rows, setRows] = useState<PermissionRow[]>(DEFAULT_PERMISSIONS);
+  const actions = getActionColumns(rows);
 
-  const toggle = (key: string, action: Action) => {
+  const hasAction = (row: PermissionRow, action: string) =>
+    Object.prototype.hasOwnProperty.call(row.permissions, action);
+
+  const toggle = (key: string, action: string) => {
     setRows((prev) =>
       prev.map((r) =>
-        r.key === key
+        r.key === key && hasAction(r, action)
           ? {
               ...r,
               permissions: {
@@ -120,20 +135,33 @@ export default function PermissionsMatrix({ roleUuid }: Props) {
     );
   };
 
-  const toggleAll = (action: Action) => {
-    const allChecked = rows.every((r) => r.permissions[action]);
+  const toggleAll = (action: string) => {
+    const applicableRows = rows.filter((r) => hasAction(r, action));
+    if (!applicableRows.length) return;
+
+    const actionAllChecked = applicableRows.every((r) => r.permissions[action]);
     setRows((prev) =>
       prev.map((r) => ({
         ...r,
-        permissions: { ...r.permissions, [action]: !allChecked },
+        permissions: hasAction(r, action)
+          ? { ...r.permissions, [action]: !actionAllChecked }
+          : r.permissions,
       })),
     );
   };
 
-  const allChecked = (action: Action) =>
-    rows.every((r) => r.permissions[action]);
-  const someChecked = (action: Action) =>
-    rows.some((r) => r.permissions[action]) && !allChecked(action);
+  const allChecked = (action: string) => {
+    const applicableRows = rows.filter((r) => hasAction(r, action));
+    if (!applicableRows.length) return false;
+    return applicableRows.every((r) => r.permissions[action]);
+  };
+  const someChecked = (action: string) => {
+    const applicableRows = rows.filter((r) => hasAction(r, action));
+    if (!applicableRows.length) return false;
+    return (
+      applicableRows.some((r) => r.permissions[action]) && !allChecked(action)
+    );
+  };
 
   return (
     <Box
@@ -141,36 +169,38 @@ export default function PermissionsMatrix({ roleUuid }: Props) {
         borderTop: `1px solid ${theme.colors.gray[2]}`,
         backgroundColor:
           'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
+        overflowX: 'auto',
       })}>
       <Table
         horizontalSpacing='md'
         verticalSpacing='xs'
-        style={{ tableLayout: 'fixed' }}>
+        style={{ minWidth: Math.max(640, 260 + actions.length * 120) }}>
         <Table.Thead>
           <Table.Tr
             style={{
               backgroundColor:
                 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7))',
             }}>
-            <Table.Th style={{ width: '40%', paddingLeft: 48 }}>
+            <Table.Th style={{ width: 260, paddingLeft: 48 }}>
               <Text size='xs' fw={600} tt='uppercase' c='dimmed'>
                 General
               </Text>
             </Table.Th>
-            {ACTIONS.map((action) => (
+            {actions.map((action) => (
               <Table.Th
                 key={action}
-                style={{ width: '15%', textAlign: 'left' }}>
+                style={{ minWidth: 120, textAlign: 'left' }}>
                 <Group justify='flex-start' gap={6} wrap='nowrap'>
                   <Checkbox
                     size='xs'
                     checked={allChecked(action)}
                     indeterminate={someChecked(action)}
                     onChange={() => toggleAll(action)}
+                    disabled={!rows.some((r) => hasAction(r, action))}
                     styles={{ input: { cursor: 'pointer' } }}
                   />
                   <Text size='xs' fw={600} tt='uppercase' c='dimmed'>
-                    {action.charAt(0).toUpperCase() + action.slice(1)}
+                    {formatActionLabel(action)}
                   </Text>
                 </Group>
               </Table.Th>
@@ -195,16 +225,22 @@ export default function PermissionsMatrix({ roleUuid }: Props) {
                   <Text size='sm'>{row.label}</Text>
                 </Group>
               </Table.Td>
-              {ACTIONS.map((action) => (
+              {actions.map((action) => (
                 <Table.Td key={action} style={{ textAlign: 'left' }}>
-                  <Group justify='flex-start'>
-                    <Checkbox
-                      size='xs'
-                      checked={row.permissions[action]}
-                      onChange={() => toggle(row.key, action)}
-                      styles={{ input: { cursor: 'pointer' } }}
-                    />
-                  </Group>
+                  {hasAction(row, action) ? (
+                    <Group justify='flex-start'>
+                      <Checkbox
+                        size='xs'
+                        checked={row.permissions[action]}
+                        onChange={() => toggle(row.key, action)}
+                        styles={{ input: { cursor: 'pointer' } }}
+                      />
+                    </Group>
+                  ) : (
+                    <Text size='xs' c='dimmed'>
+                      -
+                    </Text>
+                  )}
                 </Table.Td>
               ))}
             </Table.Tr>
