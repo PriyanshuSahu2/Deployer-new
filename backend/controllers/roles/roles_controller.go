@@ -82,8 +82,39 @@ func (rc *RoleController) DeleteRole(c *gin.Context) {
 }
 
 func (rc *RoleController) AssignPermission(c *gin.Context) {
-//bulk 
+	var body dtos_roles.UpdateRolePermissionsDTO
+	roleUUID := c.Param("roleUUID")
+	if roleUUID == "" {
+		roleUUID = c.Param("uuid")
+	}
 
-//single
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	rows, err := rc.Service.UpdateRolePermissions(c.MustGet("userID").(uint), roleUUID, body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, rows)
 }
-// project:read project:write project:update project:delete 
+
+func (rc *RoleController) ListRolePermissions(c *gin.Context) {
+	roleUUID := c.Param("roleUUID")
+	if roleUUID == "" {
+		roleUUID = c.Param("uuid")
+	}
+
+	rows, err := rc.Service.ListRolePermissions(c.MustGet("userID").(uint), roleUUID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, rows)
+}
+
+// project:read project:write project:update project:delete

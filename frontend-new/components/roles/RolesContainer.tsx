@@ -160,7 +160,10 @@ function RoleRow({
         <Table.Tr style={{ padding: 0 }}>
           <Table.Td colSpan={5} style={{ padding: 0, border: 'none' }}>
             <Collapse in={expanded}>
-              <PermissionsMatrix roleUuid={role.uuid} />
+              <PermissionsMatrix
+                roleUuid={role.uuid}
+                isSystemRole={role.is_system}
+              />
             </Collapse>
           </Table.Td>
         </Table.Tr>
