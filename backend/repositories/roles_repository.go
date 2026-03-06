@@ -100,3 +100,50 @@ func (r *RoleRepository) ReplaceRolePermissions(roleID uint, permissionIDs []uin
 		return nil
 	})
 }
+
+func (r *RoleRepository) GetUserRoleID(workspaceID int, userID int) (int, error) {
+	var roleID int
+
+	err := db.DB.Table("workspace_members").
+		Select("role_id").
+		Where("workspace_id = ? AND user_id = ?", workspaceID, userID).
+		Scan(&roleID).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return roleID, nil
+}
+
+func (r *RoleRepository) RoleHasPermission(roleID int, permissionKey string) (bool, error) {
+	var exists int
+
+	err := db.DB.Table("role_permissions AS rp").
+		Select("1").
+		Joins("JOIN permissions AS p ON rp.permission_id = p.id").
+		Where("rp.role_id = ? AND p.key = ?", roleID, permissionKey).
+		Limit(1).
+		Scan(&exists).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return exists == 1, nil
+}
+func (r *RoleRepository) GetRolePermissions(roleID int) ([]string, error) {
+	var permissions []string
+
+	err := db.DB.Table("role_permissions AS rp").
+		Select("p.key").
+		Joins("JOIN permissions AS p ON rp.permission_id = p.id").
+		Where("rp.role_id = ?", roleID).
+		Scan(&permissions).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return permissions, nil
+}

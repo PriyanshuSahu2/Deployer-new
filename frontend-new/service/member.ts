@@ -1,11 +1,7 @@
 import { privateRequest } from "@/lib/requestMethod";
 
-export const inviteMember = (params) =>
-    privateRequest.post("/workspace/invite-member", params);
+export const inviteMember = (workspaceUUID: string, params: any) =>
+  privateRequest.post(`/workspaces/${workspaceUUID}/invite-member`, params);
 
-
-
-
-export const getWorkspaceMembers = (workspaceUUID: string) => privateRequest.get(`/members/${workspaceUUID}`)
-
-
+export const getWorkspaceMembers = (workspaceUUID: string) =>
+  privateRequest.get(`/workspaces/${workspaceUUID}/members`);

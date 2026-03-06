@@ -5,7 +5,7 @@ export const useInviteMember = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (params: any) => inviteMember(params),
+        mutationFn: (workspaceUUID: string, params: any) => inviteMember(workspaceUUID, params),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["user-workspace"] });
         },
@@ -13,7 +13,7 @@ export const useInviteMember = () => {
 }
 
 
-export const useGetWorkspaceMembers = (workspaceUUID:string,enabled: boolean) => {
+export const useGetWorkspaceMembers = (workspaceUUID: string, enabled: boolean) => {
     return useQuery({
         queryKey: ["workspace-members"],
         queryFn: () => getWorkspaceMembers(workspaceUUID),
@@ -24,7 +24,7 @@ export const useGetWorkspaceMembers = (workspaceUUID:string,enabled: boolean) =>
 }
 
 
-export const useGetWorkspaceInvites = (workspaceUUID:string,enabled: boolean) => {
+export const useGetWorkspaceInvites = (workspaceUUID: string, enabled: boolean) => {
     return useQuery({
         queryKey: ["workspace-invites"],
         queryFn: () => getWorkspaceMembers(workspaceUUID),

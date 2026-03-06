@@ -1,7 +1,7 @@
 import {
   createRole,
   deleteRole,
-  getRoles,
+  listRoles,
   updateRole,
   type UpdateRolePayload,
 } from '@/service/role';
@@ -11,17 +11,18 @@ import { Role } from '@/types/role';
 export const useGetRoles = (workspaceUuid: string, enabled = false) => {
   return useQuery({
     queryKey: ['roles', workspaceUuid],
-    queryFn: () => getRoles(workspaceUuid),
-    enabled: enabled,
+    queryFn: () => listRoles(workspaceUuid),
+    enabled,
     select: (res) => res.data,
   });
 };
 
 export const useCreateRole = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (role: Pick<Role, 'role_name' | 'description'>) =>
-      createRole({ ...role, workspace_uuid: workspaceUuid }),
+      createRole(workspaceUuid, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles', workspaceUuid] });
     },
@@ -30,8 +31,10 @@ export const useCreateRole = (workspaceUuid: string) => {
 
 export const useUpdateRole = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (role: UpdateRolePayload) => updateRole(role),
+    mutationFn: (role: UpdateRolePayload) =>
+      updateRole(workspaceUuid, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles', workspaceUuid] });
     },
@@ -40,8 +43,10 @@ export const useUpdateRole = (workspaceUuid: string) => {
 
 export const useDeleteRole = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (roleUuid: string) => deleteRole(roleUuid),
+    mutationFn: (roleUuid: string) =>
+      deleteRole(workspaceUuid, roleUuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles', workspaceUuid] });
     },

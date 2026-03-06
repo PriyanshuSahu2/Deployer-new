@@ -1,26 +1,70 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
 
 	dtos_roles "backend/dtos/roles"
 	models_role "backend/models/role"
 	"backend/repositories"
+
+	"github.com/go-redis/redis/v8"
 )
 
 type RoleService struct {
 	RoleRepo      *repositories.RoleRepository
 	WorkspaceRepo *repositories.WorkspaceRepository
+	RedisRepo     *repositories.RedisRepository
 }
 
 func NewRoleService(
 	roleRepo *repositories.RoleRepository,
 	workspaceRepo *repositories.WorkspaceRepository,
+	redisRepo *repositories.RedisRepository,
 ) *RoleService {
 	return &RoleService{
 		RoleRepo:      roleRepo,
 		WorkspaceRepo: workspaceRepo,
+		RedisRepo:     redisRepo,
 	}
+}
+func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (string, error) {
+
+	key := fmt.Sprintf("workspace:role:%s:%d", workspaceUUID, userID)
+
+	role, err := s.RedisRepo.Get(key)
+	if err == nil {
+		return role, nil
+	}
+
+	if err != redis.Nil {
+		return "", err
+	}
+
+	workspaceIdKey := fmt.Sprintf("workspace:uuid:%s", workspaceUUID)
+
+	workspaceIdStr, err := s.RedisRepo.Get(workspaceIdKey)
+	if err != nil {
+		return "", err
+	}
+
+	workspaceID, err := strconv.Atoi(workspaceIdStr)
+	if err != nil {
+		return "", err
+	}
+
+	roleID, err := s.RoleRepo.GetUserRoleID(workspaceID, userID)
+	if err != nil {
+		return "", err
+	}
+
+	_ = s.RedisRepo.Set(key, strconv.Itoa(roleID), 0)
+
+	return strconv.Itoa(roleID), nil
 }
 
 func (s *RoleService) CreateRole(userID uint, dto dtos_roles.CreateRoleDTO) error {
@@ -127,6 +171,35 @@ func (s *RoleService) UpdateRolePermissions(userID uint, roleUUID string, dto dt
 	return s.RoleRepo.ListRolePermissions(role.ID)
 }
 
+func (s *RoleService) RoleHasPermission(roleID uint, permissionKey string) bool {
+
+	key := fmt.Sprintf("role:permission:%d", roleID)
+
+	cachedPermissions, err := s.RedisRepo.Get(key)
+	if err == nil {
+
+		var permissions []string
+		json.Unmarshal([]byte(cachedPermissions), &permissions)
+
+		for _, p := range permissions {
+			if strings.TrimSpace(permissionKey) == p {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	permissions, err := s.RoleRepo.GetRolePermissions(int(roleID))
+	if err != nil {
+		return false
+	}
+
+	data, _ := json.Marshal(permissions)
+	_ = s.RedisRepo.Set(key, string(data), 0)
+
+	return slices.Contains(permissions, strings.TrimSpace(permissionKey))
+}
 func (s *RoleService) mapToDTO(roles []models_role.Role) []dtos_roles.RoleResponseDTO {
 	response := make([]dtos_roles.RoleResponseDTO, len(roles))
 

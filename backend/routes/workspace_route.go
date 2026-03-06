@@ -2,48 +2,27 @@ package routes
 
 import (
 	controller_workspace "backend/controllers/workspace"
-	"backend/db"
 	"backend/middleware"
-	"backend/repositories"
-	"backend/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-func WorkspaceRoutes(r *gin.Engine, emailService *services.EmailService) {
+func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.WorkspaceController, workspaceMemberController *controller_workspace.WorkspaceMemberController, permissionMiddleWare *middleware.PermissionMiddleware) *gin.RouterGroup {
 
-	workspaceRepo := repositories.NewWorkspaceRepository()
-	memberRepo := repositories.NewMemberRepository()
-	roleRepo := repositories.NewRoleRepository()
-	userRepo := repositories.NewUserRepository()
-	inviteRepo := repositories.NewInviteRepository()
-
-	workspaceService := services.NewWorkspaceService(
-		workspaceRepo,
-		memberRepo,
-	)
-
-
-	workspaceMemberService := services.NewWorkspaceMemberService(
-		userRepo,
-		workspaceRepo,
-		roleRepo,
-		inviteRepo,
-		emailService,
-		db.DB,
-	)
-
-	workspaceController := controller_workspace.NewWorkspaceController(workspaceService)
-	workspaceMemberController := controller_workspace.NewWorkspaceMemberController(workspaceMemberService)
-
-	workspaces := r.Group("/workspace")
+	workspaces := r.Group("/workspaces")
 	workspaces.Use(middleware.ValidateRequest())
 	{
 		workspaces.POST("", workspaceController.CreateWorkspace)
-		workspaces.PUT("/:workspaceUUID", workspaceController.UpdateWorkspace)
 		workspaces.GET("", workspaceController.ListWorkspaces)
 		workspaces.GET("/default", workspaceController.GetUserDefaultWorkspace)
-
-		workspaces.POST("/invite-member", workspaceMemberController.AddWorkspaceMember)
 	}
+
+	workspace := r.Group("/workspaces/:workspaceUUID")
+	workspace.Use(middleware.ValidateRequest())
+	{
+		workspace.PUT("", workspaceController.UpdateWorkspace)
+
+		workspace.POST("/invite-member", workspaceMemberController.AddWorkspaceMember)
+	}
+	return workspace
 }

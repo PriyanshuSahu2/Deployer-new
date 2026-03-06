@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -9,7 +9,7 @@ import {
   Table,
   Text,
   ThemeIcon,
-} from '@mantine/core';
+} from "@mantine/core";
 import {
   IconActivity,
   IconBrandGithub,
@@ -20,45 +20,54 @@ import {
   IconSettings,
   IconShield,
   IconUsers,
-} from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
-import { privateRequest } from '@/lib/requestMethod';
+} from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { privateRequest } from "@/lib/requestMethod";
 import type {
   BackendRolePermission,
   ModuleMetaMap,
   PermissionMap,
   PermissionRow,
-} from './PermissionsMatrix.types';
+} from "./PermissionsMatrix.types";
 import {
   buildPermissionIdByCell,
   buildRowsFromLeftJoinedRolePermissions,
   fetchFirstAvailable,
   formatActionLabel,
   getActionColumns,
-} from './PermissionsMatrix.utils';
+} from "./PermissionsMatrix.utils";
+import {
+  useRolePermissions,
+  useUpdateRolePermissions,
+} from "@/hooks/usePermission";
+import { useParams } from "next/navigation";
 
 const DEFAULT_PERMISSIONS: PermissionRow[] = [];
 
 const MODULE_META: ModuleMetaMap = {
-  project: { label: 'Projects', icon: <IconCube size={14} />, order: 0 },
+  project: { label: "Projects", icon: <IconCube size={14} />, order: 0 },
   deployment: {
-    label: 'Deployments',
+    label: "Deployments",
     icon: <IconRocket size={14} />,
     order: 1,
   },
-  member: { label: 'Members', icon: <IconUsers size={14} />, order: 2 },
-  role: { label: 'Roles', icon: <IconShield size={14} />, order: 3 },
+  member: { label: "Members", icon: <IconUsers size={14} />, order: 2 },
+  role: { label: "Roles", icon: <IconShield size={14} />, order: 3 },
   integration: {
-    label: 'Integrations',
+    label: "Integrations",
     icon: <IconBrandGithub size={14} />,
     order: 4,
   },
-  server: { label: 'Servers / Infra', icon: <IconServer size={14} />, order: 5 },
-  domain: { label: 'Domains', icon: <IconGlobe size={14} />, order: 6 },
-  log: { label: 'Logs & Audit', icon: <IconActivity size={14} />, order: 7 },
+  server: {
+    label: "Servers / Infra",
+    icon: <IconServer size={14} />,
+    order: 5,
+  },
+  domain: { label: "Domains", icon: <IconGlobe size={14} />, order: 6 },
+  log: { label: "Logs & Audit", icon: <IconActivity size={14} />, order: 7 },
   workspace: {
-    label: 'Workspace Settings',
+    label: "Workspace Settings",
     icon: <IconSettings size={14} />,
     order: 8,
   },
@@ -75,17 +84,10 @@ export default function PermissionsMatrix({
 }: Props) {
   const [edits, setEdits] = useState<Record<string, PermissionMap>>({});
   const [isSaving, setIsSaving] = useState(false);
-
-  const rolePermissionsQuery = useQuery({
-    queryKey: ['role-permissions', roleUuid],
-    enabled: Boolean(roleUuid),
-    queryFn: () =>
-      fetchFirstAvailable<BackendRolePermission>([
-        `/rolepermission/${roleUuid}`,
-        `/rolepermissions/${roleUuid}`,
-        `/role-permissions/${roleUuid}`,
-      ]),
-  });
+  const params = useParams();
+    const workspaceId = params.workspaceId as string; 
+  const rolePermissionsQuery = useRolePermissions(workspaceId,roleUuid,true);
+  const updatePermissionsMutation = useUpdateRolePermissions(workspaceId,roleUuid);
 
   const serverRows = useMemo(
     () =>
@@ -194,10 +196,7 @@ export default function PermissionsMatrix({
 
     try {
       setIsSaving(true);
-      await privateRequest.put(`/rolepermission/${roleUuid}`, {
-        role_uuid: roleUuid,
-        permission_ids: Array.from(selectedPermissionIDs),
-      });
+      await updatePermissionsMutation.mutateAsync(Array.from(selectedPermissionIDs))
       setEdits({});
       await rolePermissionsQuery.refetch();
     } finally {
@@ -210,40 +209,44 @@ export default function PermissionsMatrix({
       style={(theme) => ({
         borderTop: `1px solid ${theme.colors.gray[2]}`,
         backgroundColor:
-          'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
-        overflowX: 'auto',
-      })}>
+          "light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))",
+        overflowX: "auto",
+      })}
+    >
       <Table
-        horizontalSpacing='md'
-        verticalSpacing='xs'
-        style={{ minWidth: Math.max(640, 260 + actions.length * 120) }}>
+        horizontalSpacing="md"
+        verticalSpacing="xs"
+        style={{ minWidth: Math.max(640, 260 + actions.length * 120) }}
+      >
         <Table.Thead>
           <Table.Tr
             style={{
               backgroundColor:
-                'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7))',
-            }}>
+                "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7))",
+            }}
+          >
             <Table.Th style={{ width: 260, paddingLeft: 48 }}>
-              <Text size='xs' fw={600} tt='uppercase' c='dimmed'>
+              <Text size="xs" fw={600} tt="uppercase" c="dimmed">
                 General
               </Text>
             </Table.Th>
             {actions.map((action) => (
               <Table.Th
                 key={action}
-                style={{ minWidth: 120, textAlign: 'left' }}>
-                <Group justify='flex-start' gap={6} wrap='nowrap'>
+                style={{ minWidth: 120, textAlign: "left" }}
+              >
+                <Group justify="flex-start" gap={6} wrap="nowrap">
                   <Checkbox
-                    size='xs'
+                    size="xs"
                     checked={allChecked(action)}
                     indeterminate={someChecked(action)}
                     onChange={() => toggleAll(action)}
                     disabled={
                       isSystemRole || !rows.some((r) => hasAction(r, action))
                     }
-                    styles={{ input: { cursor: 'pointer' } }}
+                    styles={{ input: { cursor: "pointer" } }}
                   />
-                  <Text size='xs' fw={600} tt='uppercase' c='dimmed'>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed">
                     {formatActionLabel(action)}
                   </Text>
                 </Group>
@@ -255,9 +258,9 @@ export default function PermissionsMatrix({
           {isLoading && (
             <Table.Tr>
               <Table.Td colSpan={Math.max(1, actions.length + 1)}>
-                <Group justify='center' py='md' gap='xs'>
-                  <Loader size='xs' />
-                  <Text size='xs' c='dimmed'>
+                <Group justify="center" py="md" gap="xs">
+                  <Loader size="xs" />
+                  <Text size="xs" c="dimmed">
                     Loading permissions...
                   </Text>
                 </Group>
@@ -269,34 +272,35 @@ export default function PermissionsMatrix({
             <Table.Tr
               key={row.key}
               style={{
-                '&:hover': {
+                "&:hover": {
                   backgroundColor:
-                    'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
+                    "light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))",
                 },
-              }}>
+              }}
+            >
               <Table.Td style={{ paddingLeft: 48 }}>
-                <Group gap='xs' wrap='nowrap'>
-                  <ThemeIcon size='xs' variant='transparent' c='dimmed'>
+                <Group gap="xs" wrap="nowrap">
+                  <ThemeIcon size="xs" variant="transparent" c="dimmed">
                     {row.icon}
                   </ThemeIcon>
-                  <Text size='sm'>{row.label}</Text>
+                  <Text size="sm">{row.label}</Text>
                 </Group>
               </Table.Td>
 
               {actions.map((action) => (
-                <Table.Td key={action} style={{ textAlign: 'left' }}>
+                <Table.Td key={action} style={{ textAlign: "left" }}>
                   {hasAction(row, action) ? (
-                    <Group justify='flex-start'>
+                    <Group justify="flex-start">
                       <Checkbox
-                        size='xs'
+                        size="xs"
                         checked={row.permissions[action]}
                         onChange={() => toggle(row.key, action)}
                         disabled={isSystemRole}
-                        styles={{ input: { cursor: 'pointer' } }}
+                        styles={{ input: { cursor: "pointer" } }}
                       />
                     </Group>
                   ) : (
-                    <Text size='xs' c='dimmed'>
+                    <Text size="xs" c="dimmed">
                       -
                     </Text>
                   )}
@@ -309,29 +313,32 @@ export default function PermissionsMatrix({
 
       {!isSystemRole && (
         <Group
-          justify='flex-end'
-          gap='sm'
-          px='md'
-          py='sm'
+          justify="flex-end"
+          gap="sm"
+          px="md"
+          py="sm"
           style={(theme) => ({
             borderTop: `1px solid light-dark(${theme.colors.gray[2]}, ${theme.colors.dark[5]})`,
             backgroundColor:
-              'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))',
-          })}>
+              "light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))",
+          })}
+        >
           <Button
-            variant='default'
-            size='xs'
-            radius='sm'
+            variant="default"
+            size="xs"
+            radius="sm"
             onClick={handleCancel}
-            disabled={isSaving || !hasUnsavedChanges}>
+            disabled={isSaving || !hasUnsavedChanges}
+          >
             Cancel
           </Button>
           <Button
-            size='xs'
-            radius='sm'
+            size="xs"
+            radius="sm"
             onClick={handleSave}
             loading={isSaving}
-            disabled={!hasUnsavedChanges}>
+            disabled={!hasUnsavedChanges}
+          >
             Save
           </Button>
         </Group>

@@ -3,13 +3,11 @@ package routes
 import (
 	controllers_auth "backend/controllers/auth"
 	"backend/middleware"
-	"backend/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthRoutes(r *gin.Engine, emailService *services.EmailService) {
-	authController := controllers_auth.NewAuthController(emailService)
+func AuthRoutes(r *gin.Engine, authController *controllers_auth.AuthController) {
 
 	auth := r.Group("/auth")
 	{

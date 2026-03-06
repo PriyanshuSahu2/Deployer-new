@@ -1,9 +1,7 @@
-import { privateRequest, publicRequest } from "@/lib/requestMethod";
+import { privateRequest } from "@/lib/requestMethod";
 
 export const getUserWorkspace = () =>
-  privateRequest.get("/workspace");
+  privateRequest.get("/workspaces");
 
 export const createWorkspace = (name: string) =>
-  privateRequest.post("/workspace", { name });
-
-
+  privateRequest.post("/workspaces", { name });

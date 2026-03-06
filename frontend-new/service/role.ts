@@ -1,22 +1,18 @@
 import { privateRequest } from '@/lib/requestMethod';
 import { Role } from '@/types/role';
 
-export type CreateRolePayload = Pick<Role, 'role_name' | 'description'> & {
-  workspace_uuid: string;
-};
+export type CreateRolePayload = Pick<Role, 'role_name' | 'description'>;
 
 export type UpdateRolePayload = Pick<Role, 'uuid' | 'role_name' | 'description'>;
 
-export const createRole = (role: CreateRolePayload) =>
-  privateRequest.post('/roles', role);
+export const createRole = (workspaceUUID: string, role: CreateRolePayload) =>
+  privateRequest.post(`/workspaces/${workspaceUUID}/roles`, role);
 
-export const updateRole = (role: UpdateRolePayload) =>
-  privateRequest.put(`/roles/${role.uuid}`, role);
+export const updateRole = (workspaceUUID: string, role: UpdateRolePayload) =>
+  privateRequest.put(`/workspaces/${workspaceUUID}/roles/${role.uuid}`, role);
 
-export const deleteRole = (roleUuid: string) =>
-  privateRequest.delete(`/roles/${roleUuid}`);
+export const deleteRole = (workspaceUUID: string, roleUuid: string) =>
+  privateRequest.delete(`/workspaces/${workspaceUUID}/roles/${roleUuid}`);
 
-export const listRoles = () => privateRequest.get<Role[]>('/roles/');
-
-export const getRoles = (workspaceId: string) =>
-  privateRequest.get<Role[]>(`/roles/${workspaceId}`);
+export const listRoles = (workspaceUUID: string) =>
+  privateRequest.get<Role[]>(`/workspaces/${workspaceUUID}/roles`);

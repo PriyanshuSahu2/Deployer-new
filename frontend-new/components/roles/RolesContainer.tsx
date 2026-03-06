@@ -163,6 +163,7 @@ function RoleRow({
               <PermissionsMatrix
                 roleUuid={role.uuid}
                 isSystemRole={role.is_system}
+                
               />
             </Collapse>
           </Table.Td>
