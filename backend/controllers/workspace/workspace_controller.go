@@ -84,3 +84,18 @@ func (wc *WorkspaceController) GetUserDefaultWorkspace(c *gin.Context) {
 
 	c.JSON(http.StatusOK, workspace)
 }
+func (wc *WorkspaceController) GetMyWorkspacePermissions(c *gin.Context) {
+
+	workspaceUUID := c.Param("workspaceUUID")
+	userID := c.MustGet("userID").(uint)
+
+	permissions, err := wc.Service.GetUserPermissions(workspaceUUID, int(userID))
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to fetch permissions"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"permissions": permissions,
+	})
+}

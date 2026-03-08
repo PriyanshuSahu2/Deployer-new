@@ -23,6 +23,8 @@ func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.Wo
 		workspace.PUT("", workspaceController.UpdateWorkspace)
 
 		workspace.POST("/invite-member", workspaceMemberController.AddWorkspaceMember)
+
+		workspace.GET("/me/permissions", workspaceController.GetMyWorkspacePermissions)
 	}
 	return workspace
 }

@@ -34,3 +34,4 @@ func (wc *WorkspaceMemberController) AddWorkspaceMember(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Member invited successfully."})
 }
+

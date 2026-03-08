@@ -53,6 +53,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	workspaceService := services.NewWorkspaceService(
 		workspaceRepo,
 		memberRepo,
+		roleService,
 	)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
@@ -79,7 +80,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	)
 
 	memberController := controller_member.NewMemberController(memberService)
-	authController := controllers_auth.NewAuthController(emailService)
+	authController := controllers_auth.NewAuthController(emailService, workspaceService, memberService)
 	/* ---------------- RETURN CONTAINER ---------------- */
 
 	permissionMW := middleware.NewPermissionMiddleware(roleService)

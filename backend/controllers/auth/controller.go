@@ -1,13 +1,20 @@
 package controllers_auth
 
-import "backend/services"
+import (
+	"backend/services"
+)
 
 type AuthController struct {
-	emailService *services.EmailService
+	emailService     *services.EmailService
+	workspaceService *services.WorkspaceService
+	memberService    *services.MemberService
 }
 
-func NewAuthController(emailService *services.EmailService) *AuthController {
+func NewAuthController(emailService *services.EmailService, workspaceService *services.WorkspaceService, memberService *services.MemberService) *AuthController {
+
 	return &AuthController{
-		emailService: emailService,
+		emailService:     emailService,
+		workspaceService: workspaceService,
+		memberService:    memberService,
 	}
 }

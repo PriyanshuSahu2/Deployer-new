@@ -11,7 +11,6 @@ export default function Layout({
       <Sidebar />
       <div className="flex-1">
         <Header/>
-        {/* <Header /> */}
         <main>{children}</main>
       </div>
     </div>

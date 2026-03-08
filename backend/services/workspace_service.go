@@ -25,15 +25,18 @@ func GetWorkspaceByUUID(uuid string) (*models_workspace.Workspace, error) {
 type WorkspaceService struct {
 	WorkspaceRepo *repositories.WorkspaceRepository
 	MemberRepo    *repositories.MemberRepository
+	RoleService   *RoleService
 }
 
 func NewWorkspaceService(
 	workspaceRepo *repositories.WorkspaceRepository,
 	memberRepo *repositories.MemberRepository,
+	roleService *RoleService,
 ) *WorkspaceService {
 	return &WorkspaceService{
 		WorkspaceRepo: workspaceRepo,
 		MemberRepo:    memberRepo,
+		RoleService:   roleService,
 	}
 }
 
@@ -95,6 +98,21 @@ func (s *WorkspaceService) GetUserDefaultWorkspace(userID uint) (*dtos_workspace
 	}
 
 	return &dto, nil
+}
+
+func (s *WorkspaceService) GetUserPermissions(workspaceUUID string, userID int) ([]string, error) {
+
+	roleID, err := s.RoleService.GetUserRoleID(workspaceUUID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	permissions, err := s.RoleService.GetRolePermissions(uint(roleID))
+	if err != nil {
+		return nil, err
+	}
+
+	return permissions, nil
 }
 
 func (s *WorkspaceService) mapToDTO(workspaces []models_workspace.Workspace) []dtos_workspace.ListWorkspaceDTO {

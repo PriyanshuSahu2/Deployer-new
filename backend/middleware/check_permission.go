@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"net/http"
-	"strconv"
 
 	"backend/services"
 
@@ -40,22 +39,13 @@ func (m *PermissionMiddleware) RequirePermission(permissionKey string) gin.Handl
 
 		userID := c.MustGet("userID").(uint)
 
-		// call service
-		roleIDStr, err := m.roleService.GetUserRoleID(workspaceUUID, int(userID))
+		roleID, err := m.roleService.GetUserRoleID(workspaceUUID, int(userID))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error": "unable to fetch role",
 			})
 			return
 		}
-		roleID, err := strconv.Atoi(roleIDStr)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error": "unable to fetch role",
-			})
-			return
-		}
-		// check permission
 		hasPermission := m.roleService.RoleHasPermission(uint(roleID), permissionKey)
 		if !hasPermission {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{

@@ -17,7 +17,6 @@ export default async function AppRootPage() {
     if (res.status === 404) {
       redirect('/app/onboarding');
     }
-    // Missing token or other errors should go back to the real login page
     redirect('/auth/login');
   }
 

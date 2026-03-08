@@ -5,8 +5,6 @@ import (
 	dtos_auth "backend/dtos/auth"
 	dtos_workspace "backend/dtos/workspace"
 	models_auth "backend/models/auth"
-	"backend/repositories"
-	"backend/services"
 	"backend/utils"
 	"net/http"
 	"os"
@@ -78,26 +76,18 @@ func (a *AuthController) Register(c *gin.Context) {
 
 		go a.emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
 	}
-	workspaceRepo := repositories.NewWorkspaceRepository()
-	memberRepo := repositories.NewMemberRepository()
-	workspaceService := services.NewWorkspaceService(
-		workspaceRepo,
-		memberRepo,
-	)
-
-	memberService := services.NewMemberService(memberRepo, workspaceRepo)
 
 	// newWorkspaceMemberService := services.NewWorkspaceMemberService(userRe)
 	var workspaceBody dtos_workspace.CreateWorkspaceDTO
 	workspaceBody.Name = userBody.Username + "'s Workspace" //TODO: later i will add to fix if username is too big or i should just put usernma validation at registertion
-	workspace, err := workspaceService.CreateWorkspace(newUser.ID, workspaceBody)
+	workspace, err := a.workspaceService.CreateWorkspace(newUser.ID, workspaceBody)
 
 	var workspaceMember dtos_workspace.AddMemberDTOInternal
 	workspaceMember.UserID = newUser.ID
 	workspaceMember.WorkspaceID = workspace.ID
 	workspaceMember.InvitedByID = newUser.ID
-	workspaceMember.RoleID = 1                                                                                                      //TODO: later i will add to fix role to take owner role from db not
-	memberResult := memberService.AddInternalMember(workspaceMember.WorkspaceID, workspaceMember.UserID, workspaceMember.RoleID, 1) //TODO AddWorkspaceMemberInternal
+	workspaceMember.RoleID = 1                                                                                                        //TODO: later i will add to fix role to take owner role from db not
+	memberResult := a.memberService.AddInternalMember(workspaceMember.WorkspaceID, workspaceMember.UserID, workspaceMember.RoleID, 1) //TODO AddWorkspaceMemberInternal
 	if memberResult != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
 		return

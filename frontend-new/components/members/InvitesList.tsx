@@ -12,6 +12,7 @@ import { IconMail, IconTrash } from '@tabler/icons-react';
 import { useGetWorkspaceInvites, useInviteMember } from '@/hooks/useMember';
 import { useParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
+import { usePermission } from '../context/permission-context';
 
 interface WorkspaceInvite {
   email: string;
@@ -29,6 +30,7 @@ function InviteRow({
   invite: WorkspaceInvite;
   workspaceId: string;
 }) {
+  const permission = usePermission();
   const { mutateAsync: resendInvite, isPending } = useInviteMember();
 
   const handleResend = async () => {

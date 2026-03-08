@@ -5,12 +5,16 @@ import MembersList from './MembersList';
 import InvitesList from './InvitesList';
 import { modals } from '@mantine/modals';
 import InviteMemberModal from '@/components/modals/InviteMemberModal';
+import { usePermission } from '../context/permission-context';
 
 interface Props {
   workspaceId: string;
 }
 
 export default function MembersContainer({ workspaceId }: Props) {
+
+  const permission = usePermission()
+
   const openInviteModal = () => {
     modals.open({
       title: 'Invite members',

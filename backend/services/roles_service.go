@@ -32,39 +32,46 @@ func NewRoleService(
 		RedisRepo:     redisRepo,
 	}
 }
-func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (string, error) {
+func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, error) {
 
 	key := fmt.Sprintf("workspace:role:%s:%d", workspaceUUID, userID)
 
-	role, err := s.RedisRepo.Get(key)
+	roleStr, err := s.RedisRepo.Get(key)
 	if err == nil {
-		return role, nil
+
+		roleID, err := strconv.Atoi(roleStr)
+		if err != nil {
+			return 0, err
+		}
+
+		return roleID, nil
 	}
 
 	if err != redis.Nil {
-		return "", err
+		return 0, err
 	}
 
 	workspaceIdKey := fmt.Sprintf("workspace:uuid:%s", workspaceUUID)
 
 	workspaceIdStr, err := s.RedisRepo.Get(workspaceIdKey)
-	if err != nil {
-		return "", err
-	}
+	if err != redis.Nil {
+		return 0, err
+	}e
+	var workspaceID int
+	if err == nil {
+		workspaceID, err = strconv.Atoi(workspaceIdStr)
+		if err != nil {
+			return 0, err
+		}
 
-	workspaceID, err := strconv.Atoi(workspaceIdStr)
-	if err != nil {
-		return "", err
 	}
-
 	roleID, err := s.RoleRepo.GetUserRoleID(workspaceID, userID)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-
 	_ = s.RedisRepo.Set(key, strconv.Itoa(roleID), 0)
 
-	return strconv.Itoa(roleID), nil
+	return roleID, nil
 }
 
 func (s *RoleService) CreateRole(userID uint, dto dtos_roles.CreateRoleDTO) error {
@@ -171,32 +178,37 @@ func (s *RoleService) UpdateRolePermissions(userID uint, roleUUID string, dto dt
 	return s.RoleRepo.ListRolePermissions(role.ID)
 }
 
-func (s *RoleService) RoleHasPermission(roleID uint, permissionKey string) bool {
+func (s *RoleService) GetRolePermissions(roleID uint) ([]string, error) {
 
-	key := fmt.Sprintf("role:permission:%d", roleID)
+	key := fmt.Sprintf("role:permissions:%d", roleID)
 
 	cachedPermissions, err := s.RedisRepo.Get(key)
 	if err == nil {
 
 		var permissions []string
-		json.Unmarshal([]byte(cachedPermissions), &permissions)
-
-		for _, p := range permissions {
-			if strings.TrimSpace(permissionKey) == p {
-				return true
-			}
+		err = json.Unmarshal([]byte(cachedPermissions), &permissions)
+		if err == nil {
+			return permissions, nil
 		}
-
-		return false
 	}
 
 	permissions, err := s.RoleRepo.GetRolePermissions(int(roleID))
 	if err != nil {
-		return false
+		return nil, err
 	}
 
 	data, _ := json.Marshal(permissions)
 	_ = s.RedisRepo.Set(key, string(data), 0)
+
+	return permissions, nil
+}
+
+func (s *RoleService) RoleHasPermission(roleID uint, permissionKey string) bool {
+
+	permissions, err := s.GetRolePermissions(roleID)
+	if err != nil {
+		return false
+	}
 
 	return slices.Contains(permissions, strings.TrimSpace(permissionKey))
 }
