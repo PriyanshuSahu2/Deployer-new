@@ -56,8 +56,17 @@ func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, erro
 	workspaceIdStr, err := s.RedisRepo.Get(workspaceIdKey)
 	if err != redis.Nil {
 		return 0, err
-	}e
+	}
+
 	var workspaceID int
+	if err == redis.Nil {
+		workspace, err := s.WorkspaceRepo.GetByUUID(workspaceUUID)
+
+		if err != nil {
+			return 0, err
+		}
+		workspaceID = int(workspace.ID)
+	}
 	if err == nil {
 		workspaceID, err = strconv.Atoi(workspaceIdStr)
 		if err != nil {
@@ -66,7 +75,7 @@ func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, erro
 
 	}
 	roleID, err := s.RoleRepo.GetUserRoleID(workspaceID, userID)
-	if err != nil {
+	if err != nil || roleID == 0 {
 		return 0, err
 	}
 	_ = s.RedisRepo.Set(key, strconv.Itoa(roleID), 0)
