@@ -12,6 +12,5 @@ type Environment struct {
 	Slug      string                 `gorm:"type:varchar(80);index"`
 	ProjectID uint                   `gorm:"index;not null"`
 	Project   models_project.Project `gorm:"foreignKey:ProjectID"`
-	Branch    string                 `gorm:"type:varchar(120);not null"`
 	CreatedBy uint                   `gorm:"index"`
 }
