@@ -3,18 +3,21 @@ package middleware
 import (
 	"net/http"
 
+	"backend/repositories"
 	"backend/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 type PermissionMiddleware struct {
-	roleService *services.RoleService
+	roleService   *services.RoleService
+	workspaceRepo *repositories.WorkspaceRepository
 }
 
-func NewPermissionMiddleware(roleService *services.RoleService) *PermissionMiddleware {
+func NewPermissionMiddleware(roleService *services.RoleService, workspaceRepo *repositories.WorkspaceRepository) *PermissionMiddleware {
 	return &PermissionMiddleware{
-		roleService: roleService,
+		roleService:   roleService,
+		workspaceRepo: workspaceRepo,
 	}
 }
 
@@ -38,6 +41,12 @@ func (m *PermissionMiddleware) RequirePermission(permissionKey string) gin.Handl
 		}
 
 		userID := c.MustGet("userID").(uint)
+
+		workspace, err := m.workspaceRepo.GetByUUID(workspaceUUID)
+		if err == nil && workspace.OwnerID == userID {
+			c.Next()
+			return
+		}
 
 		roleID, err := m.roleService.GetUserRoleID(workspaceUUID, int(userID))
 		if err != nil {

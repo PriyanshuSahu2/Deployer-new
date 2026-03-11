@@ -105,15 +105,15 @@ export default function EditRoleDrawer({
       size='md'
       padding='xl'
       title={
-        <Group gap='sm'>
-          <ThemeIcon size='md' radius='sm' variant='light' color='indigo'>
-            <IconShield size={16} />
+        <Group gap='md' align='center'>
+          <ThemeIcon size={40} radius='md' variant='light' color='indigo'>
+            <IconShield size={20} />
           </ThemeIcon>
           <Box>
-            <Text fw={600} size='sm'>
+            <Text fw={700} size='lg' lh={1.2}>
               {isEditing ? 'Edit Role' : 'Create Role'}
             </Text>
-            <Text size='xs' c='dimmed'>
+            <Text size='sm' c='dimmed' mt={2}>
               {isEditing
                 ? 'Update the role details below'
                 : 'Define a new role for your workspace'}
@@ -124,10 +124,10 @@ export default function EditRoleDrawer({
       styles={{
         header: {
           borderBottom: '1px solid var(--mantine-color-default-border)',
-          paddingBottom: 'var(--mantine-spacing-md)',
+          paddingBottom: 'var(--mantine-spacing-sm)',
         },
         body: {
-          paddingTop: 'var(--mantine-spacing-xl)',
+          paddingTop: 'var(--mantine-spacing-lg)',
         },
       }}>
       <form onSubmit={handleSubmit}>

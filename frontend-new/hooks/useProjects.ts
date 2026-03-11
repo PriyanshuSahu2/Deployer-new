@@ -1,12 +1,12 @@
 import {
-  createRole,
-  deleteRole,
-  listRoles,
-  updateRole,
-  type UpdateRolePayload,
-} from '@/service/role';
+  createProject,
+  deleteProject,
+  listProjects,
+  updateProject,
+  type CreateProjectPayload,
+  type UpdateProjectPayload,
+} from '@/service/project';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Role } from '@/types/role';
 
 export const useGetProjects = (workspaceUuid: string, enabled = false) => {
   return useQuery({
@@ -21,8 +21,8 @@ export const useCreateProject = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (role: Pick<Role, 'role_name' | 'description'>) =>
-      createRole(workspaceUuid, role),
+    mutationFn: (project: CreateProjectPayload) =>
+      createProject(workspaceUuid, project),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', workspaceUuid] });
     },
@@ -33,8 +33,8 @@ export const useUpdateProject = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (role: UpdateRolePayload) =>
-      updateRole(workspaceUuid, role),
+    mutationFn: (project: UpdateProjectPayload) =>
+      updateProject(workspaceUuid, project),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', workspaceUuid] });
     },
@@ -45,8 +45,7 @@ export const useDeleteProject = (workspaceUuid: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (roleUuid: string) =>
-      deleteRole(workspaceUuid, roleUuid),
+    mutationFn: (projectUuid: string) => deleteProject(workspaceUuid, projectUuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', workspaceUuid] });
     },

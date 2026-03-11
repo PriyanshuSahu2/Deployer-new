@@ -6,6 +6,7 @@ import (
 	models_auth "backend/models/auth"
 	models_oauth "backend/models/oauth"
 	models_permission "backend/models/permission"
+	models_project "backend/models/project"
 	models_role "backend/models/role"
 	models_role_permission "backend/models/role_permission"
 	models_workspace "backend/models/workspace"
@@ -79,6 +80,7 @@ func main() {
 		&models_workspace.Workspace{},
 		&models_workspace.WorkspaceMember{},
 		&models_permission.Permission{},
+		&models_project.Project{},
 		&models_role.Role{},
 		&models_workspace.WorkspaceInvite{},
 		&models_role_permission.RolePermission{},
@@ -103,6 +105,13 @@ func main() {
 		r,
 		workspaceRoute,
 		c.RoleController,
+		c.PermissionMW,
+	)
+
+	routes.ProjectRoutes(
+		r,
+		workspaceRoute,
+		c.ProjectController,
 		c.PermissionMW,
 	)
 

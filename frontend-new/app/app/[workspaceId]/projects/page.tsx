@@ -1,10 +1,17 @@
-import ProjectsContainer from '@/components/projects/ProjectsContainer'
-import React from 'react'
+import ProjectsContainer from '@/components/projects/ProjectsContainer';
 
-const ProjectPage = () => {
-  return (
-    <div><ProjectsContainer workspaceId=''/></div>
-  )
+interface PageProps {
+  params: Promise<{
+    workspaceId: string;
+  }>;
 }
 
-export default ProjectPage
+export const metadata = {
+  title: 'Projects',
+};
+
+export default async function ProjectPage({ params }: PageProps) {
+  const { workspaceId } = await params;
+
+  return <ProjectsContainer workspaceId={workspaceId} />;
+}

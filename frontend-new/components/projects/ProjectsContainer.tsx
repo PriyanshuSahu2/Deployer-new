@@ -19,6 +19,7 @@ import {
   IconSearch,
   IconPlus,
   IconPencil,
+  IconServerBolt,
   IconTrash,
   IconFolder,
   IconX,
@@ -26,9 +27,11 @@ import {
 import { useMemo, useState } from 'react';
 import { useDeleteProject, useGetProjects } from '@/hooks/useProjects';
 import { Project } from '@/types/project';
+import EditProjectDrawer from './EditProjectDrawer';
 
 import dayjs from 'dayjs';
 import { notifications } from '@mantine/notifications';
+import { useRouter } from 'next/navigation';
 
 interface Props {
   workspaceId: string;
@@ -37,11 +40,13 @@ interface Props {
 function ProjectRow({
   project,
   onEdit,
+  onCreateServer,
   onDelete,
   isDeleting,
 }: {
   project: Project;
   onEdit: (project: Project) => void;
+  onCreateServer: (project: Project) => void;
   onDelete: (project: Project) => void;
   isDeleting: boolean;
 }) {
@@ -71,10 +76,10 @@ function ProjectRow({
         </Text>
       </Table.Td>
 
-      {/* Repository */}
+      {/* Framework */}
       <Table.Td>
         <Text size="xs" c="dimmed">
-          {project.repository || '—'}
+          {project.framework || '—'}
         </Text>
       </Table.Td>
 
@@ -90,6 +95,17 @@ function ProjectRow({
       {/* Actions */}
       <Table.Td>
         <Group gap={4} justify="flex-end" wrap="nowrap">
+          <Tooltip label="Create server" withArrow position="top" fz="xs">
+            <ActionIcon
+              variant="subtle"
+              color="indigo"
+              size="sm"
+              onClick={() => onCreateServer(project)}
+            >
+              <IconServerBolt size={14} />
+            </ActionIcon>
+          </Tooltip>
+
           <Tooltip label="Edit project" withArrow position="top" fz="xs">
             <ActionIcon
               variant="subtle"
@@ -119,13 +135,14 @@ function ProjectRow({
 }
 
 export default function ProjectsContainer({ workspaceId }: Props) {
-  const { data: projects = [], isLoading, dataUpdatedAt } =
-    useGetProjects(workspaceId, true);
+  const router = useRouter();
+  const { data: projects = [], isLoading } = useGetProjects(workspaceId, true);
 
   const { mutateAsync: removeProject, isPending: isDeleting } =
     useDeleteProject(workspaceId);
 
   const [search, setSearch] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   const filtered = useMemo(
@@ -135,15 +152,23 @@ export default function ProjectsContainer({ workspaceId }: Props) {
           p.name.toLowerCase().includes(search.toLowerCase()) ||
           p.description?.toLowerCase().includes(search.toLowerCase()),
       ),
-    [dataUpdatedAt, search],
+    [projects, search],
   );
 
   const openCreate = () => {
     setSelectedProject(null);
+    setDrawerOpen(true);
   };
 
   const openEdit = (project: Project) => {
     setSelectedProject(project);
+    setDrawerOpen(true);
+  };
+
+  const openCreateServer = (project: Project) => {
+    router.push(
+      `/app/${workspaceId}/servers/create?projectId=${encodeURIComponent(project.uuid)}`,
+    );
   };
 
   const handleDelete = async (project: Project) => {
@@ -184,128 +209,138 @@ export default function ProjectsContainer({ workspaceId }: Props) {
   ));
 
   return (
-    <Stack gap="lg" p="md">
-      <Group justify="space-between" align="flex-end">
-        <Box>
-          <Text size="xs" c="dimmed" tt="uppercase" fw={500} mb={4}>
-            Workspace
-          </Text>
+    <>
+      <Stack gap="lg" p="md">
+        <Group justify="space-between" align="flex-end">
+          <Box>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={500} mb={4}>
+              Workspace
+            </Text>
 
-          <Text fw={700} size="xl">
-            Projects
-          </Text>
-        </Box>
+            <Text fw={700} size="xl">
+              Projects
+            </Text>
+          </Box>
 
-        <Button
-          leftSection={<IconPlus size={15} />}
+          <Button
+            leftSection={<IconPlus size={15} />}
+            radius="sm"
+            size="sm"
+            onClick={openCreate}
+          >
+            Create Project
+          </Button>
+        </Group>
+
+        <TextInput
+          placeholder="Search projects…"
+          leftSection={<IconSearch size={15} />}
+          rightSection={
+            search ? (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="xs"
+                onClick={() => setSearch('')}
+              >
+                <IconX size={12} />
+              </ActionIcon>
+            ) : null
+          }
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
           radius="sm"
-          size="sm"
-          onClick={openCreate}
-        >
-          Create Project
-        </Button>
-      </Group>
+        />
 
-      <TextInput
-        placeholder="Search projects…"
-        leftSection={<IconSearch size={15} />}
-        rightSection={
-          search ? (
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="xs"
-              onClick={() => setSearch('')}
-            >
-              <IconX size={12} />
-            </ActionIcon>
-          ) : null
-        }
-        value={search}
-        onChange={(e) => setSearch(e.currentTarget.value)}
-        radius="sm"
+        <Paper withBorder radius="sm" style={{ overflow: 'hidden' }}>
+          <Table
+            horizontalSpacing="md"
+            verticalSpacing="sm"
+            highlightOnHover
+            style={{ tableLayout: 'fixed' }}
+          >
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th style={{ width: '25%' }}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+                    Name
+                  </Text>
+                </Table.Th>
+
+                <Table.Th style={{ width: '35%' }}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+                    Description
+                  </Text>
+                </Table.Th>
+
+                <Table.Th style={{ width: '20%' }}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+                    Framework
+                  </Text>
+                </Table.Th>
+
+                <Table.Th style={{ width: '15%' }}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+                    Created
+                  </Text>
+                </Table.Th>
+
+                <Table.Th style={{ width: '5%' }} />
+              </Table.Tr>
+            </Table.Thead>
+
+            <Table.Tbody>
+              {isLoading
+                ? skeletonRows
+                : filtered.map((project: Project) => (
+                    <ProjectRow
+                      key={project.uuid}
+                      project={project}
+                      onEdit={openEdit}
+                      onCreateServer={openCreateServer}
+                      onDelete={handleDelete}
+                      isDeleting={isDeleting}
+                    />
+                  ))}
+            </Table.Tbody>
+          </Table>
+
+          {!isLoading && filtered.length === 0 && (
+            <Center py="xl">
+              <Stack align="center" gap="xs">
+                <ThemeIcon size="lg" radius="md" variant="light" color="gray">
+                  <IconFolder size={18} />
+                </ThemeIcon>
+
+                <Text size="sm" c="dimmed">
+                  {search
+                    ? 'No projects match your search'
+                    : 'No projects yet'}
+                </Text>
+
+                {!search && (
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    radius="sm"
+                    onClick={openCreate}
+                    leftSection={<IconPlus size={13} />}
+                  >
+                    Create your first project
+                  </Button>
+                )}
+              </Stack>
+            </Center>
+          )}
+        </Paper>
+      </Stack>
+
+      <EditProjectDrawer
+        opened={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        workspaceId={workspaceId}
+        project={selectedProject}
       />
-
-      <Paper withBorder radius="sm" style={{ overflow: 'hidden' }}>
-        <Table
-          horizontalSpacing="md"
-          verticalSpacing="sm"
-          highlightOnHover
-          style={{ tableLayout: 'fixed' }}
-        >
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th style={{ width: '25%' }}>
-                <Text size="xs" fw={600} tt="uppercase" c="dimmed">
-                  Name
-                </Text>
-              </Table.Th>
-
-              <Table.Th style={{ width: '35%' }}>
-                <Text size="xs" fw={600} tt="uppercase" c="dimmed">
-                  Description
-                </Text>
-              </Table.Th>
-
-              <Table.Th style={{ width: '20%' }}>
-                <Text size="xs" fw={600} tt="uppercase" c="dimmed">
-                  Repository
-                </Text>
-              </Table.Th>
-
-              <Table.Th style={{ width: '15%' }}>
-                <Text size="xs" fw={600} tt="uppercase" c="dimmed">
-                  Created
-                </Text>
-              </Table.Th>
-
-              <Table.Th style={{ width: '5%' }} />
-            </Table.Tr>
-          </Table.Thead>
-
-          <Table.Tbody>
-            {isLoading
-              ? skeletonRows
-              : filtered.map((project: Project) => (
-                  <ProjectRow
-                    key={project.uuid}
-                    project={project}
-                    onEdit={openEdit}
-                    onDelete={handleDelete}
-                    isDeleting={isDeleting}
-                  />
-                ))}
-          </Table.Tbody>
-        </Table>
-
-        {!isLoading && filtered.length === 0 && (
-          <Center py="xl">
-            <Stack align="center" gap="xs">
-              <ThemeIcon size="lg" radius="md" variant="light" color="gray">
-                <IconFolder size={18} />
-              </ThemeIcon>
-
-              <Text size="sm" c="dimmed">
-                {search
-                  ? 'No projects match your search'
-                  : 'No projects yet'}
-              </Text>
-
-              {!search && (
-                <Button
-                  variant="subtle"
-                  size="xs"
-                  radius="sm"
-                  onClick={openCreate}
-                  leftSection={<IconPlus size={13} />}
-                >
-                  Create your first project
-                </Button>
-              )}
-            </Stack>
-          </Center>
-        )}
-      </Paper>
-    </Stack>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import (
 	controllers_auth "backend/controllers/auth"
 	controller_invite "backend/controllers/invite"
 	controller_member "backend/controllers/member"
+	controller_project "backend/controllers/project"
 	controller_roles "backend/controllers/roles"
 	controller_workspace "backend/controllers/workspace"
 	"backend/middleware"
@@ -17,6 +18,7 @@ import (
 type Container struct {
 	InviteController          *controller_invite.InviteController
 	RoleController            *controller_roles.RoleController
+	ProjectController         *controller_project.ProjectController
 	WorkspaceController       *controller_workspace.WorkspaceController
 	WorkspaceMemberController *controller_workspace.WorkspaceMemberController
 	AuthController            *controllers_auth.AuthController
@@ -33,6 +35,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	userRepo := repositories.NewUserRepository()
 	workspaceRepo := repositories.NewWorkspaceRepository()
 	roleRepo := repositories.NewRoleRepository()
+	projectRepo := repositories.NewProjectRepository()
 	redisRepo := repositories.NewRedisRepository(redisclient.Client)
 
 	/* ---------------- SERVICES ---------------- */
@@ -55,6 +58,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 		memberRepo,
 		roleService,
 	)
+	projectService := services.NewProjectService(projectRepo, workspaceRepo)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
@@ -72,6 +76,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	inviteController := controller_invite.NewInviteController(inviteService)
 
 	roleController := controller_roles.NewRoleController(roleService)
+	projectController := controller_project.NewProjectController(projectService)
 
 	workspaceController := controller_workspace.NewWorkspaceController(workspaceService)
 
@@ -83,11 +88,12 @@ func NewContainer(emailService *services.EmailService) *Container {
 	authController := controllers_auth.NewAuthController(emailService, workspaceService, memberService)
 	/* ---------------- RETURN CONTAINER ---------------- */
 
-	permissionMW := middleware.NewPermissionMiddleware(roleService)
+	permissionMW := middleware.NewPermissionMiddleware(roleService, workspaceRepo)
 
 	return &Container{
 		InviteController:          inviteController,
 		RoleController:            roleController,
+		ProjectController:         projectController,
 		WorkspaceController:       workspaceController,
 		WorkspaceMemberController: workspaceMemberController,
 		AuthController:            authController,
