@@ -32,7 +32,6 @@ func (s *ProjectService) CreateProject(userID uint, workspaceUUID string, dto dt
 	project := models_project.Project{
 		Name:        dto.Name,
 		Description: dto.Description,
-		Framework:   dto.Framework,
 		WorkspaceID: workspace.ID,
 		CreatedBy:   userID,
 	}
@@ -41,6 +40,7 @@ func (s *ProjectService) CreateProject(userID uint, workspaceUUID string, dto dt
 }
 
 func (s *ProjectService) UpdateProject(userID uint, dto dtos_project.UpdateProjectDTO) error {
+	
 	project, err := s.ProjectRepo.GetByUUID(dto.UUID)
 	if err != nil {
 		return errors.New("project not found")
@@ -48,7 +48,6 @@ func (s *ProjectService) UpdateProject(userID uint, dto dtos_project.UpdateProje
 
 	project.Name = dto.Name
 	project.Description = dto.Description
-	project.Framework = dto.Framework
 
 	return s.ProjectRepo.Update(project)
 }
@@ -70,7 +69,6 @@ func (s *ProjectService) ListProjects(userID uint, workspaceUUID string) ([]dtos
 			UUID:        project.UUID.String(),
 			Name:        project.Name,
 			Description: project.Description,
-			Framework:   project.Framework,
 			WorkspaceID: project.WorkspaceID,
 			CreatedBy:   project.CreatedBy,
 			CreatedAt:   project.CreatedAt.Format("2006-01-02 15:04:05"),

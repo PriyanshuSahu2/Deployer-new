@@ -21,7 +21,6 @@ func (r *ProjectRepository) Update(project *models_project.Project) error {
 		Updates(map[string]interface{}{
 			"name":        project.Name,
 			"description": project.Description,
-			"framework":   project.Framework,
 		}).Error
 }
 

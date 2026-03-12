@@ -76,3 +76,7 @@ type ProjectConfigDTO struct {
 	Port          string            `json:"port"`
 	AutoDeploy    bool              `json:"auto_deploy"`
 }
+type CreateProject struct {
+	Name        string `json:"name:required:true"`
+	Description string `json:"description"`
+}

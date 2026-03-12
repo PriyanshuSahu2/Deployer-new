@@ -11,7 +11,6 @@ type Project struct {
 
 	Name        string                     `gorm:"type:varchar(255);not null;index:idx_workspace_project"`
 	Description string                     `gorm:"type:text"`
-	Framework   string                     `gorm:"type:varchar(100)"`
 	WorkspaceID uint                       `gorm:"index;not null"`
 	Workspace   models_workspace.Workspace `gorm:"foreignKey:WorkspaceID"`
 	CreatedBy   uint                       `gorm:"index;not null"`
