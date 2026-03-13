@@ -49,12 +49,11 @@ func (a *AuthController) GoogleCallback(c *gin.Context) {
 		accessToken, _ := utils.GenerateAccessToken(payload)
 		refreshToken, _ := utils.GenerateRefreshToken(payload)
 
-		c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/", "", false, true)
-
+		c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/auth/refresh-token", "", false, true)
+		c.SetCookie("access_token", accessToken, 7*24*60*60, "/", "", false, true)
 		c.JSON(http.StatusOK, gin.H{
-			"message":      "Login successful",
-			"user":         foundUser.ID,
-			"access_token": accessToken,
+			"message": "Login successful",
+			"user":    foundUser.ID,
 		})
 		return
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -79,12 +78,11 @@ func (a *AuthController) GoogleCallback(c *gin.Context) {
 	accessToken, _ := utils.GenerateAccessToken(payload)
 	refreshToken, _ := utils.GenerateRefreshToken(payload)
 
-	c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/", "", false, true)
-
+	c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/auth/refresh-token", "", false, true)
+	c.SetCookie("access_token", accessToken, 7*24*60*60, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Signup successful",
-		"user":         newUser.ID,
-		"access_token": accessToken,
+		"message": "Signup successful",
+		"user":    newUser.ID,
 	})
 }
 

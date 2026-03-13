@@ -106,7 +106,7 @@ func (a *AuthController) Login(c *gin.Context) {
 		"refresh_token",
 		refresh_token,
 		7*24*60*60,
-		"/",
+		"/auth/refresh-token",
 		"",
 		false,
 		true,
