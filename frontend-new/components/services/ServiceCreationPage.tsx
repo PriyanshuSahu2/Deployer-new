@@ -119,6 +119,7 @@ const DEPLOYMENT_STRATEGY_OPTIONS = [
 interface ServiceCreationPageProps {
   workspaceId: string;
   initialProjectId?: string;
+  environmentId?: string;
 }
 
 function SectionHeader({
@@ -152,6 +153,7 @@ function SectionHeader({
 export default function ServiceCreationPage({
   workspaceId,
   initialProjectId,
+  environmentId,
 }: ServiceCreationPageProps) {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
@@ -310,7 +312,7 @@ export default function ServiceCreationPage({
               color="gray"
               size="compact-sm"
               leftSection={<IconArrowLeft size={14} />}
-              onClick={() => router.push(`/app/${workspaceId}/servers`)}
+              onClick={() => router.back()}
             >
               Back
             </Button>

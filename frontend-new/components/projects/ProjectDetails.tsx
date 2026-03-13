@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+
 import { useGetProjectDetails } from "@/hooks/useProjects";
 import { Select, Avatar, TextInput, Text, Group, Menu, UnstyledButton, Box, Button, Divider } from "@mantine/core";
 import { IconSearch, IconChevronDown, IconPlus } from "@tabler/icons-react";
@@ -11,17 +13,28 @@ import ServiceList from "../services/ServiceList";
 
 const ProjectDetails = ({ workspaceId, projectId }: { workspaceId: string, projectId: string }) => {
 
-  const { data: project, isLoading } = useGetProjectDetails(workspaceId, projectId, true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
+  const { data: project, isLoading } = useGetProjectDetails(workspaceId, projectId, true);
 
   const environments = useMemo(() => project?.environments || [], [project]);
 
-  const [activeEnv, setActiveEnv] = useState<Environment>(environments?.[0]);
+  const [activeEnv, setActiveEnv] = useState<Environment | undefined>(environments?.[0]);
 
 
   useEffect(() => {
-    setActiveEnv(environments?.[0]);
-  }, [environments]);
+    const envId = searchParams.get("env");
+    if (environments.length > 0) {
+      const found = environments.find(e => e.uuid === envId);
+      if (found) {
+        setActiveEnv(found);
+      } else {
+        setActiveEnv(environments[0]);
+      }
+    }
+  }, [environments, searchParams]);
 
   const handleOpenNewEnvironmentModal = () => {
     modals.open({
@@ -31,6 +44,15 @@ const ProjectDetails = ({ workspaceId, projectId }: { workspaceId: string, proje
       }} />
     });
   };
+
+  const handleEnvironmentChange = (env: Environment) => {
+    setActiveEnv(env);
+    const params = new URLSearchParams(searchParams);
+    if (env.uuid) {
+      params.set("env", env.uuid);
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between">
@@ -57,7 +79,8 @@ const ProjectDetails = ({ workspaceId, projectId }: { workspaceId: string, proje
                 <Menu.Label>Switch Environment</Menu.Label>
                 {environments.map((env) => (
                   <Menu.Item
-                    onClick={() => setActiveEnv(env)}
+                    key={env.uuid}
+                    onClick={() => handleEnvironmentChange(env)}
                     leftSection={<Box className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
                   >
                     {env.name}
@@ -80,7 +103,7 @@ const ProjectDetails = ({ workspaceId, projectId }: { workspaceId: string, proje
         </div>
       </div>
       <Divider w={"full"} title="Services" />
-      <ServiceList workspaceId={workspaceId} projectId={projectId} />
+      <ServiceList workspaceId={workspaceId} projectId={projectId} environmentId={activeEnv?.uuid || ""} />
     </div>
   );
 };

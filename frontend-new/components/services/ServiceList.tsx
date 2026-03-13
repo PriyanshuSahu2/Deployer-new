@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 interface ServiceListProps {
   workspaceId: string;
   projectId: string;
+  environmentId: string;
 }
 
-export default function ServiceList({ workspaceId, projectId }: ServiceListProps) {
+export default function ServiceList({ workspaceId, projectId, environmentId }: ServiceListProps) {
   const router = useRouter();
 
   return (
@@ -29,7 +30,7 @@ export default function ServiceList({ workspaceId, projectId }: ServiceListProps
             <Button
               mt="xs"
               leftSection={<IconPlus size={16} />}
-              onClick={() => router.push(`/app/${workspaceId}/projects/${projectId}/services/create`)}
+              onClick={() => router.push(`/app/${workspaceId}/projects/${projectId}/services/create?environmentId=${environmentId}`)}
             >
               Create Service
             </Button>
