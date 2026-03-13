@@ -13,6 +13,7 @@ func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectContro
 	projects.Use(middleware.ValidateRequest())
 	{
 		projects.GET("", permissionMiddleWare.RequirePermission("project:read"), projectController.ListProjects)
+		projects.GET("/:uuid", permissionMiddleWare.RequirePermission("project:read"), projectController.GetProjectDetails)
 		projects.POST("", permissionMiddleWare.RequirePermission("project:create"), projectController.CreateProject)
 		projects.PUT("/:uuid", permissionMiddleWare.RequirePermission("project:update"), projectController.UpdateProject)
 		projects.DELETE("/:uuid", permissionMiddleWare.RequirePermission("project:delete"), projectController.DeleteProject)

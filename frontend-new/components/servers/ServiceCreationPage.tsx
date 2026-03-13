@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   ActionIcon,
@@ -19,9 +19,9 @@ import {
   TextInput,
   Textarea,
   ThemeIcon,
-} from '@mantine/core';
-import { useForm } from '@mantine/form';
-import { notifications } from '@mantine/notifications';
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
 import {
   IconArrowLeft,
   IconBolt,
@@ -33,87 +33,87 @@ import {
   IconPlayerPlay,
   IconPlus,
   IconTrash,
-} from '@tabler/icons-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useGetProjects } from '@/hooks/useProjects';
+} from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useGetProjects } from "@/hooks/useProjects";
 
 const STEP_CONFIG = [
   {
-    key: 'service',
-    title: 'Service',
-    description: 'App runtime details',
+    key: "service",
+    title: "Service",
+    description: "App runtime details",
     icon: <IconPackage size={16} />,
   },
   {
-    key: 'git',
-    title: 'Git',
-    description: 'Repository source',
+    key: "git",
+    title: "Git",
+    description: "Repository source",
     icon: <IconBrandGithub size={16} />,
   },
   {
-    key: 'env',
-    title: 'Environment',
-    description: 'Variables and secrets',
+    key: "env",
+    title: "Environment",
+    description: "Variables and secrets",
     icon: <IconDatabaseCog size={16} />,
   },
   {
-    key: 'infra',
-    title: 'Infrastructure',
-    description: 'Compute and network',
+    key: "infra",
+    title: "Infrastructure",
+    description: "Compute and network",
     icon: <IconCloud size={16} />,
   },
   {
-    key: 'deploy',
-    title: 'Deployment',
-    description: 'Release behavior',
+    key: "deploy",
+    title: "Deployment",
+    description: "Release behavior",
     icon: <IconPlayerPlay size={16} />,
   },
   {
-    key: 'observability',
-    title: 'Observability',
-    description: 'Metrics and alerts',
+    key: "observability",
+    title: "Observability",
+    description: "Metrics and alerts",
     icon: <IconChartDots3 size={16} />,
   },
 ] as const;
 
-type StepKey = (typeof STEP_CONFIG)[number]['key'];
+type StepKey = (typeof STEP_CONFIG)[number]["key"];
 
 const SERVICE_TYPE_OPTIONS = [
-  { value: 'web', label: 'Web Service' },
-  { value: 'worker', label: 'Worker' },
-  { value: 'cron', label: 'Cron Job' },
+  { value: "web", label: "Web Service" },
+  { value: "worker", label: "Worker" },
+  { value: "cron", label: "Cron Job" },
 ];
 
 const FRAMEWORK_OPTIONS = [
-  { value: 'node', label: 'Node' },
-  { value: 'go', label: 'Go' },
-  { value: 'dotnet', label: '.NET' },
+  { value: "node", label: "Node" },
+  { value: "go", label: "Go" },
+  { value: "dotnet", label: ".NET" },
 ];
 
 const GIT_PROVIDER_OPTIONS = [
-  { value: 'github', label: 'GitHub' },
-  { value: 'gitlab', label: 'GitLab' },
-  { value: 'bitbucket', label: 'Bitbucket' },
+  { value: "github", label: "GitHub" },
+  { value: "gitlab", label: "GitLab" },
+  { value: "bitbucket", label: "Bitbucket" },
 ];
 
 const PROVIDER_OPTIONS = [
-  { value: 'aws', label: 'AWS' },
-  { value: 'gcp', label: 'Google Cloud' },
-  { value: 'azure', label: 'Azure' },
-  { value: 'custom', label: 'Custom / Bare Metal' },
+  { value: "aws", label: "AWS" },
+  { value: "gcp", label: "Google Cloud" },
+  { value: "azure", label: "Azure" },
+  { value: "custom", label: "Custom / Bare Metal" },
 ];
 
 const REGION_OPTIONS = [
-  { value: 'ap-south-1', label: 'Mumbai' },
-  { value: 'us-east-1', label: 'N. Virginia' },
-  { value: 'eu-west-1', label: 'Ireland' },
+  { value: "ap-south-1", label: "Mumbai" },
+  { value: "us-east-1", label: "N. Virginia" },
+  { value: "eu-west-1", label: "Ireland" },
 ];
 
 const DEPLOYMENT_STRATEGY_OPTIONS = [
-  { value: 'rolling', label: 'Rolling' },
-  { value: 'recreate', label: 'Recreate' },
-  { value: 'blue_green', label: 'Blue / Green' },
+  { value: "rolling", label: "Rolling" },
+  { value: "recreate", label: "Recreate" },
+  { value: "blue_green", label: "Blue / Green" },
 ];
 
 interface ServiceCreationPageProps {
@@ -133,16 +133,16 @@ function SectionHeader({
   color: string;
 }) {
   return (
-    <Group justify='space-between' align='flex-start'>
+    <Group justify="space-between" align="flex-start">
       <Box>
-        <Text fw={700} size='lg'>
+        <Text fw={700} size="lg">
           {title}
         </Text>
-        <Text size='sm' c='dimmed' mt={4}>
+        <Text size="sm" c="dimmed" mt={4}>
           {description}
         </Text>
       </Box>
-      <ThemeIcon size={40} radius='md' variant='light' color={color}>
+      <ThemeIcon size={40} radius="md" variant="light" color={color}>
         {icon}
       </ThemeIcon>
     </Group>
@@ -174,56 +174,56 @@ export default function ServiceCreationPage({
 
   const form = useForm({
     initialValues: {
-      projectId: initialProjectId ?? '',
-      name: '',
-      description: '',
-      serviceType: '',
-      framework: '',
-      buildCommand: '',
-      startCommand: '',
+      projectId: initialProjectId ?? "",
+      name: "",
+      description: "",
+      serviceType: "",
+      framework: "",
+      buildCommand: "",
+      startCommand: "",
       port: 3000,
-      gitProvider: '',
-      repository: '',
-      branch: 'main',
-      envVars: [{ key: '', value: '' }],
-      provider: '',
-      region: '',
-      instanceType: '',
-      strategy: 'rolling',
+      gitProvider: "",
+      repository: "",
+      branch: "main",
+      envVars: [{ key: "", value: "" }],
+      provider: "",
+      region: "",
+      instanceType: "",
+      strategy: "rolling",
       metricsEnabled: true,
     },
     validate: {
-      projectId: (value) => (!value ? 'Choose a project' : null),
+      projectId: (value) => (!value ? "Choose a project" : null),
       name: (value) =>
-        value.trim().length < 2 ? 'Name must be at least 2 characters' : null,
-      serviceType: (value) => (!value ? 'Choose a service type' : null),
-      framework: (value) => (!value ? 'Choose a framework' : null),
+        value.trim().length < 2 ? "Name must be at least 2 characters" : null,
+      serviceType: (value) => (!value ? "Choose a service type" : null),
+      framework: (value) => (!value ? "Choose a framework" : null),
       buildCommand: (value) =>
-        !value.trim() ? 'Build command is required' : null,
+        !value.trim() ? "Build command is required" : null,
       startCommand: (value) =>
-        !value.trim() ? 'Start command is required' : null,
+        !value.trim() ? "Start command is required" : null,
       port: (value) =>
-        !value || value < 1 || value > 65535 ? 'Enter a valid port' : null,
-      gitProvider: (value) => (!value ? 'Choose a git provider' : null),
-      repository: (value) => (!value.trim() ? 'Repository is required' : null),
-      branch: (value) => (!value.trim() ? 'Branch is required' : null),
+        !value || value < 1 || value > 65535 ? "Enter a valid port" : null,
+      gitProvider: (value) => (!value ? "Choose a git provider" : null),
+      repository: (value) => (!value.trim() ? "Repository is required" : null),
+      branch: (value) => (!value.trim() ? "Branch is required" : null),
       envVars: {
-        key: (value) => (!value.trim() ? 'Environment key is required' : null),
+        key: (value) => (!value.trim() ? "Environment key is required" : null),
         value: (value) =>
-          !value.trim() ? 'Environment value is required' : null,
+          !value.trim() ? "Environment value is required" : null,
       },
       provider: (value) =>
-        !value ? 'Choose an infrastructure provider' : null,
-      region: (value) => (!value ? 'Choose a region' : null),
+        !value ? "Choose an infrastructure provider" : null,
+      region: (value) => (!value ? "Choose a region" : null),
       instanceType: (value) =>
-        !value.trim() ? 'Instance type is required' : null,
-      strategy: (value) => (!value ? 'Choose a deployment strategy' : null),
+        !value.trim() ? "Instance type is required" : null,
+      strategy: (value) => (!value ? "Choose a deployment strategy" : null),
     },
   });
 
   useEffect(() => {
     if (!initialProjectId) return;
-    form.setFieldValue('projectId', initialProjectId);
+    form.setFieldValue("projectId", initialProjectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProjectId]);
 
@@ -268,12 +268,12 @@ export default function ServiceCreationPage({
     };
 
     updateActiveStep();
-    root.addEventListener('scroll', updateActiveStep, { passive: true });
-    window.addEventListener('resize', updateActiveStep);
+    root.addEventListener("scroll", updateActiveStep, { passive: true });
+    window.addEventListener("resize", updateActiveStep);
 
     return () => {
-      root.removeEventListener('scroll', updateActiveStep);
-      window.removeEventListener('resize', updateActiveStep);
+      root.removeEventListener("scroll", updateActiveStep);
+      window.removeEventListener("resize", updateActiveStep);
     };
   }, []);
 
@@ -288,64 +288,67 @@ export default function ServiceCreationPage({
 
     root.scrollTo({
       top: nextTop,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   };
 
   const handleSubmit = form.onSubmit((values) => {
     notifications.show({
-      title: 'Frontend draft ready',
-      message: `Captured "${values.name}" setup inputs. Server/service persistence can be wired once the backend contract is finalized.`,
-      color: 'teal',
+      title: "Frontend draft ready",
+      message: `Captured "${values.name}" setup inputs. service persistence can be wired once the backend contract is finalized.`,
+      color: "teal",
     });
   });
 
   return (
-    <Stack gap='lg' p='md' h='calc(100dvh - 96px)' style={{ minHeight: 0 }}>
-      <Group justify='space-between' align='flex-start'>
+    <Stack gap="lg" p="md" h="calc(100dvh - 96px)" style={{ minHeight: 0 }}>
+      <Group justify="space-between" align="flex-start">
         <Box>
-          <Group gap='sm' mb={8}>
+          <Group gap="sm" mb={8}>
             <Button
-              variant='subtle'
-              color='gray'
-              size='compact-sm'
+              variant="subtle"
+              color="gray"
+              size="compact-sm"
               leftSection={<IconArrowLeft size={14} />}
-              onClick={() => router.push(`/app/${workspaceId}/servers`)}>
+              onClick={() => router.push(`/app/${workspaceId}/servers`)}
+            >
               Back
             </Button>
-            <Badge variant='light' color='gray' radius='sm'>
+            <Badge variant="light" color="gray" radius="sm">
               Service Creation
             </Badge>
           </Group>
 
-          <Text fw={700} size='xl'>
+          <Text fw={700} size="xl">
             Create Service
           </Text>
-          <Text size='sm' c='dimmed' mt={4}>
+          <Text size="sm" c="dimmed" mt={4}>
             Multi-step server/service setup tied to a project. Active step
             follows the section currently on screen.
           </Text>
         </Box>
 
-        <Group gap='sm'>
+        <Group gap="sm">
           <Button
-            variant='default'
-            radius='sm'
-            onClick={() => router.push(`/app/${workspaceId}/servers`)}>
+            variant="default"
+            radius="sm"
+            onClick={() => router.push(`/app/${workspaceId}/servers`)}
+          >
             Cancel
           </Button>
-          <Button radius='sm' onClick={() => handleSubmit()}>
+          <Button radius="sm" onClick={() => handleSubmit()}>
             Create
           </Button>
         </Group>
       </Group>
 
-      <Paper withBorder radius='md' p='md'>
+      <Paper withBorder radius="md" p="md">
         <Stepper
           active={activeStep}
           onStepClick={(index) => scrollToStep(STEP_CONFIG[index].key)}
           allowNextStepsSelect
-          size='sm'>
+          size="sm"
+        >
           {STEP_CONFIG.map((step) => (
             <Stepper.Step
               key={step.key}
@@ -358,120 +361,123 @@ export default function ServiceCreationPage({
       </Paper>
 
       <ScrollArea
-        type='never'
+        type="never"
         offsetScrollbars
         viewportRef={viewportRef}
-        style={{ flex: 1, minHeight: 0 }}>
+        style={{ flex: 1, minHeight: 0 }}
+      >
         <div>
           <form onSubmit={handleSubmit}>
-            <Stack gap='lg' pb='xl'>
+            <Stack gap="lg" pb="xl">
               <Paper
                 withBorder
-                radius='md'
-                p='xl'
+                radius="md"
+                p="xl"
                 ref={(node) => {
                   sectionRefs.current.service = node;
-                }}>
-                <Stack gap='lg'>
+                }}
+              >
+                <Stack gap="lg">
                   <SectionHeader
-                    title='1. Service Information'
-                    description='Basic identity, runtime, and launch configuration.'
+                    title="1. Service Information"
+                    description="Basic identity, runtime, and launch configuration."
                     icon={<IconPackage size={20} />}
-                    color='indigo'
+                    color="indigo"
                   />
                   <Divider />
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing='md'>
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                     <Select
-                      label='Project'
+                      label="Project"
                       data={projectOptions}
-                      placeholder='Select a project'
+                      placeholder="Select a project"
                       withAsterisk
-                      {...form.getInputProps('projectId')}
+                      {...form.getInputProps("projectId")}
                     />
                     <TextInput
-                      label='Name'
-                      placeholder='API Service'
+                      label="Name"
+                      placeholder="API Service"
                       withAsterisk
-                      {...form.getInputProps('name')}
+                      {...form.getInputProps("name")}
                     />
                     <Select
-                      label='Service Type'
+                      label="Service Type"
                       data={SERVICE_TYPE_OPTIONS}
-                      placeholder='Select service type'
+                      placeholder="Select service type"
                       withAsterisk
-                      {...form.getInputProps('serviceType')}
+                      {...form.getInputProps("serviceType")}
                     />
                     <Select
-                      label='Framework'
+                      label="Framework"
                       data={FRAMEWORK_OPTIONS}
-                      placeholder='Select framework'
+                      placeholder="Select framework"
                       withAsterisk
-                      {...form.getInputProps('framework')}
+                      {...form.getInputProps("framework")}
                     />
                     <TextInput
-                      label='Build Command'
-                      placeholder='npm run build'
+                      label="Build Command"
+                      placeholder="npm run build"
                       withAsterisk
-                      {...form.getInputProps('buildCommand')}
+                      {...form.getInputProps("buildCommand")}
                     />
                     <TextInput
-                      label='Start Command'
-                      placeholder='npm run start'
+                      label="Start Command"
+                      placeholder="npm run start"
                       withAsterisk
-                      {...form.getInputProps('startCommand')}
+                      {...form.getInputProps("startCommand")}
                     />
                     <NumberInput
-                      label='Port'
+                      label="Port"
                       min={1}
                       max={65535}
                       withAsterisk
-                      {...form.getInputProps('port')}
+                      {...form.getInputProps("port")}
                     />
                   </SimpleGrid>
                   <Textarea
-                    label='Description'
-                    placeholder='Describe this service'
+                    label="Description"
+                    placeholder="Describe this service"
                     minRows={3}
                     autosize
-                    {...form.getInputProps('description')}
+                    {...form.getInputProps("description")}
                   />
                 </Stack>
               </Paper>
 
               <Paper
                 withBorder
-                radius='md'
-                p='xl'
+                radius="md"
+                p="xl"
                 ref={(node) => {
                   sectionRefs.current.git = node;
-                }}>
-                <Stack gap='lg'>
+                }}
+              >
+                <Stack gap="lg">
                   <SectionHeader
-                    title='2. Git Configuration'
-                    description='Source control details for builds and deployments.'
+                    title="2. Git Configuration"
+                    description="Source control details for builds and deployments."
                     icon={<IconBrandGithub size={20} />}
-                    color='grape'
+                    color="grape"
                   />
                   <Divider />
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing='md'>
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                     <Select
-                      label='Git Provider'
+                      label="Git Provider"
                       data={GIT_PROVIDER_OPTIONS}
-                      placeholder='Select provider'
+                      placeholder="Select provider"
                       withAsterisk
-                      {...form.getInputProps('gitProvider')}
+                      {...form.getInputProps("gitProvider")}
                     />
                     <TextInput
-                      label='Repository'
-                      placeholder='org/repo or full URL'
+                      label="Repository"
+                      placeholder="org/repo or full URL"
                       withAsterisk
-                      {...form.getInputProps('repository')}
+                      {...form.getInputProps("repository")}
                     />
                     <TextInput
-                      label='Branch'
-                      placeholder='main'
+                      label="Branch"
+                      placeholder="main"
                       withAsterisk
-                      {...form.getInputProps('branch')}
+                      {...form.getInputProps("branch")}
                     />
                   </SimpleGrid>
                 </Stack>
@@ -479,58 +485,62 @@ export default function ServiceCreationPage({
 
               <Paper
                 withBorder
-                radius='md'
-                p='xl'
+                radius="md"
+                p="xl"
                 ref={(node) => {
                   sectionRefs.current.env = node;
-                }}>
-                <Stack gap='lg'>
+                }}
+              >
+                <Stack gap="lg">
                   <SectionHeader
-                    title='3. Environment Variables'
-                    description='User-entered values only. Secrets and computed values can be handled later by the backend.'
+                    title="3. Environment Variables"
+                    description="User-entered values only. Secrets and computed values can be handled later by the backend."
                     icon={<IconDatabaseCog size={20} />}
-                    color='teal'
+                    color="teal"
                   />
-                  <Group justify='space-between' align='center'>
+                  <Group justify="space-between" align="center">
                     <Divider style={{ flex: 1 }} />
                     <Button
-                      type='button'
-                      variant='subtle'
-                      size='xs'
+                      type="button"
+                      variant="subtle"
+                      size="xs"
                       leftSection={<IconPlus size={14} />}
                       onClick={() =>
-                        form.insertListItem('envVars', { key: '', value: '' })
-                      }>
+                        form.insertListItem("envVars", { key: "", value: "" })
+                      }
+                    >
                       Add Variable
                     </Button>
                   </Group>
-                  <Stack gap='md'>
+                  <Stack gap="md">
                     {form.values.envVars.map((_, index) => (
-                      <Group key={index} align='flex-start' wrap='nowrap'>
+                      <Group key={index} align="flex-start" wrap="nowrap">
                         <SimpleGrid
                           cols={{ base: 1, md: 2 }}
-                          spacing='md'
-                          style={{ flex: 1 }}>
+                          spacing="md"
+                          style={{ flex: 1 }}
+                        >
                           <TextInput
-                            label={index === 0 ? 'Key' : undefined}
-                            placeholder='DATABASE_URL'
+                            label={index === 0 ? "Key" : undefined}
+                            placeholder="DATABASE_URL"
                             withAsterisk
                             {...form.getInputProps(`envVars.${index}.key`)}
                           />
                           <TextInput
-                            label={index === 0 ? 'Value' : undefined}
-                            placeholder='postgres://...'
+                            label={index === 0 ? "Value" : undefined}
+                            placeholder="postgres://..."
                             withAsterisk
                             {...form.getInputProps(`envVars.${index}.value`)}
                           />
                         </SimpleGrid>
                         <ActionIcon
-                          type='button'
+                          type="button"
                           mt={index === 0 ? 30 : 0}
-                          variant='subtle'
-                          color='red'
-                          onClick={() => form.removeListItem('envVars', index)}
-                          disabled={form.values.envVars.length === 1}>
+                          variant="subtle"
+                          color="red"
+                          onClick={() => form.removeListItem("envVars", index)}
+                          disabled={form.values.envVars.length === 1}
+                        >
                           <IconTrash size={16} />
                         </ActionIcon>
                       </Group>
@@ -541,37 +551,38 @@ export default function ServiceCreationPage({
 
               <Paper
                 withBorder
-                radius='md'
-                p='xl'
+                radius="md"
+                p="xl"
                 ref={(node) => {
                   sectionRefs.current.infra = node;
-                }}>
-                <Stack gap='lg'>
+                }}
+              >
+                <Stack gap="lg">
                   <SectionHeader
-                    title='4. Infrastructure'
-                    description='Compute and network settings attached to the service.'
+                    title="4. Infrastructure"
+                    description="Compute and network settings attached to the service."
                     icon={<IconCloud size={20} />}
-                    color='cyan'
+                    color="cyan"
                   />
                   <Divider />
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing='md'>
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                     <Select
-                      label='Provider'
+                      label="Provider"
                       data={PROVIDER_OPTIONS}
                       withAsterisk
-                      {...form.getInputProps('provider')}
+                      {...form.getInputProps("provider")}
                     />
                     <Select
-                      label='Region'
+                      label="Region"
                       data={REGION_OPTIONS}
                       withAsterisk
-                      {...form.getInputProps('region')}
+                      {...form.getInputProps("region")}
                     />
                     <TextInput
-                      label='Instance Type'
-                      placeholder='shared-small'
+                      label="Instance Type"
+                      placeholder="shared-small"
                       withAsterisk
-                      {...form.getInputProps('instanceType')}
+                      {...form.getInputProps("instanceType")}
                     />
                   </SimpleGrid>
                 </Stack>
@@ -579,48 +590,50 @@ export default function ServiceCreationPage({
 
               <Paper
                 withBorder
-                radius='md'
-                p='xl'
+                radius="md"
+                p="xl"
                 ref={(node) => {
                   sectionRefs.current.deploy = node;
-                }}>
-                <Stack gap='lg'>
+                }}
+              >
+                <Stack gap="lg">
                   <SectionHeader
-                    title='5. Deployment'
-                    description='Release behavior and failure handling.'
+                    title="5. Deployment"
+                    description="Release behavior and failure handling."
                     icon={<IconPlayerPlay size={20} />}
-                    color='orange'
+                    color="orange"
                   />
                   <Divider />
                   <Select
-                    label='Strategy'
+                    label="Strategy"
                     data={DEPLOYMENT_STRATEGY_OPTIONS}
                     withAsterisk
-                    {...form.getInputProps('strategy')}
+                    {...form.getInputProps("strategy")}
                   />
                 </Stack>
               </Paper>
 
               <Paper
                 withBorder
-                radius='md'
-                p='xl'
+                radius="md"
+                p="xl"
                 ref={(node) => {
                   sectionRefs.current.observability = node;
-                }}>
-                <Stack gap='lg'>
+                }}
+              >
+                <Stack gap="lg">
                   <SectionHeader
-                    title='6. Observability'
-                    description='Metrics, logs, and alerting preferences.'
+                    title="6. Observability"
+                    description="Metrics, logs, and alerting preferences."
                     icon={<IconBolt size={20} />}
-                    color='pink'
+                    color="pink"
                   />
                   <Divider />
                   <Switch
-                    label='Metrics Enabled'
+                    label="Metrics Enabled"
                     checked={form.values.metricsEnabled}
-                    {...form.getInputProps('metricsEnabled', {
-                      type: 'checkbox',
+                    {...form.getInputProps("metricsEnabled", {
+                      type: "checkbox",
                     })}
                   />
                 </Stack>

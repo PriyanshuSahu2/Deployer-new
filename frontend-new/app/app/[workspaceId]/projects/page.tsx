@@ -1,4 +1,4 @@
-import ProjectsContainer from '@/components/projects/ProjectsContainer';
+import ProjectList from "@/components/projects/ProjectList";
 
 interface PageProps {
   params: Promise<{
@@ -7,11 +7,11 @@ interface PageProps {
 }
 
 export const metadata = {
-  title: 'Projects',
+  title: "Projects",
 };
 
-export default async function ProjectPage({ params }: PageProps) {
+export default async function ProjectListPage({ params }: PageProps) {
   const { workspaceId } = await params;
 
-  return <ProjectsContainer workspaceId={workspaceId} />;
+  return <ProjectList workspaceId={workspaceId} />;
 }

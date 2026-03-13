@@ -61,6 +61,15 @@ func (pc *ProjectController) ListProjects(c *gin.Context) {
 	c.JSON(http.StatusOK, projects)
 }
 
+func (pc *ProjectController) GetProjectDetails(c *gin.Context) {
+	project, err := pc.Service.GetProjectDetails(c.MustGet("userID").(uint), c.Param("uuid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, project)
+}
+
 func (pc *ProjectController) DeleteProject(c *gin.Context) {
 	if err := pc.Service.DeleteProject(c.MustGet("userID").(uint), c.Param("uuid")); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

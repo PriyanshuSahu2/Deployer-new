@@ -30,3 +30,7 @@ export const updateProject = (
 
 export const deleteProject = (workspaceUUID: string, projectUuid: string) =>
   privateRequest.delete(`/workspaces/${workspaceUUID}/projects/${projectUuid}`);
+
+
+export const getProjectDetails = (workspaceUuid: string, projectUuid: string) =>
+  privateRequest.get(`/workspaces/${workspaceUuid}/projects/${projectUuid}`);

@@ -4,11 +4,11 @@ import { Box, Button, Center, Paper, Stack, Text, ThemeIcon } from '@mantine/cor
 import { IconPlus, IconServer } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 
-interface ServersPageProps {
+interface ServicePageProps {
   workspaceId: string;
 }
 
-export default function ServersPage({ workspaceId }: ServersPageProps) {
+export default function ServicePage({ workspaceId }: ServicePageProps) {
   const router = useRouter();
 
   return (

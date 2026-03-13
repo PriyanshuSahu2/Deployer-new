@@ -40,7 +40,7 @@ func (s *ProjectService) CreateProject(userID uint, workspaceUUID string, dto dt
 }
 
 func (s *ProjectService) UpdateProject(userID uint, dto dtos_project.UpdateProjectDTO) error {
-	
+
 	project, err := s.ProjectRepo.GetByUUID(dto.UUID)
 	if err != nil {
 		return errors.New("project not found")
@@ -85,4 +85,18 @@ func (s *ProjectService) DeleteProject(userID uint, projectUUID string) error {
 	}
 
 	return s.ProjectRepo.Delete(project)
+}
+
+func (s *ProjectService) GetProjectDetails(userID uint, projectUUID string) (dtos_project.ProjectResponseDTO, error) {
+	project, err := s.ProjectRepo.GetByUUID(projectUUID)
+
+	projectResponse := dtos_project.ProjectResponseDTO{
+		UUID:        project.UUID.String(),
+		Name:        project.Name,
+		Description: project.Description,
+		WorkspaceID: project.WorkspaceID,
+		CreatedBy:   project.CreatedBy,
+		CreatedAt:   project.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+	return projectResponse, err
 }

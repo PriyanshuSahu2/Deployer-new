@@ -1,4 +1,4 @@
-import ServersPage from '@/components/servers/ServersPage';
+import ServicePage from "@/components/servers/ServicePage";
 
 interface PageProps {
   params: Promise<{
@@ -9,5 +9,6 @@ interface PageProps {
 export default async function ServersRoutePage({ params }: PageProps) {
   const { workspaceId } = await params;
 
-  return <ServersPage workspaceId={workspaceId} />;
+  return <ServicePage workspaceId={workspaceId} />;
 }
+ 

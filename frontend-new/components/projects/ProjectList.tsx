@@ -23,6 +23,7 @@ import {
   IconTrash,
   IconFolder,
   IconX,
+  IconEye,
 } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { useDeleteProject, useGetProjects } from '@/hooks/useProjects';
@@ -40,19 +41,18 @@ interface Props {
 function ProjectRow({
   project,
   onEdit,
-  onCreateServer,
+  onViewProject,
   onDelete,
   isDeleting,
 }: {
   project: Project;
   onEdit: (project: Project) => void;
-  onCreateServer: (project: Project) => void;
+  onViewProject: (project: Project) => void;
   onDelete: (project: Project) => void;
   isDeleting: boolean;
 }) {
   return (
     <Table.Tr>
-      {/* Name */}
       <Table.Td>
         <Group gap="xs" wrap="nowrap">
           <ThemeIcon size="sm" radius="sm" variant="light" color="indigo">
@@ -65,7 +65,6 @@ function ProjectRow({
         </Group>
       </Table.Td>
 
-      {/* Description */}
       <Table.Td>
         <Text size="sm" c="dimmed" lineClamp={1}>
           {project.description || (
@@ -76,33 +75,31 @@ function ProjectRow({
         </Text>
       </Table.Td>
 
-      {/* Framework */}
       <Table.Td>
-        <Text size="xs" c="dimmed">
+        <Text size="sm" c="dimmed">
           {project.framework || '—'}
         </Text>
       </Table.Td>
 
       {/* Created */}
       <Table.Td>
-        <Text size="xs" c="dimmed">
+        <Text size="sm" c="dimmed">
           {project.created_at
             ? dayjs(project.created_at).format('MMM D, YYYY')
             : '—'}
         </Text>
       </Table.Td>
 
-      {/* Actions */}
       <Table.Td>
         <Group gap={4} justify="flex-end" wrap="nowrap">
-          <Tooltip label="Create server" withArrow position="top" fz="xs">
+          <Tooltip label="View project" withArrow position="top" fz="xs">
             <ActionIcon
               variant="subtle"
               color="indigo"
               size="sm"
-              onClick={() => onCreateServer(project)}
+              onClick={() => onViewProject(project)}
             >
-              <IconServerBolt size={14} />
+              <IconEye size={18} />
             </ActionIcon>
           </Tooltip>
 
@@ -113,7 +110,7 @@ function ProjectRow({
               size="sm"
               onClick={() => onEdit(project)}
             >
-              <IconPencil size={14} />
+              <IconPencil size={18} />
             </ActionIcon>
           </Tooltip>
 
@@ -125,7 +122,7 @@ function ProjectRow({
               loading={isDeleting}
               onClick={() => onDelete(project)}
             >
-              <IconTrash size={14} />
+              <IconTrash size={18} />
             </ActionIcon>
           </Tooltip>
         </Group>
@@ -134,7 +131,7 @@ function ProjectRow({
   );
 }
 
-export default function ProjectsContainer({ workspaceId }: Props) {
+export default function ProjectList({ workspaceId }: Props) {
   const router = useRouter();
   const { data: projects = [], isLoading } = useGetProjects(workspaceId, true);
 
@@ -165,10 +162,10 @@ export default function ProjectsContainer({ workspaceId }: Props) {
     setDrawerOpen(true);
   };
 
-  const openCreateServer = (project: Project) => {
+  const handleViewProject = (project: Project) => {
     router.push(
-      `/app/${workspaceId}/servers/create?projectId=${encodeURIComponent(project.uuid)}`,
-    );
+      `/app/${workspaceId}/projects/${encodeURIComponent(project.uuid)}`,
+    );``
   };
 
   const handleDelete = async (project: Project) => {
@@ -297,7 +294,7 @@ export default function ProjectsContainer({ workspaceId }: Props) {
                       key={project.uuid}
                       project={project}
                       onEdit={openEdit}
-                      onCreateServer={openCreateServer}
+                      onViewProject={handleViewProject}
                       onDelete={handleDelete}
                       isDeleting={isDeleting}
                     />

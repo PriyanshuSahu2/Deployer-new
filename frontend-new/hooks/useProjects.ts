@@ -1,6 +1,7 @@
 import {
   createProject,
   deleteProject,
+  getProjectDetails,
   listProjects,
   updateProject,
   type CreateProjectPayload,
@@ -49,5 +50,15 @@ export const useDeleteProject = (workspaceUuid: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', workspaceUuid] });
     },
+  });
+};
+
+
+export const useGetProjectDetails = (workspaceUuid: string, projectUuid: string, enabled = false) => {
+  return useQuery({
+    queryKey: ['projects', workspaceUuid, projectUuid],
+    queryFn: () => getProjectDetails(workspaceUuid, projectUuid),
+    enabled: enabled && !!workspaceUuid && !!projectUuid,
+    select: (res) => res.data,
   });
 };
