@@ -26,7 +26,7 @@ func (rc *RoleController) CreateRole(c *gin.Context) {
 		return
 	}
 
-	if err := rc.Service.CreateRole(c.MustGet("userID").(uint), roleBody); err != nil {
+	if err := rc.Service.CreateRole(nil, c.MustGet("userID").(uint), roleBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -36,6 +36,7 @@ func (rc *RoleController) CreateRole(c *gin.Context) {
 
 func (rc *RoleController) UpdateRole(c *gin.Context) {
 	uuid := c.Param("uuid")
+	userID := c.MustGet("userID").(uint)
 
 	var roleBody dtos_roles.UpdateRoleDTO
 
@@ -47,7 +48,7 @@ func (rc *RoleController) UpdateRole(c *gin.Context) {
 
 	roleBody.UUID = uuid
 
-	if err := rc.Service.UpdateRole(uint(1), roleBody); err != nil {
+	if err := rc.Service.UpdateRole(nil, userID, roleBody); err != nil {
 		fmt.Println("SERVICE ERROR UpdateRole:", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -60,7 +61,7 @@ func (rc *RoleController) ListRoles(c *gin.Context) {
 	workspaceUUID := c.Param("workspaceUUID")
 	userID := c.MustGet("userID").(uint)
 
-	roles, err := rc.Service.ListRoles(userID, workspaceUUID)
+	roles, err := rc.Service.ListRoles(nil, userID, workspaceUUID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -73,7 +74,7 @@ func (rc *RoleController) DeleteRole(c *gin.Context) {
 	roleUUID := c.Param("uuid")
 	userID := c.MustGet("userID").(uint)
 
-	if err := rc.Service.DeleteRole(userID, roleUUID); err != nil {
+	if err := rc.Service.DeleteRole(nil, userID, roleUUID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -93,7 +94,7 @@ func (rc *RoleController) AssignPermission(c *gin.Context) {
 		return
 	}
 
-	rows, err := rc.Service.UpdateRolePermissions(c.MustGet("userID").(uint), roleUUID, body)
+	rows, err := rc.Service.UpdateRolePermissions(nil, c.MustGet("userID").(uint), roleUUID, body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -104,17 +105,13 @@ func (rc *RoleController) AssignPermission(c *gin.Context) {
 
 func (rc *RoleController) ListRolePermissions(c *gin.Context) {
 	roleUUID := c.Param("roleUUID")
-	if roleUUID == "" {
-		roleUUID = c.Param("uuid")
-	}
-
-	rows, err := rc.Service.ListRolePermissions(c.MustGet("userID").(uint), roleUUID)
+	permissions, err := rc.Service.ListRolePermissions(nil, c.MustGet("userID").(uint), roleUUID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, rows)
+	c.JSON(http.StatusOK, permissions)
 }
 
 // project:read project:write project:update project:delete

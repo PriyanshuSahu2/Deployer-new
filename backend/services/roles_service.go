@@ -13,6 +13,7 @@ import (
 	"backend/repositories"
 
 	"github.com/go-redis/redis/v8"
+	"gorm.io/gorm"
 )
 
 type RoleService struct {
@@ -32,7 +33,7 @@ func NewRoleService(
 		RedisRepo:     redisRepo,
 	}
 }
-func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, error) {
+func (s *RoleService) GetUserRoleID(tx *gorm.DB, workspaceUUID string, userID int) (int, error) {
 
 	key := fmt.Sprintf("workspace:role:%s:%d", workspaceUUID, userID)
 
@@ -60,7 +61,7 @@ func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, erro
 
 	var workspaceID int
 	if err == redis.Nil {
-		workspace, err := s.WorkspaceRepo.GetByUUID(workspaceUUID)
+		workspace, err := s.WorkspaceRepo.GetByUUID(tx, workspaceUUID)
 
 		if err != nil {
 			return 0, err
@@ -74,7 +75,7 @@ func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, erro
 		}
 
 	}
-	roleID, err := s.RoleRepo.GetUserRoleID(workspaceID, userID)
+	roleID, err := s.RoleRepo.GetUserRoleID(tx, workspaceID, userID)
 	if err != nil || roleID == 0 {
 		return 0, err
 	}
@@ -83,9 +84,9 @@ func (s *RoleService) GetUserRoleID(workspaceUUID string, userID int) (int, erro
 	return roleID, nil
 }
 
-func (s *RoleService) CreateRole(userID uint, dto dtos_roles.CreateRoleDTO) error {
+func (s *RoleService) CreateRole(tx *gorm.DB, userID uint, dto dtos_roles.CreateRoleDTO) error {
 
-	workspace, err := s.WorkspaceRepo.GetByUUID(dto.WorkspaceUUID)
+	workspace, err := s.WorkspaceRepo.GetByUUID(tx, dto.WorkspaceUUID)
 	if err != nil {
 		return errors.New("workspace not found")
 	}
@@ -100,12 +101,12 @@ func (s *RoleService) CreateRole(userID uint, dto dtos_roles.CreateRoleDTO) erro
 		CreatedByID: userID,
 	}
 
-	return s.RoleRepo.Create(&role)
+	return s.RoleRepo.Create(tx, &role)
 }
 
-func (s *RoleService) UpdateRole(userID uint, dto dtos_roles.UpdateRoleDTO) error {
+func (s *RoleService) UpdateRole(tx *gorm.DB, userID uint, dto dtos_roles.UpdateRoleDTO) error {
 
-	role, err := s.RoleRepo.GetByUUID(&dto.UUID)
+	role, err := s.RoleRepo.GetByUUID(tx, &dto.UUID)
 	if err != nil {
 		return errors.New("role not found")
 	}
@@ -114,19 +115,19 @@ func (s *RoleService) UpdateRole(userID uint, dto dtos_roles.UpdateRoleDTO) erro
 
 	role.RoleName = dto.RoleName
 	role.Description = dto.Description
-	return s.RoleRepo.Update(role)
+	return s.RoleRepo.Update(tx, role)
 }
 
-func (s *RoleService) ListRoles(userID uint, workspaceUUID string) ([]dtos_roles.RoleResponseDTO, error) {
+func (s *RoleService) ListRoles(tx *gorm.DB, userID uint, workspaceUUID string) ([]dtos_roles.RoleResponseDTO, error) {
 
-	workspace, err := s.WorkspaceRepo.GetByUUID(workspaceUUID)
+	workspace, err := s.WorkspaceRepo.GetByUUID(tx, workspaceUUID)
 	if err != nil {
 		return nil, errors.New("workspace not found")
 	}
 
 	// 🔐 RBAC check later
 
-	roles, err := s.RoleRepo.GetWorkspaceAndSystemRoles(workspace.ID)
+	roles, err := s.RoleRepo.GetWorkspaceAndSystemRoles(tx, workspace.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -134,8 +135,8 @@ func (s *RoleService) ListRoles(userID uint, workspaceUUID string) ([]dtos_roles
 	return s.mapToDTO(roles), nil
 }
 
-func (s *RoleService) DeleteRole(userID uint, roleUUID string) error {
-	role, err := s.RoleRepo.GetByUUID(&roleUUID)
+func (s *RoleService) DeleteRole(tx *gorm.DB, userID uint, roleUUID string) error {
+	role, err := s.RoleRepo.GetByUUID(tx, &roleUUID)
 	if err != nil {
 		return errors.New("role not found")
 	}
@@ -144,20 +145,20 @@ func (s *RoleService) DeleteRole(userID uint, roleUUID string) error {
 		return errors.New("system roles cannot be deleted")
 	}
 
-	return s.RoleRepo.Delete(role)
+	return s.RoleRepo.Delete(tx, role)
 }
 
-func (s *RoleService) ListRolePermissions(userID uint, roleUUID string) ([]dtos_roles.RolePermissionRowDTO, error) {
-	role, err := s.RoleRepo.GetByUUID(&roleUUID)
+func (s *RoleService) ListRolePermissions(tx *gorm.DB, userID uint, roleUUID string) ([]dtos_roles.RolePermissionRowDTO, error) {
+	role, err := s.RoleRepo.GetByUUID(tx, &roleUUID)
 	if err != nil {
 		return nil, errors.New("role not found")
 	}
 
-	return s.RoleRepo.ListRolePermissions(role.ID)
+	return s.RoleRepo.ListRolePermissions(nil, role.ID)
 }
 
-func (s *RoleService) UpdateRolePermissions(userID uint, roleUUID string, dto dtos_roles.UpdateRolePermissionsDTO) ([]dtos_roles.RolePermissionRowDTO, error) {
-	role, err := s.RoleRepo.GetByUUID(&roleUUID)
+func (s *RoleService) UpdateRolePermissions(tx *gorm.DB, userID uint, roleUUID string, dto dtos_roles.UpdateRolePermissionsDTO) ([]dtos_roles.RolePermissionRowDTO, error) {
+	role, err := s.RoleRepo.GetByUUID(tx, &roleUUID)
 	if err != nil {
 		return nil, errors.New("role not found")
 	}
@@ -180,14 +181,14 @@ func (s *RoleService) UpdateRolePermissions(userID uint, roleUUID string, dto dt
 		permissionIDs = append(permissionIDs, id)
 	}
 
-	if err := s.RoleRepo.ReplaceRolePermissions(role.ID, permissionIDs); err != nil {
+	if err := s.RoleRepo.ReplaceRolePermissions(tx, role.ID, permissionIDs); err != nil {
 		return nil, err
 	}
 
-	return s.RoleRepo.ListRolePermissions(role.ID)
+	return s.RoleRepo.ListRolePermissions(tx, role.ID)
 }
 
-func (s *RoleService) GetRolePermissions(roleID uint) ([]string, error) {
+func (s *RoleService) GetRolePermissions(tx *gorm.DB, roleID uint) ([]string, error) {
 
 	key := fmt.Sprintf("role:permissions:%d", roleID)
 
@@ -201,7 +202,7 @@ func (s *RoleService) GetRolePermissions(roleID uint) ([]string, error) {
 		}
 	}
 
-	permissions, err := s.RoleRepo.GetRolePermissions(int(roleID))
+	permissions, err := s.RoleRepo.GetRolePermissions(tx, int(roleID))
 	if err != nil {
 		return nil, err
 	}
@@ -212,9 +213,9 @@ func (s *RoleService) GetRolePermissions(roleID uint) ([]string, error) {
 	return permissions, nil
 }
 
-func (s *RoleService) RoleHasPermission(roleID uint, permissionKey string) bool {
+func (s *RoleService) RoleHasPermission(tx *gorm.DB, roleID uint, permissionKey string) bool {
 
-	permissions, err := s.GetRolePermissions(roleID)
+	permissions, err := s.GetRolePermissions(tx, roleID)
 	if err != nil {
 		return false
 	}

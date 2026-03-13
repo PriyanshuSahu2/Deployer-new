@@ -3,6 +3,7 @@ import ProjectDetails from "@/components/projects/ProjectDetails";
 interface PageProps {
   params: Promise<{
     workspaceId: string;
+    projectId: string;
   }>;
 }
 
@@ -11,7 +12,7 @@ export const metadata = {
 };
 
 export default async function ProjectDetailsPage({ params }: PageProps) {
-  const { workspaceId,projectId } = await params;
+  const { workspaceId, projectId } = await params;
 
   return <ProjectDetails workspaceId={workspaceId} projectId={projectId} />;
 }

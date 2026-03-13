@@ -1,4 +1,4 @@
-import ServiceCreationPage from '@/components/servers/ServiceCreationPage';
+import ServiceCreationPage from '@/components/services/ServiceCreationPage';
 
 interface PageProps {
   params: Promise<{

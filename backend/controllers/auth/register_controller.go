@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // Register godoc
@@ -43,57 +44,62 @@ func (a *AuthController) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newUser = models_auth.User{
-		Email:         userBody.Email,
-		Username:      userBody.Username,
-		Password:      hashedPassword,
-		EmailVerified: false,
-	}
+	// Wrap user creation, workspace creation, and member addition in a transaction
+	err = db.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. Create User
+		newUser = models_auth.User{
+			Username: userBody.Username,
+			Email:    userBody.Email,
+			Password: hashedPassword,
+		}
+		if err := tx.Create(&newUser).Error; err != nil {
+			return err
+		}
 
-	result := db.DB.Create(&newUser)
+		// 2. Generate and store OTP
+		token, err := utils.GenerateVerificationToken()
+		if err == nil {
+			otpRecord := models_auth.OTP{
+				Email:     newUser.Email,
+				OTPCode:   token,
+				Purpose:   "email_verification",
+				ExpiresAt: time.Now().Add(24 * time.Hour),
+				Used:      false,
+			}
+			if err := tx.Create(&otpRecord).Error; err != nil {
+				return err
+			}
 
-	if result.Error != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
+			frontendURL := os.Getenv("FRONTEND_URL")
+			if frontendURL == "" {
+				frontendURL = "http://localhost:5173"
+			}
+			verificationLink := frontendURL + "/auth/verify-email?token=" + token
+
+			go a.emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
+		}
+
+		// 3. Create Workspace
+		workspace, err := a.workspaceService.CreateWorkspace(tx, newUser.ID, dtos_workspace.CreateWorkspaceDTO{
+			Name: userBody.Username + "'s Workspace",
+		})
+		if err != nil {
+			return err
+		}
+
+		// 4. Add Internal Member (Owner)
+		if err := a.memberService.AddInternalMember(tx, workspace.ID, newUser.ID, 1, newUser.ID); err != nil {
+			return err
+		}
+
+		go a.emailService.SendWelcomeEmail(newUser.Email, newUser.Username)
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	token, err := utils.GenerateVerificationToken()
-	if err == nil {
-		otpRecord := models_auth.OTP{
-			Email:     newUser.Email,
-			OTPCode:   token,
-			Purpose:   "email_verification",
-			ExpiresAt: time.Now().Add(24 * time.Hour),
-			Used:      false,
-		}
-		db.DB.Create(&otpRecord)
-
-		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" {
-			frontendURL = "http://localhost:5173"
-		}
-		verificationLink := frontendURL + "/auth/verify-email?token=" + token
-
-		go a.emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
-	}
-
-	// newWorkspaceMemberService := services.NewWorkspaceMemberService(userRe)
-	var workspaceBody dtos_workspace.CreateWorkspaceDTO
-	workspaceBody.Name = userBody.Username + "'s Workspace" //TODO: later i will add to fix if username is too big or i should just put usernma validation at registertion
-	workspace, err := a.workspaceService.CreateWorkspace(newUser.ID, workspaceBody)
-
-	var workspaceMember dtos_workspace.AddMemberDTOInternal
-	workspaceMember.UserID = newUser.ID
-	workspaceMember.WorkspaceID = workspace.ID
-	workspaceMember.InvitedByID = newUser.ID
-	workspaceMember.RoleID = 1                                                                                                        //TODO: later i will add to fix role to take owner role from db not
-	memberResult := a.memberService.AddInternalMember(workspaceMember.WorkspaceID, workspaceMember.UserID, workspaceMember.RoleID, 1) //TODO AddWorkspaceMemberInternal
-	if memberResult != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to workspace"})
-		return
-	}
-
-	go a.emailService.SendWelcomeEmail(newUser.Email, newUser.Username)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User created successfully. Please check your email to verify your account.",

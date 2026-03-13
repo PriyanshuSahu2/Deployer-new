@@ -6,12 +6,18 @@ import (
 	models_workspace "backend/models/workspace"
 	"backend/repositories"
 	"errors"
+
+	"gorm.io/gorm"
 )
 
-func GetWorkspaceByUUID(uuid string) (*models_workspace.Workspace, error) {
+func GetWorkspaceByUUID(tx *gorm.DB, uuid string) (*models_workspace.Workspace, error) {
 	var workspace models_workspace.Workspace
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.
+	err := query.
 		Where("uuid = ?", uuid).
 		First(&workspace).Error
 
@@ -40,42 +46,54 @@ func NewWorkspaceService(
 	}
 }
 
-func (s *WorkspaceService) CreateWorkspace(userID uint, dto dtos_workspace.CreateWorkspaceDTO) (models_workspace.Workspace, error) {
+func (s *WorkspaceService) CreateWorkspace(tx *gorm.DB, userID uint, dto dtos_workspace.CreateWorkspaceDTO) (models_workspace.Workspace, error) {
+	var workspace models_workspace.Workspace
 
-	workspace := models_workspace.Workspace{
-		WorkspaceName: dto.Name,
-		OwnerID:       userID,
-		CreatedByID:   userID,
+	query := db.DB
+	if tx != nil {
+		query = tx
 	}
 
-	if err := s.WorkspaceRepo.Create(&workspace); err != nil {
-		return workspace, err
-	}
+	err := query.Transaction(func(tx2 *gorm.DB) error {
+		workspace = models_workspace.Workspace{
+			WorkspaceName: dto.Name,
+			OwnerID:       userID,
+			CreatedByID:   userID,
+		}
 
-	// Automatically add owner as member
-	_ = s.MemberRepo.Create(nil, models_workspace.WorkspaceMember{
-		WorkspaceID: workspace.ID,
-		UserId:      userID,
-		Status:      "ACTIVE",
+		if err := s.WorkspaceRepo.Create(tx2, &workspace); err != nil {
+			return err
+		}
+
+		// Automatically add owner as member
+		if err := s.MemberRepo.Create(tx2, models_workspace.WorkspaceMember{
+			WorkspaceID: workspace.ID,
+			UserId:      userID,
+			Status:      "ACTIVE",
+		}); err != nil {
+			return err
+		}
+
+		return nil
 	})
 
-	return workspace, nil
+	return workspace, err
 }
 
-func (s *WorkspaceService) UpdateWorkspace(userID uint, dto dtos_workspace.UpdateWorkspaceDTO) error {
+func (s *WorkspaceService) UpdateWorkspace(tx *gorm.DB, userID uint, dto dtos_workspace.UpdateWorkspaceDTO) error {
 
-	workspace, err := s.WorkspaceRepo.GetByUUIDAndOwner(dto.UUID, userID)
+	workspace, err := s.WorkspaceRepo.GetByUUIDAndOwner(tx, dto.UUID, userID)
 	if err != nil {
 		return errors.New("workspace not found")
 	}
 
 	workspace.WorkspaceName = dto.Name
-	return s.WorkspaceRepo.Update(workspace)
+	return s.WorkspaceRepo.Update(tx, workspace)
 }
 
-func (s *WorkspaceService) ListWorkspaces(userID uint) ([]dtos_workspace.ListWorkspaceDTO, error) {
+func (s *WorkspaceService) ListWorkspaces(tx *gorm.DB, userID uint) ([]dtos_workspace.ListWorkspaceDTO, error) {
 
-	workspaces, err := s.WorkspaceRepo.GetUserWorkspaces(userID)
+	workspaces, err := s.WorkspaceRepo.GetUserWorkspaces(tx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +101,9 @@ func (s *WorkspaceService) ListWorkspaces(userID uint) ([]dtos_workspace.ListWor
 	return s.mapToDTO(workspaces), nil
 }
 
-func (s *WorkspaceService) GetUserDefaultWorkspace(userID uint) (*dtos_workspace.ListWorkspaceDTO, error) {
+func (s *WorkspaceService) GetUserDefaultWorkspace(tx *gorm.DB, userID uint) (*dtos_workspace.ListWorkspaceDTO, error) {
 
-	workspace, err := s.WorkspaceRepo.GetFirstAccessibleWorkspace(userID)
+	workspace, err := s.WorkspaceRepo.GetFirstAccessibleWorkspace(tx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,14 +118,14 @@ func (s *WorkspaceService) GetUserDefaultWorkspace(userID uint) (*dtos_workspace
 	return &dto, nil
 }
 
-func (s *WorkspaceService) GetUserPermissions(workspaceUUID string, userID int) ([]string, error) {
+func (s *WorkspaceService) GetUserPermissions(tx *gorm.DB, workspaceUUID string, userID int) ([]string, error) {
 
-	roleID, err := s.RoleService.GetUserRoleID(workspaceUUID, userID)
+	roleID, err := s.RoleService.GetUserRoleID(tx, workspaceUUID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	permissions, err := s.RoleService.GetRolePermissions(uint(roleID))
+	permissions, err := s.RoleService.GetRolePermissions(tx, uint(roleID))
 	if err != nil {
 		return nil, err
 	}

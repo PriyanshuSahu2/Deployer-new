@@ -25,7 +25,7 @@ func (pc *ProjectController) CreateProject(c *gin.Context) {
 		return
 	}
 
-	if err := pc.Service.CreateProject(c.MustGet("userID").(uint), c.Param("workspaceUUID"), body); err != nil {
+	if err := pc.Service.CreateProject(nil, c.MustGet("userID").(uint), c.Param("workspaceUUID"), body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -43,7 +43,7 @@ func (pc *ProjectController) UpdateProject(c *gin.Context) {
 
 	body.UUID = c.Param("uuid")
 
-	if err := pc.Service.UpdateProject(c.MustGet("userID").(uint), body); err != nil {
+	if err := pc.Service.UpdateProject(nil, c.MustGet("userID").(uint), body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -52,7 +52,7 @@ func (pc *ProjectController) UpdateProject(c *gin.Context) {
 }
 
 func (pc *ProjectController) ListProjects(c *gin.Context) {
-	projects, err := pc.Service.ListProjects(c.MustGet("userID").(uint), c.Param("workspaceUUID"))
+	projects, err := pc.Service.ListProjects(nil, c.MustGet("userID").(uint), c.Param("workspaceUUID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -62,7 +62,7 @@ func (pc *ProjectController) ListProjects(c *gin.Context) {
 }
 
 func (pc *ProjectController) GetProjectDetails(c *gin.Context) {
-	project, err := pc.Service.GetProjectDetails(c.MustGet("userID").(uint), c.Param("uuid"))
+	project, err := pc.Service.GetProjectDetails(nil, c.MustGet("userID").(uint), c.Param("uuid"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -71,7 +71,7 @@ func (pc *ProjectController) GetProjectDetails(c *gin.Context) {
 }
 
 func (pc *ProjectController) DeleteProject(c *gin.Context) {
-	if err := pc.Service.DeleteProject(c.MustGet("userID").(uint), c.Param("uuid")); err != nil {
+	if err := pc.Service.DeleteProject(nil, c.MustGet("userID").(uint), c.Param("uuid")); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

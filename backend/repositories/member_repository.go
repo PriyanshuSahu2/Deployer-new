@@ -14,10 +14,14 @@ func NewMemberRepository() *MemberRepository {
 }
 
 // 🔹 Get all members of workspace
-func (r *MemberRepository) GetByWorkspaceID(workspaceID uint) ([]models_workspace.WorkspaceMember, error) {
+func (r *MemberRepository) GetByWorkspaceID(tx *gorm.DB, workspaceID uint) ([]models_workspace.WorkspaceMember, error) {
 	var members []models_workspace.WorkspaceMember
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.
+	err := query.
 		Preload("User").
 		Preload("Role").
 		Preload("InvitedBy").

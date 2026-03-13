@@ -15,12 +15,20 @@ func NewRoleRepository() *RoleRepository {
 	return &RoleRepository{}
 }
 
-func (r *RoleRepository) Create(role *models_role.Role) error {
-	return db.DB.Create(role).Error
+func (r *RoleRepository) Create(tx *gorm.DB, role *models_role.Role) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Create(role).Error
 }
 
-func (r *RoleRepository) Update(role *models_role.Role) error {
-	return db.DB.Model(&models_role.Role{}).
+func (r *RoleRepository) Update(tx *gorm.DB, role *models_role.Role) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Model(&models_role.Role{}).
 		Where("id = ?", role.ID).
 		Updates(map[string]interface{}{
 			"role_name":   role.RoleName,
@@ -28,83 +36,88 @@ func (r *RoleRepository) Update(role *models_role.Role) error {
 		}).Error
 }
 
-func (r *RoleRepository) GetByUUID(uuid *string) (*models_role.Role, error) {
+func (r *RoleRepository) GetByUUID(tx *gorm.DB, uuid *string) (*models_role.Role, error) {
 	var role models_role.Role
-	err := db.DB.Where("uuid = ?", uuid).First(&role).Error
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	err := query.Where("uuid = ?", uuid).First(&role).Error
 	return &role, err
 }
 
-func (r *RoleRepository) GetWorkspaceAndSystemRoles(workspaceID uint) ([]models_role.Role, error) {
+func (r *RoleRepository) GetWorkspaceAndSystemRoles(tx *gorm.DB, workspaceID uint) ([]models_role.Role, error) {
 	var roles []models_role.Role
-	err := db.DB.
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	err := query.
 		Where("workspace_id = ? OR is_system = ?", workspaceID, true).
 		Find(&roles).Error
 
 	return roles, err
 }
 
-func (r *RoleRepository) Delete(role *models_role.Role) error {
-	return db.DB.Delete(role).Error
+func (r *RoleRepository) Delete(tx *gorm.DB, role *models_role.Role) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Delete(role).Error
 }
 
-func (r *RoleRepository) ListRolePermissions(roleID uint) ([]dtos_roles.RolePermissionRowDTO, error) {
-	var rows []dtos_roles.RolePermissionRowDTO
+func (r *RoleRepository) ListRolePermissions(tx *gorm.DB, roleID uint) ([]dtos_roles.RolePermissionRowDTO, error) {
+	var results []dtos_roles.RolePermissionRowDTO
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.
-		Table("permissions AS p").
-		Select(`
-			p.id AS permission_id,
-			p.key AS key,
-			p.module AS module,
-			p.description AS description,
-			rp.permission_id AS role_permission_id,
-			CASE WHEN rp.permission_id IS NULL THEN false ELSE true END AS allowed
-		`).
-		Joins(`
-			LEFT JOIN role_permissions AS rp
-			ON rp.permission_id = p.id
-			AND rp.role_id = ?
-			AND rp.deleted_at IS NULL
-		`, roleID).
-		Where("p.deleted_at IS NULL").
-		Order("p.id ASC").
-		Scan(&rows).Error
+	err := query.Table("permissions").
+		Select("permissions.id as permission_id, permissions.name as permission_name, permissions.key as permission_key, roles.role_name, (role_permissions.role_id IS NOT NULL) as allowed").
+		Joins("CROSS JOIN roles").
+		Joins("LEFT JOIN role_permissions ON role_permissions.permission_id = permissions.id AND role_permissions.role_id = roles.id").
+		Where("roles.id = ?", roleID).
+		Scan(&results).Error
 
-	return rows, err
+	return results, err
 }
 
-func (r *RoleRepository) ReplaceRolePermissions(roleID uint, permissionIDs []uint) error {
-	return db.DB.Transaction(func(tx *gorm.DB) error {
-		// Hard-delete existing role-permission rows so the same composite PK
-		// can be inserted again without unique conflicts.
-		if err := tx.Unscoped().Where("role_id = ?", roleID).Delete(&models_role_permission.RolePermission{}).Error; err != nil {
+func (r *RoleRepository) ReplaceRolePermissions(tx *gorm.DB, roleID uint, permissionIDs []uint) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	return query.Transaction(func(tx2 *gorm.DB) error {
+		// Remove old
+		if err := tx2.Where("role_id = ?", roleID).Delete(&models_role_permission.RolePermission{}).Error; err != nil {
 			return err
 		}
 
-		if len(permissionIDs) == 0 {
-			return nil
-		}
-
-		records := make([]models_role_permission.RolePermission, 0, len(permissionIDs))
-		for _, permissionID := range permissionIDs {
-			records = append(records, models_role_permission.RolePermission{
+		// Add new
+		for _, pID := range permissionIDs {
+			rp := models_role_permission.RolePermission{
 				RoleID:       roleID,
-				PermissionID: permissionID,
-			})
+				PermissionID: pID,
+			}
+			if err := tx2.Create(&rp).Error; err != nil {
+				return err
+			}
 		}
-
-		if err := tx.Create(&records).Error; err != nil {
-			return err
-		}
-
 		return nil
 	})
 }
 
-func (r *RoleRepository) GetUserRoleID(workspaceID int, userID int) (int, error) {
+func (r *RoleRepository) GetUserRoleID(tx *gorm.DB, workspaceID int, userID int) (int, error) {
 	var roleID int
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.Table("workspace_members").
+	err := query.Table("workspace_members").
 		Select("role_id").
 		Where("workspace_id = ? AND user_id = ?", workspaceID, userID).
 		Scan(&roleID).Error
@@ -116,10 +129,14 @@ func (r *RoleRepository) GetUserRoleID(workspaceID int, userID int) (int, error)
 	return roleID, nil
 }
 
-func (r *RoleRepository) RoleHasPermission(roleID int, permissionKey string) (bool, error) {
+func (r *RoleRepository) RoleHasPermission(tx *gorm.DB, roleID int, permissionKey string) (bool, error) {
 	var exists int
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.Table("role_permissions AS rp").
+	err := query.Table("role_permissions AS rp").
 		Select("1").
 		Joins("JOIN permissions AS p ON rp.permission_id = p.id").
 		Where("rp.role_id = ? AND p.key = ?", roleID, permissionKey).
@@ -132,18 +149,18 @@ func (r *RoleRepository) RoleHasPermission(roleID int, permissionKey string) (bo
 
 	return exists == 1, nil
 }
-func (r *RoleRepository) GetRolePermissions(roleID int) ([]string, error) {
+func (r *RoleRepository) GetRolePermissions(tx *gorm.DB, roleID int) ([]string, error) {
 	var permissions []string
-
-	err := db.DB.Table("role_permissions AS rp").
-		Select("p.key").
-		Joins("JOIN permissions AS p ON rp.permission_id = p.id").
-		Where("rp.role_id = ?", roleID).
-		Scan(&permissions).Error
-
-	if err != nil {
-		return nil, err
+	query := db.DB
+	if tx != nil {
+		query = tx
 	}
 
-	return permissions, nil
+	err := query.Table("permissions").
+		Select("permissions.key").
+		Joins("JOIN role_permissions ON role_permissions.permission_id = permissions.id").
+		Where("role_permissions.role_id = ?", roleID).
+		Pluck("key", &permissions).Error
+
+	return permissions, err
 }

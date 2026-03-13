@@ -36,6 +36,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	workspaceRepo := repositories.NewWorkspaceRepository()
 	roleRepo := repositories.NewRoleRepository()
 	projectRepo := repositories.NewProjectRepository()
+	environmentRepo := repositories.NewEnvironmentRepository()
 	redisRepo := repositories.NewRedisRepository(redisclient.Client)
 
 	/* ---------------- SERVICES ---------------- */
@@ -58,7 +59,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 		memberRepo,
 		roleService,
 	)
-	projectService := services.NewProjectService(projectRepo, workspaceRepo)
+	projectService := services.NewProjectService(projectRepo, workspaceRepo, environmentRepo)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,

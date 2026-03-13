@@ -21,32 +21,31 @@ func (ic *InviteController) GetWorkspaceInvites(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	workspaceUUID := c.Param("workspaceUUID")
 
-	response, err := ic.Service.GetWorkspaceInvites(userID, workspaceUUID)
+	invites, err := ic.Service.GetWorkspaceInvites(nil, userID, workspaceUUID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, invites)
 }
 
 func (ic *InviteController) GetWorkspaceInviteDetails(c *gin.Context) {
 	token := strings.TrimSpace(c.Param("token"))
 
-	response, err := ic.Service.GetInviteDetails(token)
+	invite, err := ic.Service.GetInviteDetails(nil, token)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, invite)
 }
 
 func (ic *InviteController) AcceptWorkspaceInvite(c *gin.Context) {
-	userID := c.MustGet("userID").(uint)
 	token := strings.TrimSpace(c.Param("token"))
 
-	if err := ic.Service.AcceptInvite(userID, token); err != nil {
+	if err := ic.Service.AcceptInvite(nil, token); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -58,7 +57,7 @@ func (ic *InviteController) DeclineWorkspaceInvite(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	token := strings.TrimSpace(c.Param("token"))
 
-	if err := ic.Service.DeclineInvite(userID, token); err != nil {
+	if err := ic.Service.DeclineInvite(nil, userID, token); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -69,11 +68,11 @@ func (ic *InviteController) DeclineWorkspaceInvite(c *gin.Context) {
 func (ic *InviteController) GetUserInvites(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
-	response, err := ic.Service.GetUserInvites(userID)
+	invites, err := ic.Service.GetUserInvites(nil, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, invites)
 }

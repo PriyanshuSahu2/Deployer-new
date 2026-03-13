@@ -14,10 +14,14 @@ func NewInviteRepository() *InviteRepository {
 	return &InviteRepository{}
 }
 
-func (r *InviteRepository) GetByWorkspaceID(workspaceID uint) ([]models_workspace.WorkspaceInvite, error) {
+func (r *InviteRepository) GetByWorkspaceID(tx *gorm.DB, workspaceID uint) ([]models_workspace.WorkspaceInvite, error) {
 	var invites []models_workspace.WorkspaceInvite
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.
+	err := query.
 		Preload("Workspace").
 		Preload("Role").
 		Preload("Inviter").
@@ -27,10 +31,14 @@ func (r *InviteRepository) GetByWorkspaceID(workspaceID uint) ([]models_workspac
 	return invites, err
 }
 
-func (r *InviteRepository) GetByToken(token string) (*models_workspace.WorkspaceInvite, error) {
+func (r *InviteRepository) GetByToken(tx *gorm.DB, token string) (*models_workspace.WorkspaceInvite, error) {
 	var invite models_workspace.WorkspaceInvite
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.
+	err := query.
 		Preload("Workspace").
 		Preload("Role").
 		Preload("Inviter").
@@ -67,10 +75,14 @@ func (r *InviteRepository) UpdateStatus(tx *gorm.DB, invite *models_workspace.Wo
 	return tx.Save(invite).Error
 }
 
-func (r *InviteRepository) GetByEmail(email string) ([]models_workspace.WorkspaceInvite, error) {
+func (r *InviteRepository) GetByEmail(tx *gorm.DB, email string) ([]models_workspace.WorkspaceInvite, error) {
 	var invites []models_workspace.WorkspaceInvite
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
 
-	err := db.DB.
+	err := query.
 		Preload("Workspace").
 		Preload("Role").
 		Preload("Inviter").
@@ -80,6 +92,10 @@ func (r *InviteRepository) GetByEmail(email string) ([]models_workspace.Workspac
 	return invites, err
 }
 
-func (r *InviteRepository) Create(invite *models_workspace.WorkspaceInvite) error {
-	return db.DB.Create(invite).Error
+func (r *InviteRepository) Create(tx *gorm.DB, invite *models_workspace.WorkspaceInvite) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Create(invite).Error
 }

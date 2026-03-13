@@ -27,7 +27,7 @@ func (wc *WorkspaceMemberController) AddWorkspaceMember(c *gin.Context) {
 
 	userID := c.GetUint("userID")
 
-	if err := wc.Service.InviteMember(userID, body); err != nil {
+	if err := wc.Service.InviteMember(nil, userID, body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

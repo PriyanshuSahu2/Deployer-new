@@ -42,20 +42,19 @@ func (m *PermissionMiddleware) RequirePermission(permissionKey string) gin.Handl
 
 		userID := c.MustGet("userID").(uint)
 
-		workspace, err := m.workspaceRepo.GetByUUID(workspaceUUID)
+		workspace, err := m.workspaceRepo.GetByUUID(nil, workspaceUUID)
 		if err == nil && workspace.OwnerID == userID {
 			c.Next()
 			return
 		}
 
-		roleID, err := m.roleService.GetUserRoleID(workspaceUUID, int(userID))
+		roleID, err := m.roleService.GetUserRoleID(nil, workspaceUUID, int(userID))
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error": "unable to fetch role",
-			})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: User not in workspace"})
+			c.Abort()
 			return
 		}
-		hasPermission := m.roleService.RoleHasPermission(uint(roleID), permissionKey)
+		hasPermission := m.roleService.RoleHasPermission(nil, uint(roleID), permissionKey)
 		if !hasPermission {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error": "permission denied",

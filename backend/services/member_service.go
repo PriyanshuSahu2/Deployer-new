@@ -6,6 +6,7 @@ import (
 	dtos_workspace "backend/dtos/workspace"
 	models_workspace "backend/models/workspace"
 	"backend/repositories"
+	"gorm.io/gorm"
 )
 
 type MemberService struct {
@@ -23,9 +24,9 @@ func NewMemberService(
 	}
 }
 
-func (s *MemberService) GetMembers(userID uint, workspaceUUID string) ([]dtos_workspace.MemberResponseDTO, error) {
+func (s *MemberService) GetMembers(tx *gorm.DB, userID uint, workspaceUUID string) ([]dtos_workspace.MemberResponseDTO, error) {
 
-	workspace, err := s.WorkspaceRepo.GetByUUID(workspaceUUID)
+	workspace, err := s.WorkspaceRepo.GetByUUID(tx, workspaceUUID)
 	if err != nil {
 		return nil, errors.New("workspace not found")
 	}
@@ -36,7 +37,7 @@ func (s *MemberService) GetMembers(userID uint, workspaceUUID string) ([]dtos_wo
 	//     return nil, errors.New("permission denied")
 	// }
 
-	members, err := s.MemberRepo.GetByWorkspaceID(workspace.ID)
+	members, err := s.MemberRepo.GetByWorkspaceID(tx, workspace.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,13 +69,14 @@ func (s *MemberService) mapToDTO(members []models_workspace.WorkspaceMember) []d
 }
 
 func (s *MemberService) AddInternalMember(
+	tx *gorm.DB,
 	workspaceID uint,
 	userID uint,
 	roleID uint,
 	invitedByID uint,
 ) error {
 
-	exists, err := s.MemberRepo.Exists(nil, workspaceID, userID)
+	exists, err := s.MemberRepo.Exists(tx, workspaceID, userID)
 	if err != nil {
 		return err
 	}
@@ -90,5 +92,5 @@ func (s *MemberService) AddInternalMember(
 		InvitedByID: invitedByID,
 	}
 
-	return s.MemberRepo.Create(nil, member)
+	return s.MemberRepo.Create(tx, member)
 }

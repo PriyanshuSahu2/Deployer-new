@@ -7,6 +7,7 @@ import {
   type CreateProjectPayload,
   type UpdateProjectPayload,
 } from '@/service/project';
+import { Project } from '@/types/project';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useGetProjects = (workspaceUuid: string, enabled = false) => {
@@ -59,6 +60,6 @@ export const useGetProjectDetails = (workspaceUuid: string, projectUuid: string,
     queryKey: ['projects', workspaceUuid, projectUuid],
     queryFn: () => getProjectDetails(workspaceUuid, projectUuid),
     enabled: enabled && !!workspaceUuid && !!projectUuid,
-    select: (res) => res.data,
+    select: (res) => res.data as Project,
   });
 };

@@ -40,16 +40,16 @@ func NewWorkspaceMemberService(
 	}
 }
 
-func (s *WorkspaceMemberService) InviteMember(invitedByID uint, dto dtos_workspace.AddMemberDTO) error {
+func (s *WorkspaceMemberService) InviteMember(tx *gorm.DB, invitedByID uint, dto dtos_workspace.AddMemberDTO) error {
 
 	// 1️⃣ Find user
-	user, err := s.UserRepo.GetByUUIDOrEmail(dto.UserUUID, dto.UserEmail)
+	user, err := s.UserRepo.GetByUUIDOrEmail(tx, dto.UserUUID, dto.UserEmail)
 	if err != nil {
 		return errors.New("user not found")
 	}
 
 	// 2️⃣ Find workspace
-	workspace, err := s.WorkspaceRepo.GetByUUID(dto.WorkspaceUUID)
+	workspace, err := s.WorkspaceRepo.GetByUUID(tx, dto.WorkspaceUUID)
 	if err != nil {
 		return errors.New("workspace not found")
 	}
@@ -57,7 +57,7 @@ func (s *WorkspaceMemberService) InviteMember(invitedByID uint, dto dtos_workspa
 	// 🔐 RBAC check should go here later
 
 	// 3️⃣ Find role
-	role, err := s.RoleRepo.GetByUUID(dto.RoleUUID)
+	role, err := s.RoleRepo.GetByUUID(tx, dto.RoleUUID)
 	if err != nil {
 		return errors.New("role not found")
 	}
@@ -79,12 +79,12 @@ func (s *WorkspaceMemberService) InviteMember(invitedByID uint, dto dtos_workspa
 		InvitedByID: invitedByID,
 	}
 
-	if err := s.InviteRepo.Create(&invite); err != nil {
+	if err := s.InviteRepo.Create(tx, &invite); err != nil {
 		return err
 	}
 
 	// 6️⃣ Send email async
-	currentUser, _ := s.UserRepo.GetByID(invitedByID)
+	currentUser, _ := s.UserRepo.GetByID(tx, invitedByID)
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {

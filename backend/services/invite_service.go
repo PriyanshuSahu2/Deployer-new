@@ -33,14 +33,14 @@ func NewInviteService(
 	}
 }
 
-func (s *InviteService) GetWorkspaceInvites(userID uint, workspaceUUID string) ([]dtos_workspace.WorkspaceInviteResponseDTO, error) {
+func (s *InviteService) GetWorkspaceInvites(tx *gorm.DB, userID uint, workspaceUUID string) ([]dtos_workspace.WorkspaceInviteResponseDTO, error) {
 
-	workspace, err := s.WorkspaceRepo.GetByUUID(workspaceUUID)
+	workspace, err := s.WorkspaceRepo.GetByUUID(tx, workspaceUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	invites, err := s.InviteRepo.GetByWorkspaceID(workspace.ID)
+	invites, err := s.InviteRepo.GetByWorkspaceID(tx, workspace.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +48,13 @@ func (s *InviteService) GetWorkspaceInvites(userID uint, workspaceUUID string) (
 	return s.mapToDTO(invites), nil
 }
 
-func (s *InviteService) GetInviteDetails(token string) (*dtos_workspace.WorkspaceInviteResponseDTO, error) {
+func (s *InviteService) GetInviteByToken(tx *gorm.DB, token string) (*models_workspace.WorkspaceInvite, error) {
+	return s.InviteRepo.GetByToken(tx, token)
+}
 
-	invite, err := s.InviteRepo.GetByToken(token)
+func (s *InviteService) GetInviteDetails(tx *gorm.DB, token string) (*dtos_workspace.WorkspaceInviteResponseDTO, error) {
+
+	invite, err := s.InviteRepo.GetByToken(tx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -59,43 +63,40 @@ func (s *InviteService) GetInviteDetails(token string) (*dtos_workspace.Workspac
 	return &dto, nil
 }
 
-func (s *InviteService) AcceptInvite(userID uint, token string) error {
-
-	user, err := s.UserRepo.GetByID(userID)
+func (s *InviteService) RejectInvite(tx *gorm.DB, token string) error {
+	invite, err := s.InviteRepo.GetByToken(tx, token)
 	if err != nil {
-		return err
+		return errors.New("invite not found")
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	return s.InviteRepo.UpdateStatus(tx, invite, models_workspace.InviteDeclined)
+}
 
-		invite, err := s.InviteRepo.LockByTokenAndEmail(tx, token, user.Email)
+func (s *InviteService) AcceptInvite(tx *gorm.DB, token string) error {
+	invite, err := s.InviteRepo.GetByToken(tx, token)
+	if err != nil {
+		return errors.New("invite not found")
+	}
+
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	return query.Transaction(func(tx2 *gorm.DB) error {
+		if err := s.InviteRepo.UpdateStatus(tx2, invite, models_workspace.InviteAccepted); err != nil {
+			return err
+		}
+
+		// Look for user by email to get their ID
+		user, err := s.UserRepo.GetByUUIDOrEmail(tx2, nil, invite.Email)
 		if err != nil {
-			return err
+			return errors.New("invited user not found in system")
 		}
 
-		if invite.Status != models_workspace.InvitePending {
-			return errors.New("invite not active")
-		}
-
-		if invite.ExpiresAt.Before(time.Now()) {
-			return errors.New("invite expired")
-		}
-
-		exists, err := s.MemberRepo.Exists(tx, invite.WorkspaceID, userID)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return errors.New("already member")
-		}
-
-		if err := s.InviteRepo.UpdateStatus(tx, invite, models_workspace.InviteAccepted); err != nil {
-			return err
-		}
-
-		return s.MemberRepo.Create(tx, models_workspace.WorkspaceMember{
+		return s.MemberRepo.Create(tx2, models_workspace.WorkspaceMember{
 			WorkspaceID: invite.WorkspaceID,
-			UserId:      userID,
+			UserId:      user.ID,
 			RoleID:      invite.RoleID,
 			Status:      "ACTIVE",
 			InvitedByID: invite.InvitedByID,
@@ -103,35 +104,32 @@ func (s *InviteService) AcceptInvite(userID uint, token string) error {
 	})
 }
 
-func (s *InviteService) DeclineInvite(userID uint, token string) error {
+func (s *InviteService) DeclineInvite(tx *gorm.DB, userID uint, token string) error {
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	invite, err := s.InviteRepo.LockByToken(tx, token)
+	if err != nil {
+		return err
+	}
 
-		invite, err := s.InviteRepo.LockByToken(tx, token)
-		if err != nil {
-			return err
-		}
+	if invite.Status != models_workspace.InvitePending {
+		return errors.New("invite not active")
+	}
 
-		if invite.Status != models_workspace.InvitePending {
-			return errors.New("invite not active")
-		}
+	if invite.ExpiresAt.Before(time.Now()) {
+		return errors.New("invite expired")
+	}
 
-		if invite.ExpiresAt.Before(time.Now()) {
-			return errors.New("invite expired")
-		}
-
-		return s.InviteRepo.UpdateStatus(tx, invite, models_workspace.InviteDeclined)
-	})
+	return s.InviteRepo.UpdateStatus(tx, invite, models_workspace.InviteDeclined)
 }
 
-func (s *InviteService) GetUserInvites(userID uint) ([]dtos_workspace.WorkspaceInviteResponseDTO, error) {
+func (s *InviteService) GetUserInvites(tx *gorm.DB, userID uint) ([]dtos_workspace.WorkspaceInviteResponseDTO, error) {
 
-	user, err := s.UserRepo.GetByID(userID)
+	user, err := s.UserRepo.GetByID(tx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	invites, err := s.InviteRepo.GetByEmail(user.Email)
+	invites, err := s.InviteRepo.GetByEmail(tx, user.Email)
 	if err != nil {
 		return nil, err
 	}

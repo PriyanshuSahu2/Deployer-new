@@ -27,7 +27,7 @@ func (wc *WorkspaceController) CreateWorkspace(c *gin.Context) {
 
 	userID := c.GetUint("userID")
 
-	workspace, err := wc.Service.CreateWorkspace(userID, workspaceBody)
+	workspace, err := wc.Service.CreateWorkspace(nil, userID, workspaceBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -49,7 +49,7 @@ func (wc *WorkspaceController) UpdateWorkspace(c *gin.Context) {
 
 	userID := c.GetUint("userID")
 
-	if err := wc.Service.UpdateWorkspace(userID, workspaceBody); err != nil {
+	if err := wc.Service.UpdateWorkspace(nil, userID, workspaceBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -60,7 +60,7 @@ func (wc *WorkspaceController) UpdateWorkspace(c *gin.Context) {
 func (wc *WorkspaceController) ListWorkspaces(c *gin.Context) {
 	userID := c.GetUint("userID")
 
-	workspaces, err := wc.Service.ListWorkspaces(userID)
+	workspaces, err := wc.Service.ListWorkspaces(nil, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -72,7 +72,7 @@ func (wc *WorkspaceController) ListWorkspaces(c *gin.Context) {
 func (wc *WorkspaceController) GetUserDefaultWorkspace(c *gin.Context) {
 	userID := c.GetUint("userID")
 
-	workspace, err := wc.Service.GetUserDefaultWorkspace(userID)
+	workspace, err := wc.Service.GetUserDefaultWorkspace(nil, userID)
 	if err != nil {
 		if err.Error() == "record not found" || err.Error() == "workspace not found" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "No workspaces found"})
@@ -89,7 +89,7 @@ func (wc *WorkspaceController) GetMyWorkspacePermissions(c *gin.Context) {
 	workspaceUUID := c.Param("workspaceUUID")
 	userID := c.MustGet("userID").(uint)
 
-	permissions, err := wc.Service.GetUserPermissions(workspaceUUID, int(userID))
+	permissions, err := wc.Service.GetUserPermissions(nil, workspaceUUID, int(userID))
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to fetch permissions"})
 		return
