@@ -11,7 +11,7 @@ import (
 func (a *AuthController) RefreshController(c *gin.Context) {
 	token, err := c.Cookie("refresh_token")
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Cookie 'my_cookie' not found"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token cookie not found"})
 		return
 	}
 	print(token)
@@ -31,6 +31,15 @@ func (a *AuthController) RefreshController(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Something Went Wrong Generating Refresh token"})
 		return
 	}
+	c.SetCookie(
+		"access_token",
+		access_token,
+		7*24*60*60,
+		"/",
+		"",
+		false,
+		true,
+	)
 	c.SetCookie(
 		"refresh_token",
 		refresh_token,

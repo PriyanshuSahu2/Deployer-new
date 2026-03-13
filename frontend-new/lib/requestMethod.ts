@@ -1,47 +1,70 @@
-import axios, { AxiosError } from 'axios';
+import axios from "axios"
 
-
-const BASE_URL = 'http://localhost:8080';
-
+const BASE_URL = "http://localhost:8080"
 
 export const publicRequest = axios.create({
     baseURL: BASE_URL,
     headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
     },
-});
+})
 
 export const privateRequest = axios.create({
     baseURL: BASE_URL,
     withCredentials: true,
     headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
     },
-});
+})
 
 let isRefreshing = false
-const failedQueue: any[] = []
+let failedQueue: any[] = []
+
+const processFailedQueue = (error: any = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error)
+        } else {
+            prom.resolve()
+        }
+    })
+    failedQueue = []
+}
+
 privateRequest.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config
-        if (error.response.status === 401) {
+
+        if (error.response?.status === 401) {
+
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject })
-                }).then(_ => {
-                    return axios(originalRequest)
+                }).then(() => {
+                    return privateRequest(originalRequest)
                 })
             }
-            isRefreshing = true;
 
+            isRefreshing = true
 
             try {
-                await publicRequest.post(`${BASE_URL}/auth/refresh`)
-            } catch (error) {
-                console.log(error)
-                window.location.href = '/auth/login'
-            }
+                await publicRequest.post("/auth/refresh-token", {}, { withCredentials: true })
 
+                processFailedQueue()
+                isRefreshing = false
+
+                return privateRequest(originalRequest)
+
+            } catch (err) {
+                processFailedQueue(err)
+                isRefreshing = false
+
+                window.location.href = "/auth/login"
+                return Promise.reject(err)
+            }
         }
-    })
+
+        return Promise.reject(error)
+    }
+)
