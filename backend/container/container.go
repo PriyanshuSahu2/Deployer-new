@@ -7,6 +7,7 @@ import (
 	controller_project "backend/controllers/project"
 	controller_roles "backend/controllers/roles"
 	controller_workspace "backend/controllers/workspace"
+	controller_integration "backend/controllers/integration"
 	"backend/middleware"
 
 	"backend/db"
@@ -24,6 +25,7 @@ type Container struct {
 	AuthController            *controllers_auth.AuthController
 	MemberController          *controller_member.MemberController
 	PermissionMW              *middleware.PermissionMiddleware
+	IntegrationController     *controller_integration.IntegrationController
 }
 
 func NewContainer(emailService *services.EmailService) *Container {
@@ -38,6 +40,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	projectRepo := repositories.NewProjectRepository()
 	environmentRepo := repositories.NewEnvironmentRepository()
 	redisRepo := repositories.NewRedisRepository(redisclient.Client)
+	integrationRepo := repositories.NewIntegrationRepository()
 
 	/* ---------------- SERVICES ---------------- */
 
@@ -71,6 +74,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	)
 
 	memberService := services.NewMemberService(memberRepo, workspaceRepo)
+	integrationService := services.NewIntegrationService(integrationRepo, workspaceRepo)
 
 	/* ---------------- CONTROLLERS ---------------- */
 
@@ -87,6 +91,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 
 	memberController := controller_member.NewMemberController(memberService)
 	authController := controllers_auth.NewAuthController(emailService, workspaceService, memberService)
+	integrationController := controller_integration.NewIntegrationController(integrationService)
 	/* ---------------- RETURN CONTAINER ---------------- */
 
 	permissionMW := middleware.NewPermissionMiddleware(roleService, workspaceRepo)
@@ -100,5 +105,6 @@ func NewContainer(emailService *services.EmailService) *Container {
 		AuthController:            authController,
 		MemberController:          memberController,
 		PermissionMW:              permissionMW,
+		IntegrationController:     integrationController,
 	}
 }

@@ -2,12 +2,13 @@ package routes
 
 import (
 	controller_workspace "backend/controllers/workspace"
+	controller_integration "backend/controllers/integration"
 	"backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.WorkspaceController, workspaceMemberController *controller_workspace.WorkspaceMemberController, permissionMiddleWare *middleware.PermissionMiddleware) *gin.RouterGroup {
+func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.WorkspaceController, workspaceMemberController *controller_workspace.WorkspaceMemberController, integrationController *controller_integration.IntegrationController, permissionMiddleWare *middleware.PermissionMiddleware) *gin.RouterGroup {
 
 	workspaces := r.Group("/workspaces")
 	workspaces.Use(middleware.ValidateRequest())
@@ -25,6 +26,13 @@ func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.Wo
 		workspace.POST("/invite-member", workspaceMemberController.AddWorkspaceMember)
 
 		workspace.GET("/me/permissions", workspaceController.GetMyWorkspacePermissions)
+
+		// Integration Routes
+		workspace.GET("/integrations", integrationController.GetWorkspaceIntegrations)
+		workspace.DELETE("/integrations/:provider", integrationController.DisconnectIntegration)
+		
+		workspace.GET("/integrations/github/auth", integrationController.GithubAuthInitiate)
+		workspace.GET("/integrations/github/callback", integrationController.GithubAuthCallback)
 	}
 	return workspace
 }

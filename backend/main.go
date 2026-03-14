@@ -10,6 +10,7 @@ import (
 	models_role "backend/models/role"
 	models_role_permission "backend/models/role_permission"
 	models_workspace "backend/models/workspace"
+	models_integration "backend/models/integrations"
 	"backend/rabbitmq"
 	redisclient "backend/redis"
 	"backend/routes"
@@ -84,6 +85,7 @@ func main() {
 		&models_role.Role{},
 		&models_workspace.WorkspaceInvite{},
 		&models_role_permission.RolePermission{},
+		&models_integration.WorkspaceGitIntegration{},
 	)
 
 	/* ---------------- CONTAINER ---------------- */
@@ -98,6 +100,7 @@ func main() {
 		r,
 		c.WorkspaceController,
 		c.WorkspaceMemberController,
+		c.IntegrationController,
 		c.PermissionMW,
 	)
 

@@ -17,6 +17,16 @@ const GithubCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       const error = searchParams.get("error");
+      const code = searchParams.get("code");
+      const state = searchParams.get("state");
+
+      // Intercept Workspace Integration Callbacks
+      if (state?.startsWith("workspace_")) {
+        const workspaceUUID = state.replace("workspace_", "");
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        window.location.href = `${backendUrl}/workspaces/${workspaceUUID}/integrations/github/callback?code=${code}&state=${state}`;
+        return;
+      }
 
       if (error) {
         setStatus("error");

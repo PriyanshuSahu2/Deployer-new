@@ -165,7 +165,7 @@ export default function ProjectList({ workspaceId }: Props) {
   const handleViewProject = (project: Project) => {
     router.push(
       `/app/${workspaceId}/projects/${encodeURIComponent(project.uuid)}`,
-    );``
+    );
   };
 
   const handleDelete = async (project: Project) => {
@@ -290,15 +290,15 @@ export default function ProjectList({ workspaceId }: Props) {
               {isLoading
                 ? skeletonRows
                 : filtered.map((project: Project) => (
-                    <ProjectRow
-                      key={project.uuid}
-                      project={project}
-                      onEdit={openEdit}
-                      onViewProject={handleViewProject}
-                      onDelete={handleDelete}
-                      isDeleting={isDeleting}
-                    />
-                  ))}
+                  <ProjectRow
+                    key={project.uuid}
+                    project={project}
+                    onEdit={openEdit}
+                    onViewProject={handleViewProject}
+                    onDelete={handleDelete}
+                    isDeleting={isDeleting}
+                  />
+                ))}
             </Table.Tbody>
           </Table>
 
