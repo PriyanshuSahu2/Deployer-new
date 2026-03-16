@@ -9,6 +9,7 @@ import (
 	models_project "backend/models/project"
 	models_role "backend/models/role"
 	models_role_permission "backend/models/role_permission"
+	models_server "backend/models/server"
 	models_workspace "backend/models/workspace"
 	models_integration "backend/models/integrations"
 	"backend/rabbitmq"
@@ -86,6 +87,7 @@ func main() {
 		&models_workspace.WorkspaceInvite{},
 		&models_role_permission.RolePermission{},
 		&models_integration.WorkspaceGitIntegration{},
+		&models_server.Server{},
 	)
 
 	/* ---------------- CONTAINER ---------------- */
@@ -115,6 +117,13 @@ func main() {
 		r,
 		workspaceRoute,
 		c.ProjectController,
+		c.PermissionMW,
+	)
+
+	routes.ServerRoutes(
+		r,
+		workspaceRoute,
+		c.ServerController,
 		c.PermissionMW,
 	)
 

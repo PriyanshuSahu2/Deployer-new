@@ -2,12 +2,13 @@ package container
 
 import (
 	controllers_auth "backend/controllers/auth"
+	controller_integration "backend/controllers/integration"
 	controller_invite "backend/controllers/invite"
 	controller_member "backend/controllers/member"
 	controller_project "backend/controllers/project"
 	controller_roles "backend/controllers/roles"
+	controller_server "backend/controllers/server"
 	controller_workspace "backend/controllers/workspace"
-	controller_integration "backend/controllers/integration"
 	"backend/middleware"
 
 	"backend/db"
@@ -20,6 +21,7 @@ type Container struct {
 	InviteController          *controller_invite.InviteController
 	RoleController            *controller_roles.RoleController
 	ProjectController         *controller_project.ProjectController
+	ServerController          *controller_server.ServerController
 	WorkspaceController       *controller_workspace.WorkspaceController
 	WorkspaceMemberController *controller_workspace.WorkspaceMemberController
 	AuthController            *controllers_auth.AuthController
@@ -39,6 +41,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	roleRepo := repositories.NewRoleRepository()
 	projectRepo := repositories.NewProjectRepository()
 	environmentRepo := repositories.NewEnvironmentRepository()
+	serverRepo := repositories.NewServerRepository()
 	redisRepo := repositories.NewRedisRepository(redisclient.Client)
 	integrationRepo := repositories.NewIntegrationRepository()
 
@@ -63,6 +66,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 		roleService,
 	)
 	projectService := services.NewProjectService(projectRepo, workspaceRepo, environmentRepo)
+	serverService := services.NewServerService(serverRepo, workspaceRepo)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
@@ -82,6 +86,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 
 	roleController := controller_roles.NewRoleController(roleService)
 	projectController := controller_project.NewProjectController(projectService)
+	serverController := controller_server.NewServerController(serverService)
 
 	workspaceController := controller_workspace.NewWorkspaceController(workspaceService)
 
@@ -100,6 +105,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 		InviteController:          inviteController,
 		RoleController:            roleController,
 		ProjectController:         projectController,
+		ServerController:          serverController,
 		WorkspaceController:       workspaceController,
 		WorkspaceMemberController: workspaceMemberController,
 		AuthController:            authController,
