@@ -1,25 +1,12 @@
-import ServiceCreationPage from '@/components/services/ServiceCreationPage';
+import { redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{
     workspaceId: string;
   }>;
-  searchParams: Promise<{
-    projectId?: string;
-  }>;
 }
 
-export default async function CreateServerPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function CreateServerPage({ params }: PageProps) {
   const { workspaceId } = await params;
-  const { projectId } = await searchParams;
-
-  return (
-    <ServiceCreationPage
-      workspaceId={workspaceId}
-      initialProjectId={projectId}
-    />
-  );
+  redirect(`/app/${workspaceId}/servers`);
 }

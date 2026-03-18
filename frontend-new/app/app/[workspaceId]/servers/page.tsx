@@ -1,4 +1,8 @@
-import ServersPage from '@/components/services/ServiceList';
+import ServersPage from '@/components/servers/ServerList';
+
+export const metadata = {
+  title: 'Servers',
+};
 
 interface PageProps {
   params: Promise<{

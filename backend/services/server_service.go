@@ -30,22 +30,14 @@ func (s *ServerService) CreateServer(userID uint, workspaceUUID string, dto dtos
 	}
 
 	server := models_server.Server{
-		Name:           dto.Name,
-		Description:    dto.Description,
-		WorkspaceID:    workspace.ID,
-		ServiceType:    dto.ServiceType,
-		Framework:      dto.Framework,
-		BuildCommand:   dto.BuildCommand,
-		StartCommand:   dto.StartCommand,
-		AppPort:        dto.AppPort,
-		GitProvider:    dto.GitProvider,
-		Repository:     dto.Repository,
-		Branch:         dto.Branch,
-		Provider:       dto.Provider,
-		Region:         dto.Region,
-		InstanceType:   dto.InstanceType,
-		Strategy:       dto.Strategy,
-		MetricsEnabled: dto.MetricsEnabled,
+		Name:        dto.Name,
+		WorkspaceID: workspace.ID,
+		Host:        dto.Host,
+		Port:        dto.Port,
+		Username:    dto.Username,
+		AuthType:    dto.AuthType,
+		PassKey:     dto.PassKey,
+		CreatedByID: userID,
 	}
 
 	return s.ServerRepo.Create(&server)
@@ -58,20 +50,11 @@ func (s *ServerService) UpdateServer(userID uint, dto dtos_server.UpdateServerDT
 	}
 
 	server.Name = dto.Name
-	server.Description = dto.Description
-	server.ServiceType = dto.ServiceType
-	server.Framework = dto.Framework
-	server.BuildCommand = dto.BuildCommand
-	server.StartCommand = dto.StartCommand
-	server.AppPort = dto.AppPort
-	server.GitProvider = dto.GitProvider
-	server.Repository = dto.Repository
-	server.Branch = dto.Branch
-	server.Provider = dto.Provider
-	server.Region = dto.Region
-	server.InstanceType = dto.InstanceType
-	server.Strategy = dto.Strategy
-	server.MetricsEnabled = dto.MetricsEnabled
+	server.Host = dto.Host
+	server.Port = dto.Port
+	server.Username = dto.Username
+	server.AuthType = dto.AuthType
+	server.PassKey = dto.PassKey
 
 	return s.ServerRepo.Update(server)
 }
@@ -90,24 +73,16 @@ func (s *ServerService) ListServers(userID uint, workspaceUUID string) ([]dtos_s
 	response := make([]dtos_server.ServerResponseDTO, len(servers))
 	for i, srv := range servers {
 		response[i] = dtos_server.ServerResponseDTO{
-			UUID:           srv.UUID.String(),
-			Name:           srv.Name,
-			Description:    srv.Description,
-			WorkspaceID:    srv.WorkspaceID,
-			ServiceType:    srv.ServiceType,
-			Framework:      srv.Framework,
-			BuildCommand:   srv.BuildCommand,
-			StartCommand:   srv.StartCommand,
-			AppPort:        srv.AppPort,
-			GitProvider:    srv.GitProvider,
-			Repository:     srv.Repository,
-			Branch:         srv.Branch,
-			Provider:       srv.Provider,
-			Region:         srv.Region,
-			InstanceType:   srv.InstanceType,
-			Strategy:       srv.Strategy,
-			MetricsEnabled: srv.MetricsEnabled,
-			CreatedAt:      srv.CreatedAt.Format("2006-01-02 15:04:05"),
+			UUID:        srv.UUID.String(),
+			WorkspaceID: srv.WorkspaceID,
+			Name:        srv.Name,
+			Host:        srv.Host,
+			Port:        srv.Port,
+			Username:    srv.Username,
+			AuthType:    srv.AuthType,
+			PassKey:     srv.PassKey,
+			CreatedByID: srv.CreatedByID,
+			CreatedAt:   srv.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 	}
 

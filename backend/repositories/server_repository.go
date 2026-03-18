@@ -19,21 +19,12 @@ func (r *ServerRepository) Update(server *models_server.Server) error {
 	return db.DB.Model(&models_server.Server{}).
 		Where("id = ?", server.ID).
 		Updates(map[string]interface{}{
-			"name":            server.Name,
-			"description":     server.Description,
-			"service_type":    server.ServiceType,
-			"framework":       server.Framework,
-			"build_command":   server.BuildCommand,
-			"start_command":   server.StartCommand,
-			"app_port":        server.AppPort,
-			"git_provider":    server.GitProvider,
-			"repository":      server.Repository,
-			"branch":          server.Branch,
-			"provider":        server.Provider,
-			"region":          server.Region,
-			"instance_type":   server.InstanceType,
-			"strategy":        server.Strategy,
-			"metrics_enabled": server.MetricsEnabled,
+			"name":      server.Name,
+			"host":      server.Host,
+			"port":      server.Port,
+			"username":  server.Username,
+			"auth_type": server.AuthType,
+			"pass_key":  server.PassKey,
 		}).Error
 }
 
