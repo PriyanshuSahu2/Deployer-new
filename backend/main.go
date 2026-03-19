@@ -117,6 +117,7 @@ func main() {
 		r,
 		workspaceRoute,
 		c.ProjectController,
+		c.ServiceController,
 		c.PermissionMW,
 	)
 

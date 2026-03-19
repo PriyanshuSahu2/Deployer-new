@@ -31,3 +31,12 @@ type ServerResponseDTO struct {
 	CreatedByID uint   `json:"created_by_id"`
 	CreatedAt   string `json:"created_at"`
 }
+
+type TestConnectionDTO struct {
+	UUID     string `json:"uuid"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	AuthType string `json:"auth_type"`
+	PassKey  string `json:"pass_key"`
+}

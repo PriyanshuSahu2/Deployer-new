@@ -29,3 +29,14 @@ func (r *EnvironmentRepository) ListByProject(tx *gorm.DB, projectID uint) ([]mo
 	err := query.Where("project_id = ?", projectID).Find(&envs).Error
 	return envs, err
 }
+
+func (r *EnvironmentRepository) GetByUUID(tx *gorm.DB, uuid string) (*models_environment.Environment, error) {
+	var env models_environment.Environment
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	err := query.Where("uuid = ?", uuid).First(&env).Error
+	return &env, err
+}
+

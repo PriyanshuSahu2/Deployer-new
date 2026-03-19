@@ -25,7 +25,7 @@ import {
   IconWorld,
 } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { useCreateServer, useUpdateServer } from '@/hooks/useServers';
+import { useCreateServer, useTestConnection, useUpdateServer } from '@/hooks/useServers';
 import { type Server } from '@/types/server';
 
 const authTypeOptions = [
@@ -52,6 +52,7 @@ export default function CreateServerDrawer({
     useCreateServer(workspaceId);
   const { mutateAsync: updateServer, isPending: updating } =
     useUpdateServer(workspaceId);
+  const { mutateAsync: testConnection } = useTestConnection(workspaceId);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const isPending = creating || updating;
   const ipv4Pattern =
@@ -122,21 +123,44 @@ export default function CreateServerDrawer({
 
     setIsTestingConnection(true);
 
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 900);
-    });
+    try {
+      await testConnection({
+        host: form.values.host,
+        port: form.values.port,
+        username: form.values.username,
+        auth_type: form.values.auth_type,
+        pass_key: form.values.pass_key,
+      });
 
-    const isConnected = Math.random() >= 0.5;
+      notifications.show({
+        title: 'Connected',
+        message: `Connected to ${form.values.host}:${form.values.port} as ${form.values.username}.`,
+        color: 'teal',
+      });
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof err.response === 'object' &&
+        err.response !== null &&
+        'data' in err.response &&
+        typeof err.response.data === 'object' &&
+        err.response.data !== null &&
+        'error' in err.response.data
+          ? String(err.response.data.error)
+          : err instanceof Error
+            ? err.message
+            : 'Failed to connect to server';
 
-    notifications.show({
-      title: isConnected ? 'Connected' : 'Connection failed',
-      message: isConnected
-        ? `Connected to ${form.values.host}:${form.values.port} as ${form.values.username}.`
-        : `Could not connect to ${form.values.host}:${form.values.port}.`,
-      color: isConnected ? 'teal' : 'red',
-    });
-
-    setIsTestingConnection(false);
+      notifications.show({
+        title: 'Connection failed',
+        message,
+        color: 'red',
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleSubmit = form.onSubmit(async (values) => {

@@ -88,3 +88,33 @@ func (c *IntegrationController) DisconnectIntegration(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Integration disconnected successfully"})
 }
+
+func (c *IntegrationController) GetGithubRepos(ctx *gin.Context) {
+	workspaceUUID := ctx.Param("workspaceUUID")
+
+	repos, err := c.IntegrationService.GetGithubRepos(nil, workspaceUUID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, repos)
+}
+
+func (c *IntegrationController) GetGithubBranches(ctx *gin.Context) {
+	workspaceUUID := ctx.Param("workspaceUUID")
+	repoFullName := ctx.Query("repo")
+
+	if repoFullName == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Missing repo parameter"})
+		return
+	}
+
+	branches, err := c.IntegrationService.GetGithubBranches(nil, workspaceUUID, repoFullName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, branches)
+}

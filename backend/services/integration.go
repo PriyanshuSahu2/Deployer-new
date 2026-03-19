@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -180,4 +181,104 @@ func (s *IntegrationService) DeleteIntegration(tx *gorm.DB, workspaceUUID string
 	}
 
 	return s.IntegrationRepo.DeleteIntegration(query, workspace.ID, provider)
+}
+
+func (s *IntegrationService) GetGithubRepos(tx *gorm.DB, workspaceUUID string) ([]dtos_integration.GithubRepoDTO, error) {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	workspace, err := GetWorkspaceByUUID(query, workspaceUUID)
+	if err != nil {
+		return nil, errors.New("workspace not found")
+	}
+
+	integration, err := s.IntegrationRepo.GetIntegrationByProvider(query, workspace.ID, "github")
+	if err != nil {
+		return nil, errors.New("github integration not found")
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://api.github.com/user/repos?per_page=100", nil)
+	if err != nil {
+		return nil, errors.New("request creation failed")
+	}
+	req.Header.Set("Authorization", "Bearer "+integration.AccessToken)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.New("request failed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("github api error: status %d", resp.StatusCode)
+	}
+
+	var repos []struct {
+		ID       int    `json:"id"`
+		Name     string `json:"name"`
+		FullName string `json:"full_name"`
+		Private  bool   `json:"private"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&repos); err != nil {
+		return nil, errors.New("failed to parse repositories")
+	}
+
+	var result []dtos_integration.GithubRepoDTO
+	for _, repo := range repos {
+		result = append(result, dtos_integration.GithubRepoDTO{
+			ID:       repo.ID,
+			Name:     repo.Name,
+			FullName: repo.FullName,
+			Private:  repo.Private,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *IntegrationService) GetGithubBranches(tx *gorm.DB, workspaceUUID string, repoFullName string) ([]dtos_integration.GithubBranchDTO, error) {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	workspace, err := GetWorkspaceByUUID(query, workspaceUUID)
+	if err != nil {
+		return nil, errors.New("workspace not found")
+	}
+
+	integration, err := s.IntegrationRepo.GetIntegrationByProvider(query, workspace.ID, "github")
+	if err != nil {
+		return nil, errors.New("github integration not found")
+	}
+
+	client := &http.Client{}
+	url := fmt.Sprintf("https://api.github.com/repos/%s/branches?per_page=100", repoFullName)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, errors.New("request creation failed")
+	}
+	req.Header.Set("Authorization", "Bearer "+integration.AccessToken)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.New("request failed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("github api error: status %d", resp.StatusCode)
+	}
+
+	var branches []dtos_integration.GithubBranchDTO
+	if err := json.NewDecoder(resp.Body).Decode(&branches); err != nil {
+		return nil, errors.New("failed to parse branches")
+	}
+
+	return branches, nil
 }

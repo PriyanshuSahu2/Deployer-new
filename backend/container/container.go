@@ -8,6 +8,7 @@ import (
 	controller_project "backend/controllers/project"
 	controller_roles "backend/controllers/roles"
 	controller_server "backend/controllers/server"
+	controller_service "backend/controllers/service"
 	controller_workspace "backend/controllers/workspace"
 	"backend/middleware"
 
@@ -28,6 +29,7 @@ type Container struct {
 	MemberController          *controller_member.MemberController
 	PermissionMW              *middleware.PermissionMiddleware
 	IntegrationController     *controller_integration.IntegrationController
+	ServiceController         *controller_service.ServiceController
 }
 
 func NewContainer(emailService *services.EmailService) *Container {
@@ -42,6 +44,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	projectRepo := repositories.NewProjectRepository()
 	environmentRepo := repositories.NewEnvironmentRepository()
 	serverRepo := repositories.NewServerRepository()
+	serviceRepo := repositories.NewServiceRepository()
 	redisRepo := repositories.NewRedisRepository(redisclient.Client)
 	integrationRepo := repositories.NewIntegrationRepository()
 
@@ -67,6 +70,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	)
 	projectService := services.NewProjectService(projectRepo, workspaceRepo, environmentRepo)
 	serverService := services.NewServerService(serverRepo, workspaceRepo)
+	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
@@ -87,6 +91,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	roleController := controller_roles.NewRoleController(roleService)
 	projectController := controller_project.NewProjectController(projectService)
 	serverController := controller_server.NewServerController(serverService)
+	serviceController := controller_service.NewServiceController(serviceService)
 
 	workspaceController := controller_workspace.NewWorkspaceController(workspaceService)
 
@@ -112,5 +117,6 @@ func NewContainer(emailService *services.EmailService) *Container {
 		MemberController:          memberController,
 		PermissionMW:              permissionMW,
 		IntegrationController:     integrationController,
+		ServiceController:         serviceController,
 	}
 }

@@ -2,12 +2,13 @@ package routes
 
 import (
 	controller_project "backend/controllers/project"
+	controller_service "backend/controllers/service"
 	"backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectController *controller_project.ProjectController, permissionMiddleWare *middleware.PermissionMiddleware) {
+func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectController *controller_project.ProjectController, serviceController *controller_service.ServiceController, permissionMiddleWare *middleware.PermissionMiddleware) {
 	projects := workspaceRoute.Group("/projects")
 
 	projects.Use(middleware.ValidateRequest())
@@ -17,5 +18,8 @@ func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectContro
 		projects.POST("", permissionMiddleWare.RequirePermission("project:create"), projectController.CreateProject)
 		projects.PUT("/:uuid", permissionMiddleWare.RequirePermission("project:update"), projectController.UpdateProject)
 		projects.DELETE("/:uuid", permissionMiddleWare.RequirePermission("project:delete"), projectController.DeleteProject)
+
+		// Service routes
+		projects.POST("/:projectUUID/services", permissionMiddleWare.RequirePermission("service:create"), serviceController.CreateService)
 	}
 }

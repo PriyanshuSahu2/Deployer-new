@@ -23,3 +23,12 @@ export interface CreateServerPayload {
 export interface UpdateServerPayload extends CreateServerPayload {
   uuid: string;
 }
+
+export interface TestConnectionPayload {
+  uuid?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  auth_type?: string;
+  pass_key?: string;
+}

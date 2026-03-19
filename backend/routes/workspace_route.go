@@ -33,6 +33,9 @@ func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.Wo
 		
 		workspace.GET("/integrations/github/auth", integrationController.GithubAuthInitiate)
 		workspace.GET("/integrations/github/callback", integrationController.GithubAuthCallback)
+
+		workspace.GET("/integrations/github/repos", integrationController.GetGithubRepos)
+		workspace.GET("/integrations/github/branches", integrationController.GetGithubBranches)
 	}
 	return workspace
 }

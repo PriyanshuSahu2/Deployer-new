@@ -2,10 +2,12 @@ import {
   createServer,
   deleteServer,
   listServers,
+  testServerConnection,
   updateServer,
 } from '@/service/server';
 import {
   type CreateServerPayload,
+  type TestConnectionPayload,
   type UpdateServerPayload,
 } from '@/types/server';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -49,5 +51,12 @@ export const useDeleteServer = (workspaceUuid: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servers', workspaceUuid] });
     },
+  });
+};
+
+export const useTestConnection = (workspaceUuid: string) => {
+  return useMutation({
+    mutationFn: (payload: TestConnectionPayload) =>
+      testServerConnection(workspaceUuid, payload),
   });
 };

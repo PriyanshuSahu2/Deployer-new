@@ -69,3 +69,21 @@ func (sc *ServerController) DeleteServer(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Server Deleted Successfully"})
 }
+
+func (sc *ServerController) TestConnection(c *gin.Context) {
+	var body dtos_server.TestConnectionDTO
+	
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := sc.Service.TestConnection(body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Connection Tested Successfully"})
+}
+
+	

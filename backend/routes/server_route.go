@@ -16,5 +16,6 @@ func ServerRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, serverControll
 		servers.POST("", permissionMiddleWare.RequirePermission("server:create"), serverController.CreateServer)
 		servers.PUT("/:uuid", permissionMiddleWare.RequirePermission("server:update"), serverController.UpdateServer)
 		servers.DELETE("/:uuid", permissionMiddleWare.RequirePermission("server:delete"), serverController.DeleteServer)
+		servers.POST("/test-connection", serverController.TestConnection)
 	}
 }

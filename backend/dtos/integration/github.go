@@ -18,3 +18,14 @@ type IntegrationResponseDTO struct {
 	InstallationID string `json:"installationId,omitempty"`
 	IsActive       bool   `json:"isActive"`
 }
+
+type GithubRepoDTO struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	FullName string `json:"fullName"`
+	Private  bool   `json:"private"`
+}
+
+type GithubBranchDTO struct {
+	Name string `json:"name"`
+}

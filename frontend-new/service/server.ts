@@ -2,6 +2,7 @@ import { privateRequest } from '@/lib/requestMethod';
 import {
   type CreateServerPayload,
   type Server,
+  type TestConnectionPayload,
   type UpdateServerPayload,
 } from '@/types/server';
 
@@ -21,3 +22,8 @@ export const updateServer = (
 
 export const deleteServer = (workspaceUUID: string, serverUuid: string) =>
   privateRequest.delete(`/workspaces/${workspaceUUID}/servers/${serverUuid}`);
+
+export const testServerConnection = (
+  workspaceUUID: string,
+  payload: TestConnectionPayload,
+) => privateRequest.post(`/workspaces/${workspaceUUID}/servers/test-connection`, payload);

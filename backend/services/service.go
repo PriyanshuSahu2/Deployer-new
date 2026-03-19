@@ -10,17 +10,23 @@ import (
 )
 
 type ServiceService struct {
-	ServiceRepo *repositories.ServiceRepository
-	ProjectRepo *repositories.ProjectRepository
+	ServiceRepo     *repositories.ServiceRepository
+	ProjectRepo     *repositories.ProjectRepository
+	EnvironmentRepo *repositories.EnvironmentRepository
+	ServerRepo      *repositories.ServerRepository
 }
 
 func NewServiceService(
 	serviceRepo *repositories.ServiceRepository,
 	projectRepo *repositories.ProjectRepository,
+	environmentRepo *repositories.EnvironmentRepository,
+	serverRepo *repositories.ServerRepository,
 ) *ServiceService {
 	return &ServiceService{
-		ServiceRepo: serviceRepo,
-		ProjectRepo: projectRepo,
+		ServiceRepo:     serviceRepo,
+		ProjectRepo:     projectRepo,
+		EnvironmentRepo: environmentRepo,
+		ServerRepo:      serverRepo,
 	}
 }
 
@@ -30,16 +36,36 @@ func (s *ServiceService) CreateService(tx *gorm.DB, userID uint, projectUUID str
 		return nil, errors.New("project not found")
 	}
 
+	server, err := s.ServerRepo.GetByUUID(dto.ServerUUID)
+	if err != nil {
+		return nil, errors.New("server not found")
+	}
+
+	var envId uint
+	if dto.EnvironmentUUID != "" {
+		env, err := s.EnvironmentRepo.GetByUUID(tx, dto.EnvironmentUUID)
+		if err != nil {
+			return nil, errors.New("environment not found")
+		}
+		envId = env.ID
+	} else {
+		envs, err := s.EnvironmentRepo.ListByProject(tx, project.ID)
+		if err != nil || len(envs) == 0 {
+			return nil, errors.New("no default environment found in project")
+		}
+		envId = envs[0].ID
+	}
+
 	service := models_service.Service{
 		Name:          dto.Name,
-		EnvironmentID: dto.EnvironmentID,
+		EnvironmentID: envId,
 		Type:          dto.Type,
 		Framework:     dto.Framework,
 		Description:   dto.Description,
 		BuildCommand:  dto.BuildCommand,
 		StartCommand:  dto.StartCommand,
 		DeployPath:    dto.DeployPath,
-		ServerID:      dto.Server.ServerID,
+		ServerID:      &server.ID,
 		ProjectID:     project.ID,
 	}
 

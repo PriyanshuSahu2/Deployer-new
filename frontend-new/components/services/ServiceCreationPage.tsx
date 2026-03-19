@@ -40,6 +40,9 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGetProjects } from '@/hooks/useProjects';
+import { useGetServers } from '@/hooks/useServers';
+import { useGetGithubRepos, useGetGithubBranches } from '@/hooks/useIntegrations';
+import { useCreateService } from '@/hooks/useServices';
 
 const STEP_CONFIG = [
   {
@@ -100,18 +103,6 @@ const GIT_PROVIDER_OPTIONS = [
   { value: 'bitbucket', label: 'Bitbucket' },
 ];
 
-const PROVIDER_OPTIONS = [
-  { value: 'aws', label: 'AWS' },
-  { value: 'gcp', label: 'Google Cloud' },
-  { value: 'azure', label: 'Azure' },
-  { value: 'custom', label: 'Custom / Bare Metal' },
-];
-
-const REGION_OPTIONS = [
-  { value: 'ap-south-1', label: 'Mumbai' },
-  { value: 'us-east-1', label: 'N. Virginia' },
-  { value: 'eu-west-1', label: 'Ireland' },
-];
 
 const DEPLOYMENT_STRATEGY_OPTIONS = [
   { value: 'rolling', label: 'Rolling' },
@@ -251,12 +242,17 @@ export default function ServiceCreationPage({
     deploy: null,
     observability: null,
   });
-
   const { data: projects = [] } = useGetProjects(workspaceId, true);
+  const { data: servers = [] } = useGetServers(workspaceId, true);
 
   const projectOptions = projects.map((project) => ({
     value: project.uuid,
     label: project.name,
+  }));
+
+  const serverOptions = servers.map((server) => ({
+    value: server.uuid,
+    label: server.name,
   }));
 
   const form = useForm({
@@ -279,9 +275,7 @@ export default function ServiceCreationPage({
       autoDeployOnPush: true,
       buildTrigger: 'push',
       envVars: [{ key: '', value: '' }],
-      provider: '',
-      region: '',
-      instanceType: '',
+      serverId: '',
       cpu: 1,
       memory: 512,
       disk: 10,
@@ -317,14 +311,37 @@ export default function ServiceCreationPage({
         value: (value) =>
           !value.trim() ? 'Environment value is required' : null,
       },
-      provider: (value) =>
-        !value ? 'Choose an infrastructure provider' : null,
-      region: (value) => (!value ? 'Choose a region' : null),
-      instanceType: (value) =>
-        !value.trim() ? 'Instance type is required' : null,
+      serverId: (value) => (!value ? 'Choose a server' : null),
       strategy: (value) => (!value ? 'Choose a deployment strategy' : null),
     },
   });
+
+  const { mutateAsync: createService, isPending } = useCreateService(
+    workspaceId,
+    form.values.projectId,
+  );
+
+  const { data: githubRepos = [], isLoading: isLoadingRepos } = useGetGithubRepos(
+    workspaceId,
+    form.values?.gitProvider === 'github'
+  );
+
+  const { data: githubBranches = [], isLoading: isLoadingBranches } = useGetGithubBranches(
+    workspaceId,
+    form.values?.repository,
+    form.values?.gitProvider === 'github' && !!form.values?.repository
+  );
+
+  const repoOptions = githubRepos.map((repo) => ({
+    value: repo.fullName,
+    label: repo.fullName,
+  }));
+
+  const branchOptions = githubBranches.map((branch) => ({
+    value: branch.name,
+    label: branch.name,
+  }));
+
 
   useEffect(() => {
     if (!initialProjectId) return;
@@ -397,12 +414,64 @@ export default function ServiceCreationPage({
     });
   };
 
-  const handleSubmit = form.onSubmit((values) => {
-    notifications.show({
-      title: 'Frontend draft ready',
-      message: `Captured "${values.name}" setup inputs. service persistence can be wired once the backend contract is finalized.`,
-      color: 'teal',
-    });
+  const handleSubmit = form.onSubmit(async (values) => {
+    try {
+      await createService({
+        name: values.name,
+        projectUuid: values.projectId,
+        type: values.serviceType,
+        framework: values.framework,
+        description: values.description,
+        buildCommand: values.buildCommand,
+        startCommand: values.startCommand,
+        deployPath: values.rootFolder || '/',
+        serverId: values.serverId,
+        git: {
+          provider: values.gitProvider,
+          repositoryUrl: values.repository,
+          branch: values.branch,
+          subDirectory: values.rootFolder || '/',
+          authType: 'token',
+        },
+        envVariables: values.envVars
+          .filter((v) => v.key.trim() !== '')
+          .map((v) => ({
+            key: v.key,
+            value: v.value,
+            isSecret: false,
+            isBuildVariable: false,
+          })),
+      });
+
+      notifications.show({
+        title: 'Service created',
+        message: `"${values.name}" has been successfully created.`,
+        color: 'teal',
+      });
+
+      router.push(`/app/${workspaceId}/projects/${values.projectId}`);
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as any).response === 'object' &&
+        (err as any).response !== null &&
+        'data' in (err as any).response &&
+        typeof (err as any).response.data === 'object' &&
+        (err as any).response.data !== null &&
+        'error' in (err as any).response.data
+          ? String((err as any).response.data.error)
+          : err instanceof Error
+            ? err.message
+            : 'Failed to create service';
+
+      notifications.show({
+        title: 'Error',
+        message,
+        color: 'red',
+      });
+    }
   });
 
   const toggleAdvancedSection = (key: keyof typeof advancedSections) => {
@@ -450,7 +519,7 @@ export default function ServiceCreationPage({
             onClick={() => router.push(`/app/${workspaceId}/services`)}>
             Cancel
           </Button>
-          <Button radius='sm' onClick={() => handleSubmit()}>
+          <Button radius='sm' type='submit' loading={isPending}>
             Create
           </Button>
         </Group>
@@ -615,19 +684,56 @@ export default function ServiceCreationPage({
                       placeholder='Select provider'
                       withAsterisk
                       {...form.getInputProps('gitProvider')}
+                      onChange={(val) => {
+                        form.setFieldValue('gitProvider', val || '');
+                        if (val === 'github') {
+                          form.setFieldValue('repository', '');
+                          form.setFieldValue('branch', '');
+                        }
+                      }}
                     />
-                    <TextInput
-                      label='Repository'
-                      placeholder='org/repo or full URL'
-                      withAsterisk
-                      {...form.getInputProps('repository')}
-                    />
-                    <TextInput
-                      label='Branch'
-                      placeholder='main'
-                      withAsterisk
-                      {...form.getInputProps('branch')}
-                    />
+                    
+                    {form.values.gitProvider === 'github' ? (
+                      <Select
+                        label='Repository'
+                        data={repoOptions}
+                        placeholder={isLoadingRepos ? 'Loading...' : 'Select a repository'}
+                        searchable
+                        withAsterisk
+                        disabled={isLoadingRepos}
+                        {...form.getInputProps('repository')}
+                        onChange={(val) => {
+                          form.setFieldValue('repository', val || '');
+                          form.setFieldValue('branch', '');
+                        }}
+                      />
+                    ) : (
+                      <TextInput
+                        label='Repository'
+                        placeholder='org/repo or full URL'
+                        withAsterisk
+                        {...form.getInputProps('repository')}
+                      />
+                    )}
+
+                    {form.values.gitProvider === 'github' ? (
+                      <Select
+                        label='Branch'
+                        data={branchOptions}
+                        placeholder={isLoadingBranches ? 'Loading...' : 'Select a branch'}
+                        searchable
+                        withAsterisk
+                        disabled={!form.values.repository || isLoadingBranches}
+                        {...form.getInputProps('branch')}
+                      />
+                    ) : (
+                      <TextInput
+                        label='Branch'
+                        placeholder='main'
+                        withAsterisk
+                        {...form.getInputProps('branch')}
+                      />
+                    )}
                   </SimpleGrid>
                   <Stack gap='sm'>
                     <AdvancedSectionToggle
@@ -748,26 +854,15 @@ export default function ServiceCreationPage({
                   <Divider />
                   <SectionLabel
                     title='Basic'
-                    description='Provider and region for the deployment target.'
+                    description='Target server for the deployment.'
                   />
                   <SimpleGrid cols={{ base: 1, md: 2 }} spacing='md'>
                     <Select
-                      label='Provider'
-                      data={PROVIDER_OPTIONS}
+                      label='Server'
+                      data={serverOptions}
+                      placeholder='Select a server'
                       withAsterisk
-                      {...form.getInputProps('provider')}
-                    />
-                    <Select
-                      label='Region'
-                      data={REGION_OPTIONS}
-                      withAsterisk
-                      {...form.getInputProps('region')}
-                    />
-                    <TextInput
-                      label='Instance Type'
-                      placeholder='shared-small'
-                      withAsterisk
-                      {...form.getInputProps('instanceType')}
+                      {...form.getInputProps('serverId')}
                     />
                   </SimpleGrid>
                   <Stack gap='sm'>

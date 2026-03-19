@@ -16,6 +16,17 @@ export interface IntegrationsResponse {
   integrations: Integration[];
 }
 
+export interface GithubRepo {
+  id: number;
+  name: string;
+  fullName: string;
+  private: boolean;
+}
+
+export interface GithubBranch {
+  name: string;
+}
+
 export const useGetIntegrations = (workspaceId: string, enabled = true) => {
   return useQuery({
     queryKey: ['integrations', workspaceId],
@@ -57,3 +68,30 @@ export const useDisconnectIntegration = (workspaceId: string) => {
     },
   });
 };
+
+export const useGetGithubRepos = (workspaceId: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['github-repos', workspaceId],
+    queryFn: async (): Promise<GithubRepo[]> => {
+      const response = await privateRequest.get<GithubRepo[]>(
+        `/workspaces/${workspaceId}/integrations/github/repos`
+      );
+      return response.data || [];
+    },
+    enabled: !!workspaceId && enabled,
+  });
+};
+
+export const useGetGithubBranches = (workspaceId: string, repoFullName: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['github-branches', workspaceId, repoFullName],
+    queryFn: async (): Promise<GithubBranch[]> => {
+      const response = await privateRequest.get<GithubBranch[]>(
+        `/workspaces/${workspaceId}/integrations/github/branches?repo=${encodeURIComponent(repoFullName)}`
+      );
+      return response.data || [];
+    },
+    enabled: !!workspaceId && !!repoFullName && enabled,
+  });
+};
+

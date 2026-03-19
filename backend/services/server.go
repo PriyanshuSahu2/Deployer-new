@@ -97,3 +97,24 @@ func (s *ServerService) DeleteServer(userID uint, serverUUID string) error {
 
 	return s.ServerRepo.Delete(server)
 }
+
+func (s *ServerService) TestConnection(dto dtos_server.TestConnectionDTO) error {
+	if dto.UUID != "" {
+		server, err := s.ServerRepo.GetByUUID(dto.UUID)
+		if err != nil {
+			return errors.New("server not found")
+		}
+		dto.Host = server.Host
+		dto.Port = server.Port
+		dto.Username = server.Username
+		dto.AuthType = server.AuthType
+		dto.PassKey = server.PassKey
+	}
+
+	ssh := NewSSHService()
+
+	ssh.Connect(dto.Host, dto.Port, dto.Username, []byte(dto.PassKey))
+	defer ssh.Close()
+
+	return ssh.TestConnection()
+}

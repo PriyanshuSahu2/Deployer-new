@@ -17,7 +17,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconSearch, IconServer2, IconX } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
-import { useDeleteServer, useGetServers } from '@/hooks/useServers';
+import { useDeleteServer, useGetServers, useTestConnection } from '@/hooks/useServers';
 import { type Server } from '@/types/server';
 import CreateServerDrawer from './CreateServerDrawer';
 import ServerCard from './ServerCard';
@@ -32,6 +32,7 @@ export default function ServerList({ workspaceId }: Props) {
   const [search, setSearch] = useState('');
   const { data: servers = [], isLoading } = useGetServers(workspaceId, true);
   const { mutateAsync: removeServer } = useDeleteServer(workspaceId);
+  const { mutateAsync: testConnection } = useTestConnection(workspaceId);
 
   const filtered = useMemo(
     () =>
@@ -102,6 +103,42 @@ export default function ServerList({ workspaceId }: Props) {
     </Card>
   ));
 
+  const handleTestConnection = async (server: Server) => {
+    const notificationId = notifications.show({
+      title: 'Testing connection',
+      message: `Pinging ${server.host}...`,
+      color: 'indigo',
+      loading: true,
+      autoClose: false,
+    });
+
+    try {
+      await testConnection({ uuid: server.uuid });
+
+      notifications.update({
+        id: notificationId,
+        title: 'Server connection tested',
+        message: `"${server.name}" has been tested.`,
+        color: 'teal',
+        loading: false,
+        autoClose: 3000,
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to test the selected server';
+
+      notifications.update({
+        id: notificationId,
+        title: 'Error',
+        message,
+        color: 'red',
+        loading: false,
+        autoClose: 3000,
+      });
+    }
+  };
   return (
     <>
       <Stack gap='lg' p='md'>
@@ -161,13 +198,7 @@ export default function ServerList({ workspaceId }: Props) {
                 server={server}
                 onDelete={handleDelete}
                 onEdit={openEdit}
-                onTest={(s) =>
-                  notifications.show({
-                    title: 'Test connection',
-                    message: `Pinging ${s.host}...`,
-                    color: 'indigo',
-                  })
-                }
+                onTest={handleTestConnection}
               />
             ))}
           </SimpleGrid>

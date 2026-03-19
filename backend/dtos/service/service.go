@@ -1,8 +1,9 @@
 package dtos_service
 
 type CreateServiceDTO struct {
-	Name          string `json:"name" binding:"required"`
-	EnvironmentID uint   `json:"environmentId" binding:"required"`
+	Name            string `json:"name" binding:"required"`
+	ProjectUUID     string `json:"projectUuid" binding:"required"`
+	EnvironmentUUID string `json:"environmentUuid"`
 
 	Type        string `json:"type"`
 	Framework   string `json:"framework"`
@@ -12,7 +13,7 @@ type CreateServiceDTO struct {
 	StartCommand string `json:"startCommand"`
 	DeployPath   string `json:"deployPath"`
 
-	Server ServerConfigDTO `json:"server"`
+	ServerUUID string `json:"serverId" binding:"required"`
 
 	Git GitConfigDTO `json:"git"`
 
