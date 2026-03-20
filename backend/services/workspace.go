@@ -10,24 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetWorkspaceByUUID(tx *gorm.DB, uuid string) (*models_workspace.Workspace, error) {
-	var workspace models_workspace.Workspace
-	query := db.DB
-	if tx != nil {
-		query = tx
-	}
-
-	err := query.
-		Where("uuid = ?", uuid).
-		First(&workspace).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &workspace, nil
-}
-
 type WorkspaceService struct {
 	WorkspaceRepo *repositories.WorkspaceRepository
 	MemberRepo    *repositories.MemberRepository
@@ -44,6 +26,23 @@ func NewWorkspaceService(
 		MemberRepo:    memberRepo,
 		RoleService:   roleService,
 	}
+}
+func GetWorkspaceByUUID(tx *gorm.DB, uuid string) (*models_workspace.Workspace, error) {
+	var workspace models_workspace.Workspace
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Where("uuid = ?", uuid).
+		First(&workspace).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &workspace, nil
 }
 
 func (s *WorkspaceService) CreateWorkspace(tx *gorm.DB, userID uint, dto dtos_workspace.CreateWorkspaceDTO) (models_workspace.Workspace, error) {

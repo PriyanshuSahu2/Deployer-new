@@ -11,15 +11,18 @@ import (
 type ServerService struct {
 	ServerRepo    *repositories.ServerRepository
 	WorkspaceRepo *repositories.WorkspaceRepository
+	SSHService    SSHService
 }
 
 func NewServerService(
 	serverRepo *repositories.ServerRepository,
 	workspaceRepo *repositories.WorkspaceRepository,
+	sshService SSHService,
 ) *ServerService {
 	return &ServerService{
 		ServerRepo:    serverRepo,
 		WorkspaceRepo: workspaceRepo,
+		SSHService:    sshService,
 	}
 }
 
@@ -111,10 +114,11 @@ func (s *ServerService) TestConnection(dto dtos_server.TestConnectionDTO) error 
 		dto.PassKey = server.PassKey
 	}
 
-	ssh := NewSSHService()
+	sshClient, err := s.SSHService.Connect(dto.Host, dto.Port, dto.Username, []byte(dto.PassKey))
+	if err != nil {
+		return err
+	}
+	defer sshClient.Close()
 
-	ssh.Connect(dto.Host, dto.Port, dto.Username, []byte(dto.PassKey))
-	defer ssh.Close()
-
-	return ssh.TestConnection()
+	return sshClient.TestConnection()
 }

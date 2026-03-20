@@ -20,6 +20,8 @@ func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectContro
 		projects.DELETE("/:uuid", permissionMiddleWare.RequirePermission("project:delete"), projectController.DeleteProject)
 
 		// Service routes
-		projects.POST("/:projectUUID/services", permissionMiddleWare.RequirePermission("service:create"), serviceController.CreateService)
+		projects.POST("/:uuid/services", permissionMiddleWare.RequirePermission("service:create"), serviceController.CreateService)
+		projects.GET("/:uuid/services", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServicesByProject)
+		projects.POST("/:uuid/services/:serviceUUID/deploy", permissionMiddleWare.RequirePermission("service:update"), serviceController.DeployService)
 	}
 }

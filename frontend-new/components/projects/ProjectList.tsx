@@ -96,6 +96,7 @@ function ProjectRow({
             <ActionIcon
               variant="subtle"
               color="indigo"
+              data-testid="view-project-btn"
               size="sm"
               onClick={() => onViewProject(project)}
             >

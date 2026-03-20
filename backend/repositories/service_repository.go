@@ -42,3 +42,46 @@ func (r *ServiceRepository) AddEnvVariable(tx *gorm.DB, env_variable *models_ser
 
 	return query.Create(&env_variable).Error
 }
+
+func (r *ServiceRepository) GetServicesByProject(tx *gorm.DB, projectID uint) ([]models_service.Service, error) {
+	var services []models_service.Service
+	query := db.DB
+
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.Preload("Environment").Where("project_id = ?", projectID).Find(&services).Error
+	return services, err
+}
+
+func (r *ServiceRepository) GetByUUID(tx *gorm.DB, serviceUUID string) (*models_service.Service, error) {
+	var service models_service.Service
+	query := db.DB
+
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.Preload("Environment").Where("uuid = ?", serviceUUID).First(&service).Error
+	return &service, err
+}
+
+func (r *ServiceRepository) GetServiceWithDetails(tx *gorm.DB, serviceUUID string) (*models_service.Service, error) {
+	var service models_service.Service
+	query := db.DB
+
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Preload("Environment").
+		Preload("GitConfig").
+		Preload("EnvVariables").
+		Preload("Server").
+		Where("uuid = ?", serviceUUID).
+		First(&service).Error
+
+	return &service, err
+}

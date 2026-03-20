@@ -25,7 +25,7 @@ export interface CreateServicePayload {
 }
 
 export interface Service {
-  id: number;
+  uuid: string;
   name: string;
   projectId: number;
   environmentId: number;

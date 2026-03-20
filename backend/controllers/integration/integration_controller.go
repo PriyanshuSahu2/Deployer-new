@@ -118,3 +118,4 @@ func (c *IntegrationController) GetGithubBranches(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, branches)
 }
+

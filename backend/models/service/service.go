@@ -22,4 +22,7 @@ type Service struct {
 	Server        *models_server.Server          `gorm:"foreignKey:ServerID"`
 	ProjectID     uint                           `gorm:"index;not null;uniqueIndex:idx_env_service"`
 	Project       models_project.Project         `gorm:"foreignKey:ProjectID"`
+
+	GitConfig     *ServiceGitConfig    `gorm:"foreignKey:ServiceID"`
+	EnvVariables  []ServiceEnvVariable `gorm:"foreignKey:ServiceID"`
 }

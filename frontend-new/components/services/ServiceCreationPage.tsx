@@ -416,6 +416,11 @@ export default function ServiceCreationPage({
 
   const handleSubmit = form.onSubmit(async (values) => {
     try {
+      notifications.show({
+        title: 'Creating service',
+        message: `"${values.name}" is being created.`,
+        color: 'blue',
+      });
       await createService({
         name: values.name,
         projectUuid: values.projectId,
@@ -453,14 +458,14 @@ export default function ServiceCreationPage({
     } catch (err: unknown) {
       const message =
         typeof err === 'object' &&
-        err !== null &&
-        'response' in err &&
-        typeof (err as any).response === 'object' &&
-        (err as any).response !== null &&
-        'data' in (err as any).response &&
-        typeof (err as any).response.data === 'object' &&
-        (err as any).response.data !== null &&
-        'error' in (err as any).response.data
+          err !== null &&
+          'response' in err &&
+          typeof (err as any).response === 'object' &&
+          (err as any).response !== null &&
+          'data' in (err as any).response &&
+          typeof (err as any).response.data === 'object' &&
+          (err as any).response.data !== null &&
+          'error' in (err as any).response.data
           ? String((err as any).response.data.error)
           : err instanceof Error
             ? err.message
@@ -519,7 +524,7 @@ export default function ServiceCreationPage({
             onClick={() => router.push(`/app/${workspaceId}/services`)}>
             Cancel
           </Button>
-          <Button radius='sm' type='submit' loading={isPending}>
+          <Button radius='sm' type='submit' loading={isPending} onClick={handleSubmit}>
             Create
           </Button>
         </Group>
@@ -692,7 +697,7 @@ export default function ServiceCreationPage({
                         }
                       }}
                     />
-                    
+
                     {form.values.gitProvider === 'github' ? (
                       <Select
                         label='Repository'

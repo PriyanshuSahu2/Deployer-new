@@ -24,7 +24,7 @@ func (c *ServiceController) CreateService(ctx *gin.Context) {
 		return
 	}
 
-	body.ProjectUUID = ctx.Param("projectUUID")
+	body.ProjectUUID = ctx.Param("uuid")
 
 	userID, exists := ctx.Get("userID")
 	if !exists {
@@ -39,4 +39,47 @@ func (c *ServiceController) CreateService(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, serviceResponse)
+}
+
+func (c *ServiceController) GetServicesByProject(ctx *gin.Context) {
+	projectUUID := ctx.Param("uuid")
+
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	services, err := c.Service.GetServicesByProject(nil, userID.(uint), projectUUID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Returning empty array instead of null when services are nil
+	if services == nil {
+		services = []dtos_service.ServiceCreationResponseDTO{}
+	}
+
+	ctx.JSON(http.StatusOK, services)
+}
+
+func (c *ServiceController) DeployService(ctx *gin.Context) {
+	serviceUUID := ctx.Param("serviceUUID")
+	workspaceUUID := ctx.Param("workspaceUUID")
+
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	_ = userID // Ignore for now since logic is empty
+
+	err := c.Service.DeployService(nil, serviceUUID, workspaceUUID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Deployment triggered successfully"})
 }

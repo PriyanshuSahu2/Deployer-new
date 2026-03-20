@@ -4,14 +4,15 @@ import (
 	"backend/container"
 	"backend/db"
 	models_auth "backend/models/auth"
+	models_integration "backend/models/integrations"
 	models_oauth "backend/models/oauth"
 	models_permission "backend/models/permission"
 	models_project "backend/models/project"
 	models_role "backend/models/role"
 	models_role_permission "backend/models/role_permission"
 	models_server "backend/models/server"
+	models_service "backend/models/service"
 	models_workspace "backend/models/workspace"
-	models_integration "backend/models/integrations"
 	"backend/rabbitmq"
 	redisclient "backend/redis"
 	"backend/routes"
@@ -88,6 +89,9 @@ func main() {
 		&models_role_permission.RolePermission{},
 		&models_integration.WorkspaceGitIntegration{},
 		&models_server.Server{},
+		&models_service.Service{},
+		&models_service.ServiceGitConfig{},
+		&models_service.ServiceEnvVariable{},
 	)
 
 	/* ---------------- CONTAINER ---------------- */

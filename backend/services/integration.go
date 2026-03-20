@@ -9,10 +9,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -120,19 +120,19 @@ func (s *IntegrationService) HandleGithubCallback(tx *gorm.DB, workspaceUUID str
 	if err != nil {
 		return err
 	}
-	
+
 	accountId := ""
 	if profile.ID != 0 {
 		accountId = string(rune(profile.ID)) // Usually we just use string representation
 	}
 
 	integration := models_integration.WorkspaceGitIntegration{
-		WorkspaceID:  workspace.ID,
-		Provider:     "github",
-		AccountName:  profile.Login,
-		AccountID:    accountId,
-		AccessToken:  accessToken,
-		IsActive:     true,
+		WorkspaceID: workspace.ID,
+		Provider:    "github",
+		AccountName: profile.Login,
+		AccountID:   accountId,
+		AccessToken: accessToken,
+		IsActive:    true,
 	}
 
 	return s.IntegrationRepo.CreateOrUpdate(query, &integration)
@@ -206,7 +206,7 @@ func (s *IntegrationService) GetGithubRepos(tx *gorm.DB, workspaceUUID string) (
 	}
 	req.Header.Set("Authorization", "Bearer "+integration.AccessToken)
 	req.Header.Set("Accept", "application/vnd.github+json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, errors.New("request failed")
@@ -264,7 +264,7 @@ func (s *IntegrationService) GetGithubBranches(tx *gorm.DB, workspaceUUID string
 	}
 	req.Header.Set("Authorization", "Bearer "+integration.AccessToken)
 	req.Header.Set("Accept", "application/vnd.github+json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, errors.New("request failed")
@@ -281,4 +281,23 @@ func (s *IntegrationService) GetGithubBranches(tx *gorm.DB, workspaceUUID string
 	}
 
 	return branches, nil
+}
+
+func (s *IntegrationService) GetProviderAccessToken(tx *gorm.DB, workspaceUUID string, provider string) (string, error) {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	workspace, err := GetWorkspaceByUUID(query, workspaceUUID)
+	if err != nil {
+		return "", errors.New("workspace not found")
+	}
+
+	integration, err := s.IntegrationRepo.GetIntegrationByProvider(query, workspace.ID, provider)
+	if err != nil {
+		return "", errors.New("integration not found")
+	}
+
+	return integration.AccessToken, nil
 }

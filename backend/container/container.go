@@ -68,9 +68,14 @@ func NewContainer(emailService *services.EmailService) *Container {
 		memberRepo,
 		roleService,
 	)
+	integrationService := services.NewIntegrationService(integrationRepo, workspaceRepo)
+	gitService := services.NewGitService(integrationService)
+
 	projectService := services.NewProjectService(projectRepo, workspaceRepo, environmentRepo)
-	serverService := services.NewServerService(serverRepo, workspaceRepo)
-	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo)
+	sshService := services.NewSSHService()
+	serverService := services.NewServerService(serverRepo, workspaceRepo, sshService)
+
+	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, sshService, gitService)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
@@ -82,7 +87,6 @@ func NewContainer(emailService *services.EmailService) *Container {
 	)
 
 	memberService := services.NewMemberService(memberRepo, workspaceRepo)
-	integrationService := services.NewIntegrationService(integrationRepo, workspaceRepo)
 
 	/* ---------------- CONTROLLERS ---------------- */
 

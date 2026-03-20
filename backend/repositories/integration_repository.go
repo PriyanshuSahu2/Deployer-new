@@ -2,6 +2,7 @@ package repositories
 
 import (
 	models_integration "backend/models/integrations"
+
 	"gorm.io/gorm"
 )
 
@@ -14,9 +15,9 @@ func NewIntegrationRepository() *IntegrationRepository {
 
 func (r *IntegrationRepository) CreateOrUpdate(tx *gorm.DB, integration *models_integration.WorkspaceGitIntegration) error {
 	var existing models_integration.WorkspaceGitIntegration
-	
+
 	err := tx.Where("workspace_id = ? AND provider = ?", integration.WorkspaceID, integration.Provider).First(&existing).Error
-	
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return tx.Create(integration).Error
@@ -37,11 +38,10 @@ func (r *IntegrationRepository) GetWorkSpaceIntegrations(tx *gorm.DB, workspaceI
 
 func (r *IntegrationRepository) GetIntegrationByProvider(tx *gorm.DB, workspaceId uint, provider string) (*models_integration.WorkspaceGitIntegration, error) {
 	var integration models_integration.WorkspaceGitIntegration
-	err := tx.Where("workspace_id = ? AND provider = ?", workspaceId, provider).First(&integration).Error
+	err := tx.Where("workspace_id = ? AND LOWER(provider) = LOWER(?)", workspaceId, provider).First(&integration).Error
 	return &integration, err
 }
 
-
 func (r *IntegrationRepository) DeleteIntegration(tx *gorm.DB, workspaceId uint, provider string) error {
-	return tx.Where("workspace_id = ? AND provider = ?", workspaceId, provider).Delete(&models_integration.WorkspaceGitIntegration{}).Error
+	return tx.Where("workspace_id = ? AND LOWER(provider) = LOWER(?)", workspaceId, provider).Delete(&models_integration.WorkspaceGitIntegration{}).Error
 }

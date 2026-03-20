@@ -21,10 +21,11 @@ type CreateServiceDTO struct {
 }
 
 type ServiceCreationResponseDTO struct {
-	ID            uint   `json:"id"`
-	Name          string `json:"name"`
-	ProjectID     uint   `json:"projectId"`
-	EnvironmentID uint   `json:"environmentId"`
+	UUID            string `json:"uuid"`
+	Name            string `json:"name"`
+	ProjectID       uint   `json:"projectId"`
+	EnvironmentID   uint   `json:"environmentId"`
+	EnvironmentUUID string `json:"environmentUuid"`
 
 	Type        string `json:"type"`
 	Framework   string `json:"framework"`
@@ -60,4 +61,13 @@ type ServerConfigDTO struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
+	PassKey  string `json:"passKey"`
+	AuthType string `json:"authType"`
+}
+
+type ServiceDetailsResponseDTO struct {
+	ServiceCreationResponseDTO                  // Embed base service fields
+	Git                        *GitConfigDTO    `json:"git"`          // Git configuration details
+	EnvVariables               []EnvVariableDTO `json:"envVariables"` // Environment variables slice
+	Server                     *ServerConfigDTO `json:"server"`
 }
