@@ -9,6 +9,6 @@ export const getServices = (workspaceUUID: string, projectUUID: string) => {
   return privateRequest.get<Service[]>(`/workspaces/${workspaceUUID}/projects/${projectUUID}/services`);
 };
 
-export const deployService = (workspaceUUID: string, projectUUID: string, serviceUUID: string) => {
-  return privateRequest.post<{ message: string }>(`/workspaces/${workspaceUUID}/projects/${projectUUID}/services/${serviceUUID}/deploy`);
+export const triggerDeployment = (workspaceUUID: string, projectUUID: string, serviceUUID: string) => {
+  return privateRequest.post<{ message: string }>(`/workspaces/${workspaceUUID}/projects/${projectUUID}/services/${serviceUUID}/trigger-deploy`);
 };

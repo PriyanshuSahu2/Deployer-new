@@ -1,5 +1,10 @@
 package dtos_service
 
+import (
+	dtos_environment "backend/dtos/environment"
+	dtos_project "backend/dtos/project"
+)
+
 type CreateServiceDTO struct {
 	Name            string `json:"name" binding:"required"`
 	ProjectUUID     string `json:"projectUuid" binding:"required"`
@@ -66,8 +71,10 @@ type ServerConfigDTO struct {
 }
 
 type ServiceDetailsResponseDTO struct {
-	ServiceCreationResponseDTO                  // Embed base service fields
-	Git                        *GitConfigDTO    `json:"git"`          // Git configuration details
-	EnvVariables               []EnvVariableDTO `json:"envVariables"` // Environment variables slice
-	Server                     *ServerConfigDTO `json:"server"`
+	ServiceCreationResponseDTO                                          // Embed base service fields
+	Git                        *GitConfigDTO                            `json:"git"`          // Git configuration details
+	EnvVariables               []EnvVariableDTO                         `json:"envVariables"` // Environment variables slice
+	Server                     *ServerConfigDTO                         `json:"server"`
+	Project                    *dtos_project.ProjectResponseDTO         `json:"project"`
+	Environment                *dtos_environment.ResponseEnvironmentDTO `json:"environment"`
 }

@@ -64,7 +64,7 @@ func (c *ServiceController) GetServicesByProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, services)
 }
 
-func (c *ServiceController) DeployService(ctx *gin.Context) {
+func (c *ServiceController) TriggerDeployment(ctx *gin.Context) {
 	serviceUUID := ctx.Param("serviceUUID")
 	workspaceUUID := ctx.Param("workspaceUUID")
 
@@ -75,7 +75,7 @@ func (c *ServiceController) DeployService(ctx *gin.Context) {
 	}
 	_ = userID // Ignore for now since logic is empty
 
-	err := c.Service.DeployService(nil, serviceUUID, workspaceUUID)
+	err := c.Service.TriggerDeployment(nil, serviceUUID, workspaceUUID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { createService, getServices, deployService } from '@/service/service';
+import { createService, getServices, triggerDeployment } from '@/service/service';
 import type { CreateServicePayload } from '@/types/service';
 
 export const useCreateService = (workspaceUUID: string, projectUUID: string) => {
@@ -21,8 +21,8 @@ export const useGetServices = (workspaceUUID: string, projectUUID: string, enabl
   });
 };
 
-export const useDeployService = (workspaceUUID: string, projectUUID: string) => {
+export const useTriggerDeployment = (workspaceUUID: string, projectUUID: string) => {
   return useMutation({
-    mutationFn: (serviceUUID: string) => deployService(workspaceUUID, projectUUID, serviceUUID),
+    mutationFn: (serviceUUID: string) => triggerDeployment(workspaceUUID, projectUUID, serviceUUID),
   });
 };

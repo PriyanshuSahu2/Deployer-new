@@ -1,6 +1,8 @@
 package services
 
 import (
+	dtos_environment "backend/dtos/environment"
+	dtos_project "backend/dtos/project"
 	dtos_service "backend/dtos/service"
 	models_service "backend/models/service"
 	"backend/repositories"
@@ -10,12 +12,11 @@ import (
 )
 
 type ServiceService struct {
-	ServiceRepo     *repositories.ServiceRepository
-	ProjectRepo     *repositories.ProjectRepository
-	EnvironmentRepo *repositories.EnvironmentRepository
-	ServerRepo      *repositories.ServerRepository
-	SSHService      SSHService
-	GitService      GitService
+	ServiceRepo       *repositories.ServiceRepository
+	ProjectRepo       *repositories.ProjectRepository
+	EnvironmentRepo   *repositories.EnvironmentRepository
+	ServerRepo        *repositories.ServerRepository
+	DeploymentService DeploymentService
 }
 
 func NewServiceService(
@@ -23,16 +24,14 @@ func NewServiceService(
 	projectRepo *repositories.ProjectRepository,
 	environmentRepo *repositories.EnvironmentRepository,
 	serverRepo *repositories.ServerRepository,
-	sshService SSHService,
-	gitService GitService,
+	deploymentService DeploymentService,
 ) *ServiceService {
 	return &ServiceService{
-		ServiceRepo:     serviceRepo,
-		ProjectRepo:     projectRepo,
-		EnvironmentRepo: environmentRepo,
-		ServerRepo:      serverRepo,
-		SSHService:      sshService,
-		GitService:      gitService,
+		ServiceRepo:       serviceRepo,
+		ProjectRepo:       projectRepo,
+		EnvironmentRepo:   environmentRepo,
+		ServerRepo:        serverRepo,
+		DeploymentService: deploymentService,
 	}
 }
 
@@ -158,25 +157,8 @@ func (s *ServiceService) GetServicesByProject(tx *gorm.DB, userID uint, projectU
 func (s *ServiceService) GetServiceByUUID(tx *gorm.DB, serviceUUID string) (*models_service.Service, error) {
 	return s.ServiceRepo.GetByUUID(tx, serviceUUID)
 }
-func (s *ServiceService) runDeployment(service *dtos_service.ServiceDetailsResponseDTO, serviceUUID string, workspaceUUID string) {
-	sshClient, err := s.SSHService.Connect(
-		service.Server.Host,
-		service.Server.Port,
-		service.Server.Username,
-		[]byte(service.Server.PassKey),
-	)
-	if err != nil {
-		return
-	}
-	defer sshClient.Close()
-	_, err = s.GitService.CloneRepo(sshClient, service.Git.RepositoryURL, "", "Github", workspaceUUID)
-	result, err := s.GitService.SwitchBranch(sshClient, "Deployer-new", "main")
-	println(result)
-	result, err = s.GitService.Pull(sshClient, "Deployer-new")
-	println(result)
 
-}
-func (s *ServiceService) DeployService(tx *gorm.DB, serviceUUID string, workspaceUUID string) error {
+func (s *ServiceService) TriggerDeployment(tx *gorm.DB, serviceUUID string, workspaceUUID string) error {
 	service, err := s.ServiceRepo.GetServiceWithDetails(tx, serviceUUID)
 	if err != nil {
 		return err
@@ -214,6 +196,21 @@ func (s *ServiceService) DeployService(tx *gorm.DB, serviceUUID string, workspac
 			AuthType: service.Server.AuthType,
 		}
 	}
+	var projectDTO *dtos_project.ProjectResponseDTO
+
+	projectDTO = &dtos_project.ProjectResponseDTO{
+		UUID:        service.Project.UUID.String(),
+		Name:        service.Project.Name,
+		Description: service.Project.Description,
+		WorkspaceID: service.Project.WorkspaceID,
+	}
+
+	var environmentDTO *dtos_environment.ResponseEnvironmentDTO
+
+	environmentDTO = &dtos_environment.ResponseEnvironmentDTO{
+		UUID: service.Environment.UUID.String(),
+		Name: service.Environment.Name,
+	}
 
 	serviceDetails := dtos_service.ServiceDetailsResponseDTO{
 		ServiceCreationResponseDTO: dtos_service.ServiceCreationResponseDTO{
@@ -233,8 +230,10 @@ func (s *ServiceService) DeployService(tx *gorm.DB, serviceUUID string, workspac
 		Git:          gitConfigDTO,
 		EnvVariables: envVarsDTO,
 		Server:       serverConfigDTO,
+		Project:      projectDTO,
+		Environment:  environmentDTO,
 	}
-	go s.runDeployment(&serviceDetails, serviceUUID, workspaceUUID)
+	go s.DeploymentService.RunDeployment(&serviceDetails, serviceUUID, workspaceUUID)
 
 	return nil
 }

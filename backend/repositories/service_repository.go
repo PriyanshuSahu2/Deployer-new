@@ -79,6 +79,7 @@ func (r *ServiceRepository) GetServiceWithDetails(tx *gorm.DB, serviceUUID strin
 		Preload("Environment").
 		Preload("GitConfig").
 		Preload("EnvVariables").
+		Preload("Project").
 		Preload("Server").
 		Where("uuid = ?", serviceUUID).
 		First(&service).Error

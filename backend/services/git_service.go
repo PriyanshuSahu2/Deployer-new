@@ -46,7 +46,7 @@ func (g *gitServiceImpl) CloneRepo(
 		repoURL = fmt.Sprintf("https://%s@%s.git", accessToken, cleanURL)
 	}
 
-	cloneCmd := fmt.Sprintf("git clone %s %s", repoURL, path)
+	cloneCmd := fmt.Sprintf("cd %s && git clone %s .", path, repoURL)
 
 	logChan := make(chan string)
 

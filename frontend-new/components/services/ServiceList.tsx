@@ -3,7 +3,7 @@
 import { Box, Button, Center, Paper, Stack, Text, ThemeIcon, Table, Group, Badge, ActionIcon, Skeleton } from '@mantine/core';
 import { IconPlus, IconServer, IconExternalLink, IconSettings, IconPlayerPlay } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import { useGetServices, useDeployService } from '@/hooks/useServices';
+import { useGetServices, useTriggerDeployment } from '@/hooks/useServices';
 import { notifications } from '@mantine/notifications';
 
 interface ServiceListProps {
@@ -14,31 +14,27 @@ interface ServiceListProps {
 
 export default function ServiceList({ workspaceId, projectId, environmentId }: ServiceListProps) {
   const router = useRouter();
-  
+
   const { data: servicesResponse, isLoading } = useGetServices(workspaceId, projectId);
-  const { mutate: deploy, isPending: isDeploying } = useDeployService(workspaceId, projectId);
-  
-  const handleDeploy = (serviceUUID: string, serviceName: string) => {
-    deploy(serviceUUID, {
-      onSuccess: () => {
-        notifications.show({
-          title: 'Deploy Triggered',
-          message: `Deployment triggered for service ${serviceName}`,
-          color: 'teal',
-        });
-      },
-      onError: (err: any) => {
-        notifications.show({
-          title: 'Deploy Failed',
-          message: err?.response?.data?.error || err.message || 'Failed to trigger deployment',
-          color: 'red',
-        });
-      }
-    });
+  const { mutateAsync: triggerDeployAsync, isPending: isDeploying } = useTriggerDeployment(workspaceId, projectId);
+
+  const handleDeploy = async (serviceUUID: string, serviceName: string) => {
+    try {
+      await triggerDeployAsync(serviceUUID);
+      notifications.show({
+        title: 'Deploy Triggered',
+        message: `Deployment triggered for service ${serviceName}`,
+        color: 'teal',
+      });
+    } catch (err: any) {
+      notifications.show({
+        title: 'Deploy Failed',
+        message: err?.response?.data?.error || err.message || 'Failed to trigger deployment',
+        color: 'red',
+      });
+    }
   };
-  
-  // Unwrap the response from axios structure if needed. In axios `data` is usually in `response.data`.
-  // React query sometimes returns the axios response and you need `data.data`, let's handle if it returns raw array or AxiosResponse.
+
   const services = Array.isArray(servicesResponse) ? servicesResponse : (servicesResponse as any)?.data || [];
 
   const filteredServices = services.filter((s: any) => !environmentId || s.environmentUuid === environmentId);
@@ -120,10 +116,10 @@ export default function ServiceList({ workspaceId, projectId, environmentId }: S
                 <Table.Td>{service.createdAt}</Table.Td>
                 <Table.Td>
                   <Group gap="xs" justify="flex-end">
-                    <ActionIcon 
-                      variant="light" 
-                      color="teal" 
-                      title="Deploy" 
+                    <ActionIcon
+                      variant="light"
+                      color="teal"
+                      title="Deploy"
                       loading={isDeploying}
                       onClick={() => handleDeploy(service.uuid, service.name)}
                     >

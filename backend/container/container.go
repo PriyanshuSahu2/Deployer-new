@@ -75,7 +75,8 @@ func NewContainer(emailService *services.EmailService) *Container {
 	sshService := services.NewSSHService()
 	serverService := services.NewServerService(serverRepo, workspaceRepo, sshService)
 
-	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, sshService, gitService)
+	deploymentService := services.NewDeploymentService(sshService, gitService)
+	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, deploymentService)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
