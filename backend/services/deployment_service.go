@@ -61,7 +61,7 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 	// 	return
 	// }
 
-	_, err = s.GitService.SwitchBranch(sshClient, path, "main")
+	_, err = s.GitService.SwitchBranch(sshClient, path, service.Git.Branch)
 	if err != nil {
 		fmt.Printf("Error running deployment switch branch: %v\n", err)
 		return
@@ -76,6 +76,7 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 		fmt.Printf("Error running deployment pull: %v\n", err)
 		return
 	}
+
 }
 
 func (s *deploymentService) CreateDir(sshClient SSHClient, path string) error {
@@ -91,8 +92,9 @@ func (s *deploymentService) BuildAndStartService(sshClient SSHClient, service *d
 	logChan := make(chan string)
 
 	go func() {
+		defer close(logChan)
 		buildCmd := fmt.Sprintf("cd %s  && %s && %s && %s", path, "npm install", service.BuildCommand, service.StartCommand)
-		err := sshClient.RunCommandStream(buildCmd, logChan)
+		err := sshClient.RunCommandStream(wrapWithNVM(buildCmd), logChan)
 		if err != nil {
 			fmt.Printf("Error running deployment build: %v\n", err)
 			return
@@ -117,17 +119,45 @@ func (s *deploymentService) TransferPermission(sshClient SSHClient, username str
 
 func (s *deploymentService) InstallDependencies(sshClient SSHClient) error {
 	logChan := make(chan string)
+
 	go func() {
-		err := sshClient.RunCommandStream("which node || sudo apt install -y nodejs npm", logChan)
+		defer close(logChan)
+
+		cmd := `
+		# Install NVM if not exists
+		export NVM_DIR="$HOME/.nvm"
+		[ -s "$NVM_DIR/nvm.sh" ] || curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+		# Load NVM
+		. "$NVM_DIR/nvm.sh"
+
+		# Install & use Node LTS
+		nvm install --lts
+		nvm use --lts
+
+		# Verify
+		node -v
+		npm -v
+		`
+
+		err := sshClient.RunCommandStream(cmd, logChan)
 		if err != nil {
-			fmt.Printf("Error running deployment install dependencies: %v\n", err)
+			logChan <- fmt.Sprintf("Error installing dependencies: %v", err)
 			return
 		}
-
-		close(logChan)
 	}()
+
 	for log := range logChan {
 		fmt.Println(log)
 	}
+
 	return nil
+}
+
+func wrapWithNVM(cmd string) string {
+	return `
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+` + cmd
 }
