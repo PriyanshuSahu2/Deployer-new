@@ -45,7 +45,7 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 	err = s.CreateDir(sshClient, path)
 
 	if err != nil {
-		fmt.Printf("Error running deployment create dir: %v\n", err)
+		fmt.Printf("Error running deployment create dir: %v\n", err.Error())
 		return
 	}
 
@@ -55,11 +55,11 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 		return
 	}
 
-	// _, err = s.GitService.CloneRepo(sshClient, service.Git.RepositoryURL, path, "Github", workspaceUUID)
-	// if err != nil {
-	// 	fmt.Printf("Error running deployment clone: %v\n", err)
-	// 	return
-	// }
+	_, err = s.GitService.CloneRepo(sshClient, service.Git.RepositoryURL, path, "Github", workspaceUUID)
+	if err != nil {
+		fmt.Printf("Error running deployment clone: %v\n", err)
+		return
+	}
 
 	_, err = s.GitService.SwitchBranch(sshClient, path, service.Git.Branch)
 	if err != nil {
@@ -71,9 +71,14 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 	if service.Git.SubDirectory != "" {
 		path = path + "/" + service.Git.SubDirectory
 	}
+	err = s.SetupNginx(sshClient, service)
+	if err != nil {
+		fmt.Printf("Error running deployment setup nginx: %v\n", err.Error())
+		return
+	}
 	err = s.BuildAndStartService(sshClient, service, path)
 	if err != nil {
-		fmt.Printf("Error running deployment pull: %v\n", err)
+		fmt.Printf("Error running deployment pull: %v\n", err.Error())
 		return
 	}
 
@@ -153,7 +158,49 @@ func (s *deploymentService) InstallDependencies(sshClient SSHClient) error {
 
 	return nil
 }
+func (s *deploymentService) SetupNginx(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO) error {
+	nginxFile := fmt.Sprintf("/etc/nginx/sites-available/%s-%s-%s.conf", service.Project.Name, service.Environment.Name, service.Name)
 
+	// Nginx config
+	config := fmt.Sprintf(`
+server {
+    listen 80;
+    server_name %s;
+
+    location / {
+        proxy_pass http://localhost:%s;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+`, "www.myapico.live myapico.live", "4173")
+
+	cmd := fmt.Sprintf(`cat <<'EOF' | sudo tee %s
+%s
+EOF`, nginxFile, config)
+
+	_, err := sshClient.RunCommand(cmd)
+	if err != nil {
+		return err
+	}
+	_, err = sshClient.RunCommand(fmt.Sprintf("sudo ln -s %s /etc/nginx/sites-enabled/", nginxFile))
+
+	_, err = sshClient.RunCommand("sudo nginx -t")
+	if err != nil {
+		return err
+	}
+
+	_, err = sshClient.RunCommand("sudo systemctl reload nginx")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func wrapWithNVM(cmd string) string {
 	return `
 export NVM_DIR="$HOME/.nvm"
