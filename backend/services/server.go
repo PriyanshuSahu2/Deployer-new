@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	dtos_server "backend/dtos/server"
 	models_server "backend/models/server"
@@ -121,4 +122,27 @@ func (s *ServerService) TestConnection(dto dtos_server.TestConnectionDTO) error 
 	defer sshClient.Close()
 
 	return sshClient.TestConnection()
+}
+
+func (s *ServerService) CheckPortAvailability(serverUUID string, port int) (bool, error) {
+	server, err := s.ServerRepo.GetByUUID(serverUUID)
+	if err != nil {
+		return false, errors.New("server not found")
+	}
+
+	sshClient, err := s.SSHService.Connect(server.Host, server.Port, server.Username, []byte(server.PassKey))
+	if err != nil {
+		return false, err
+	}
+	defer sshClient.Close()
+
+	cmd := fmt.Sprintf("sudo ss -tulpn | grep ':%d ' || sudo netstat -tulpn | grep ':%d '", port, port)
+	output, _ := sshClient.RunCommand(cmd)
+
+	// If grep matched something, the output will not be empty, meaning port is in use
+	if output != "" {
+		return false, nil
+	}
+
+	return true, nil
 }

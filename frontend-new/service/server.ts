@@ -23,6 +23,12 @@ export const updateServer = (
 export const deleteServer = (workspaceUUID: string, serverUuid: string) =>
   privateRequest.delete(`/workspaces/${workspaceUUID}/servers/${serverUuid}`);
 
+export const checkPort = (
+  workspaceUUID: string,
+  serverUuid: string,
+  port: number,
+) => privateRequest.get<{ available: boolean }>(`/workspaces/${workspaceUUID}/servers/${serverUuid}/ports/check?port=${port}`);
+
 export const testServerConnection = (
   workspaceUUID: string,
   payload: TestConnectionPayload,

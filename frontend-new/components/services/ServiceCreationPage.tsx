@@ -24,6 +24,7 @@ import {
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import {
+  IconAlertTriangle,
   IconArrowLeft,
   IconBolt,
   IconBrandGithub,
@@ -40,7 +41,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGetProjects } from '@/hooks/useProjects';
-import { useGetServers } from '@/hooks/useServers';
+import { useGetServers, useCheckPort } from '@/hooks/useServers';
 import { useGetGithubRepos, useGetGithubBranches } from '@/hooks/useIntegrations';
 import { useCreateService } from '@/hooks/useServices';
 
@@ -92,7 +93,8 @@ const SERVICE_TYPE_OPTIONS = [
 ];
 
 const FRAMEWORK_OPTIONS = [
-  { value: 'node', label: 'Node' },
+  { value: 'node', label: 'Node.js' },
+  { value: 'bun', label: 'Bun' },
   { value: 'go', label: 'Go' },
   { value: 'dotnet', label: '.NET' },
 ];
@@ -265,6 +267,7 @@ export default function ServiceCreationPage({
       buildCommand: '',
       startCommand: '',
       port: 3000,
+      dockerizeType: 'auto',
       runtimeVersion: '',
       healthCheckPath: '',
       instanceCount: 1,
@@ -283,6 +286,9 @@ export default function ServiceCreationPage({
       network: 'public',
       customDomain: '',
       ssl: true,
+      certType: 'auto',
+      customCert: '',
+      customKey: '',
       strategy: 'rolling',
       autoRollback: true,
       timeout: 300,
@@ -301,6 +307,7 @@ export default function ServiceCreationPage({
         !value.trim() ? 'Build command is required' : null,
       startCommand: (value) =>
         !value.trim() ? 'Start command is required' : null,
+      dockerizeType: (value) => (!value ? 'Choose a dockerization approach' : null),
       port: (value) =>
         !value || value < 1 || value > 65535 ? 'Enter a valid port' : null,
       gitProvider: (value) => (!value ? 'Choose a git provider' : null),
@@ -342,6 +349,12 @@ export default function ServiceCreationPage({
     label: branch.name,
   }));
 
+  const { data: portAvailable } = useCheckPort(
+    workspaceId,
+    form.values.serverId,
+    form.values.port,
+    !!form.values.serverId && !!form.values.port
+  );
 
   useEffect(() => {
     if (!initialProjectId) return;
@@ -430,6 +443,13 @@ export default function ServiceCreationPage({
         buildCommand: values.buildCommand,
         startCommand: values.startCommand,
         deployPath: values.rootFolder || '/',
+        port: values.port,
+        dockerizeType: values.dockerizeType,
+        domain: values.customDomain,
+        httpsEnabled: values.ssl,
+        certType: values.certType,
+        customCert: values.customCert,
+        customKey: values.customKey,
         serverId: values.serverId,
         git: {
           provider: values.gitProvider,
@@ -524,7 +544,7 @@ export default function ServiceCreationPage({
             onClick={() => router.push(`/app/${workspaceId}/services`)}>
             Cancel
           </Button>
-          <Button radius='sm' type='submit' loading={isPending} onClick={handleSubmit}>
+          <Button radius='sm' loading={isPending} onClick={() => handleSubmit()}>
             Create
           </Button>
         </Group>
@@ -596,6 +616,16 @@ export default function ServiceCreationPage({
                       {...form.getInputProps('serviceType')}
                     />
                     <Select
+                      label='Dockerization'
+                      data={[
+                        { value: 'auto', label: 'Dockerize on the go' },
+                        { value: 'custom', label: 'Dockerfile is present' },
+                      ]}
+                      placeholder='Select dockerize type'
+                      withAsterisk
+                      {...form.getInputProps('dockerizeType')}
+                    />
+                    <Select
                       label='Framework'
                       data={FRAMEWORK_OPTIONS}
                       placeholder='Select framework'
@@ -614,13 +644,23 @@ export default function ServiceCreationPage({
                       withAsterisk
                       {...form.getInputProps('startCommand')}
                     />
-                    <NumberInput
-                      label='Port'
-                      min={1}
-                      max={65535}
-                      withAsterisk
-                      {...form.getInputProps('port')}
-                    />
+                    <Box>
+                      <NumberInput
+                        label='Port'
+                        min={1}
+                        max={65535}
+                        withAsterisk
+                        {...form.getInputProps('port')}
+                      />
+                      {portAvailable === false && (
+                        <Group gap={4} mt={4}>
+                          <IconAlertTriangle size={14} color="orange" />
+                          <Text size="xs" c="orange">
+                            Warning: Port is already in use on this server
+                          </Text>
+                        </Group>
+                      )}
+                    </Box>
                   </SimpleGrid>
                   <Textarea
                     label='Description'
@@ -915,12 +955,40 @@ export default function ServiceCreationPage({
                           />
                         </SimpleGrid>
                         <Switch
-                          label='SSL'
+                          label='Enable HTTPS'
                           checked={form.values.ssl}
                           {...form.getInputProps('ssl', {
                             type: 'checkbox',
                           })}
                         />
+                        {form.values.ssl && (
+                          <Stack gap="md" mt="sm">
+                            <Select
+                              label="Certificate Type"
+                              data={[
+                                { value: 'auto', label: 'Automatic (Certbot)' },
+                                { value: 'custom', label: 'Custom Certificate' }
+                              ]}
+                              {...form.getInputProps('certType')}
+                            />
+                            {form.values.certType === 'custom' && (
+                              <SimpleGrid cols={1} spacing="md">
+                                <Textarea
+                                  label="Custom SSL Certificate (fullchain.pem)"
+                                  placeholder="-----BEGIN CERTIFICATE-----\n..."
+                                  minRows={4}
+                                  {...form.getInputProps('customCert')}
+                                />
+                                <Textarea
+                                  label="Custom SSL Private Key (privkey.pem)"
+                                  placeholder="-----BEGIN PRIVATE KEY-----\n..."
+                                  minRows={4}
+                                  {...form.getInputProps('customKey')}
+                                />
+                              </SimpleGrid>
+                            )}
+                          </Stack>
+                        )}
                       </Stack>
                     </Collapse>
                   </Stack>

@@ -2,6 +2,7 @@ package controller_server
 
 import (
 	"net/http"
+	"strconv"
 
 	dtos_server "backend/dtos/server"
 	"backend/services"
@@ -84,6 +85,25 @@ func (sc *ServerController) TestConnection(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Connection Tested Successfully"})
+}
+
+func (sc *ServerController) CheckPortAvailability(c *gin.Context) {
+	serverUUID := c.Param("uuid")
+	portStr := c.Query("port")
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port <= 0 || port > 65535 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid port number"})
+		return
+	}
+
+	available, err := sc.Service.CheckPortAvailability(serverUUID, port)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"available": available})
 }
 
 	

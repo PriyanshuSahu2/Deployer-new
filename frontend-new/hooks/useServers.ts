@@ -2,6 +2,7 @@ import {
   createServer,
   deleteServer,
   listServers,
+  checkPort,
   testServerConnection,
   updateServer,
 } from '@/service/server';
@@ -51,6 +52,16 @@ export const useDeleteServer = (workspaceUuid: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servers', workspaceUuid] });
     },
+  });
+};
+
+export const useCheckPort = (workspaceUuid: string, serverUuid: string, port: number, enabled = false) => {
+  return useQuery({
+    queryKey: ['portCheck', workspaceUuid, serverUuid, port],
+    queryFn: () => checkPort(workspaceUuid, serverUuid, port),
+    enabled: enabled && !!serverUuid && !!port,
+    select: (res) => res.data.available,
+    retry: false,
   });
 };
 

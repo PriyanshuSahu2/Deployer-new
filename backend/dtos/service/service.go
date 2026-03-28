@@ -14,9 +14,17 @@ type CreateServiceDTO struct {
 	Framework   string `json:"framework"`
 	Description string `json:"description"`
 
-	BuildCommand string `json:"buildCommand"`
-	StartCommand string `json:"startCommand"`
-	DeployPath   string `json:"deployPath"`
+	BuildCommand  string `json:"buildCommand"`
+	StartCommand  string `json:"startCommand"`
+	DeployPath    string `json:"deployPath"`
+	Port          int    `json:"port" binding:"required"`
+	DockerizeType string `json:"dockerizeType" binding:"required"`
+
+	Domain       string `json:"domain"`
+	HttpsEnabled bool   `json:"httpsEnabled"`
+	CertType     string `json:"certType"`
+	CustomCert   string `json:"customCert"`
+	CustomKey    string `json:"customKey"`
 
 	ServerUUID string `json:"serverId" binding:"required"`
 
@@ -36,9 +44,18 @@ type ServiceCreationResponseDTO struct {
 	Framework   string `json:"framework"`
 	Description string `json:"description"`
 
-	BuildCommand string `json:"buildCommand"`
-	StartCommand string `json:"startCommand"`
-	DeployPath   string `json:"deployPath"`
+	BuildCommand  string `json:"buildCommand"`
+	StartCommand  string `json:"startCommand"`
+	DeployPath    string `json:"deployPath"`
+	Port          int    `json:"port"`
+	DockerizeType string `json:"dockerizeType"`
+
+	Domain       string `json:"domain"`
+	HttpsEnabled bool   `json:"httpsEnabled"`
+	CertType     string `json:"certType"`
+	CustomCert   string `json:"customCert"`
+	CustomKey    string `json:"customKey"`
+
 	CreatedAt    string `json:"createdAt"`
 }
 

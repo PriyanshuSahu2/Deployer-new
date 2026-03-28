@@ -18,10 +18,18 @@ type Service struct {
 	BuildCommand  string                         `gorm:"type:text"`
 	StartCommand  string                         `gorm:"type:text"`
 	DeployPath    string                         `gorm:"type:text"`
+	Port          int                            `gorm:"type:int;default:3000"`
+	DockerizeType string                         `gorm:"type:varchar(20);default:'auto'"`
 	ServerID      *uint                          `gorm:"index"`
 	Server        *models_server.Server          `gorm:"foreignKey:ServerID"`
 	ProjectID     uint                           `gorm:"index;not null;uniqueIndex:idx_env_service"`
 	Project       models_project.Project         `gorm:"foreignKey:ProjectID"`
+
+	Domain        string `gorm:"type:varchar(255)"`
+	HttpsEnabled  bool   `gorm:"default:false"`
+	CertType      string `gorm:"type:varchar(20);default:'none'"` // 'none', 'auto', 'custom'
+	CustomCert    string `gorm:"type:text"`
+	CustomKey     string `gorm:"type:text"`
 
 	GitConfig     *ServiceGitConfig    `gorm:"foreignKey:ServiceID"`
 	EnvVariables  []ServiceEnvVariable `gorm:"foreignKey:ServiceID"`

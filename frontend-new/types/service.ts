@@ -8,6 +8,14 @@ export interface CreateServicePayload {
   buildCommand: string;
   startCommand: string;
   deployPath: string;
+  port: number;
+  dockerizeType: string;
+
+  domain?: string;
+  httpsEnabled?: boolean;
+  certType?: string;
+  customCert?: string;
+  customKey?: string;
   serverId: string;
   git: {
     provider: string;
@@ -35,5 +43,14 @@ export interface Service {
   buildCommand: string;
   startCommand: string;
   deployPath: string;
+  port: number;
+  dockerizeType: string;
+
+  domain?: string;
+  httpsEnabled?: boolean;
+  certType?: string;
+  customCert?: string;
+  customKey?: string;
+
   createdAt: string;
 }

@@ -2,14 +2,19 @@ package services
 
 import (
 	dtos_service "backend/dtos/service"
+	"encoding/base64"
 	"fmt"
+	"strings"
 )
 
 type DeploymentService interface {
 	RunDeployment(service *dtos_service.ServiceDetailsResponseDTO, serviceUUID string, workspaceUUID string)
 	CreateDir(sshClient SSHClient, path string) error
 	TransferPermission(sshClient SSHClient, username string, path string) error
-	BuildAndStartService(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string) error
+	BuildService(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string) error
+	SetupNginx(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO) error
+	SetupSSL(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO) error
+	SetupSystemd(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string) error
 }
 
 type deploymentService struct {
@@ -32,56 +37,101 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 		[]byte(service.Server.PassKey),
 	)
 	if err != nil {
-		fmt.Printf("Error running deployment clone: %v\n", err)
+		fmt.Printf("Error connecting to ssh: %v\n", err)
 		return
 	}
 	defer sshClient.Close()
-	err = s.InstallDependencies(sshClient)
-	if err != nil {
-		fmt.Printf("Error running deployment install dependencies: %v\n", err)
-		return
-	}
-	var path string = "/var/www/" + service.Project.Name + "/" + service.Environment.Name + "/" + service.Name
-	err = s.CreateDir(sshClient, path)
 
+	var basePath string = "/var/www/" + service.Project.Name + "/" + service.Environment.Name + "/" + service.Name
+	
+	checkCmd := fmt.Sprintf("[ -d \"%s/.git\" ] && echo 'exists' || echo 'not_exists'", basePath)
+	out, err := sshClient.RunCommand(checkCmd)
 	if err != nil {
-		fmt.Printf("Error running deployment create dir: %v\n", err.Error())
+		fmt.Printf("Error checking project directory: %v\n", err)
 		return
 	}
 
-	err = s.TransferPermission(sshClient, service.Server.Username, path)
+	isUpdate := strings.TrimSpace(out) == "exists"
+	if !isUpdate {
+		err = s.InstallDependencies(sshClient)
+		if err != nil {
+			fmt.Printf("Error installing dependencies: %v\n", err)
+			return
+		}
+
+		err = s.CreateDir(sshClient, basePath)
+		if err != nil {
+			fmt.Printf("Error creating dir: %v\n", err)
+			return
+		}
+
+		err = s.TransferPermission(sshClient, service.Server.Username, basePath)
+		if err != nil {
+			fmt.Printf("Error transferring permissions: %v\n", err)
+			return
+		}
+
+		_, err = s.GitService.CloneRepo(sshClient, service.Git.RepositoryURL, basePath, "Github", workspaceUUID)
+		if err != nil {
+			fmt.Printf("Error cloning repo: %v\n", err)
+			return
+		}
+	}
+
+	_, err = s.GitService.SwitchBranch(sshClient, basePath, service.Git.Branch)
 	if err != nil {
-		fmt.Printf("Error running deployment transfer permission: %v\n", err)
+		fmt.Printf("Error switching branch: %v\n", err)
 		return
 	}
 
-	_, err = s.GitService.CloneRepo(sshClient, service.Git.RepositoryURL, path, "Github", workspaceUUID)
+	_, err = s.GitService.Pull(sshClient, basePath)
 	if err != nil {
-		fmt.Printf("Error running deployment clone: %v\n", err)
-		return
+		fmt.Printf("Error pulling repo: %v\n", err)
 	}
 
-	_, err = s.GitService.SwitchBranch(sshClient, path, service.Git.Branch)
-	if err != nil {
-		fmt.Printf("Error running deployment switch branch: %v\n", err)
-		return
-	}
-
-	_, err = s.GitService.Pull(sshClient, path)
+	var buildPath string = basePath
 	if service.Git.SubDirectory != "" {
-		path = path + "/" + service.Git.SubDirectory
+		buildPath = basePath + "/" + service.Git.SubDirectory
 	}
-	err = s.SetupNginx(sshClient, service)
-	if err != nil {
-		fmt.Printf("Error running deployment setup nginx: %v\n", err.Error())
-		return
+
+	if !isUpdate {
+		err = s.SetupNginx(sshClient, service)
+		if err != nil {
+			fmt.Printf("Error setting up Nginx: %v\n", err)
+			return
+		}
+
+		if service.HttpsEnabled {
+			err = s.SetupSSL(sshClient, service)
+			if err != nil {
+				fmt.Printf("Error setting up SSL: %v\n", err)
+				return
+			}
+		}
 	}
-	err = s.BuildAndStartService(sshClient, service, path)
+
+	err = s.BuildService(sshClient, service, buildPath)
 	if err != nil {
-		fmt.Printf("Error running deployment pull: %v\n", err.Error())
+		fmt.Printf("Error building service: %v\n", err)
 		return
 	}
 
+	if service.Type != "static" && service.Type != "frontend" {
+		if !isUpdate {
+			err = s.SetupSystemd(sshClient, service, buildPath)
+			if err != nil {
+				fmt.Printf("Error setting up systemd: %v\n", err)
+				return
+			}
+		} else {
+			serviceName := fmt.Sprintf("%s-%s-%s.service", service.Project.Name, service.Environment.Name, service.Name)
+			_, err = sshClient.RunCommand(fmt.Sprintf("sudo systemctl restart %s", serviceName))
+			if err != nil {
+				fmt.Printf("Error restarting service: %v\n", err)
+				return
+			}
+		}
+	}
 }
 
 func (s *deploymentService) CreateDir(sshClient SSHClient, path string) error {
@@ -93,21 +143,140 @@ func (s *deploymentService) CreateDir(sshClient SSHClient, path string) error {
 	return nil
 }
 
-func (s *deploymentService) BuildAndStartService(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string) error {
+func (s *deploymentService) BuildService(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string) error {
 	logChan := make(chan string)
+	imageName := strings.ToLower(fmt.Sprintf("%s-%s-%s", service.Project.Name, service.Environment.Name, service.Name))
 
 	go func() {
 		defer close(logChan)
-		buildCmd := fmt.Sprintf("cd %s  && %s && %s && %s", path, "npm install", service.BuildCommand, service.StartCommand)
-		err := sshClient.RunCommandStream(wrapWithNVM(buildCmd), logChan)
+
+		if service.DockerizeType == "auto" {
+			if service.Framework == "node" {
+				startCmd := service.StartCommand
+				if startCmd == "" {
+					startCmd = "npm start"
+				}
+				dockerfile := fmt.Sprintf(`
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN %s
+ENV PORT=%d
+EXPOSE %d
+CMD %s
+`, service.BuildCommand, service.Port, service.Port, startCmd)
+
+				encodedDf := base64.StdEncoding.EncodeToString([]byte(dockerfile))
+				writeCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/Dockerfile > /dev/null", encodedDf, path)
+				if _, err := sshClient.RunCommand(writeCmd); err != nil {
+					logChan <- fmt.Sprintf("Error writing Dockerfile: %v", err)
+					return
+				}
+				logChan <- "Auto-generated Node Dockerfile successfully."
+			} else if service.Framework == "bun" {
+				startCmd := service.StartCommand
+				if startCmd == "" {
+					startCmd = "bun start"
+				}
+				dockerfile := fmt.Sprintf(`
+FROM oven/bun:alpine
+WORKDIR /app
+COPY package*.json bun.lockb* ./
+RUN bun install
+COPY . .
+RUN %s
+ENV PORT=%d
+EXPOSE %d
+CMD %s
+`, service.BuildCommand, service.Port, service.Port, startCmd)
+
+				encodedDf := base64.StdEncoding.EncodeToString([]byte(dockerfile))
+				writeCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/Dockerfile > /dev/null", encodedDf, path)
+				if _, err := sshClient.RunCommand(writeCmd); err != nil {
+					logChan <- fmt.Sprintf("Error writing Dockerfile: %v", err)
+					return
+				}
+				logChan <- "Auto-generated Bun Dockerfile successfully."
+			}
+		}
+
+		buildCmd := fmt.Sprintf("cd %s && sudo docker build -t %s .", path, imageName)
+		logChan <- "Starting docker build process..."
+		err := sshClient.RunCommandStream(buildCmd, logChan)
 		if err != nil {
-			fmt.Printf("Error running deployment build: %v\n", err)
+			logChan <- fmt.Sprintf("Error running docker build: %v", err)
 			return
+		}
+
+		if service.Type == "static" || service.Type == "frontend" {
+			logChan <- "Extracting built static files for Nginx to serve..."
+			extractCmd := fmt.Sprintf(`
+			sudo docker create --name extract-%[1]s %[1]s
+			sudo docker cp extract-%[1]s:/app/dist %[2]s/dist || sudo docker cp extract-%[1]s:/app/out %[2]s/dist || true
+			sudo docker rm -v extract-%[1]s
+			`, imageName, path)
+			if _, err := sshClient.RunCommand(extractCmd); err != nil {
+				logChan <- fmt.Sprintf("Error extracting static files: %v", err)
+				return
+			}
+			logChan <- "Extraction complete!"
 		}
 	}()
 
 	for log := range logChan {
 		fmt.Println(log)
+	}
+
+	return nil
+}
+
+func (s *deploymentService) SetupSystemd(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string) error {
+	serviceName := fmt.Sprintf("%s-%s-%s.service", service.Project.Name, service.Environment.Name, service.Name)
+	imageName := strings.ToLower(fmt.Sprintf("%s-%s-%s", service.Project.Name, service.Environment.Name, service.Name))
+	serviceFile := fmt.Sprintf("/etc/systemd/system/%s", serviceName)
+
+	config := fmt.Sprintf(`[Unit]
+Description=%[1]s service Docker container
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+RestartSec=10
+ExecStartPre=-/usr/bin/docker stop %[2]s
+ExecStartPre=-/usr/bin/docker rm %[2]s
+ExecStart=/usr/bin/docker run --name %[2]s --rm -p %[3]d:%[3]d %[2]s
+ExecStop=/usr/bin/docker stop %[2]s
+
+SyslogIdentifier=%[1]s
+
+[Install]
+WantedBy=multi-user.target
+`, serviceName, imageName, service.Port)
+
+	encodedConfig := base64.StdEncoding.EncodeToString([]byte(config))
+	cmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s > /dev/null", encodedConfig, serviceFile)
+
+	_, err := sshClient.RunCommand(cmd)
+	if err != nil {
+		return err
+	}
+
+	_, err = sshClient.RunCommand("sudo systemctl daemon-reload")
+	if err != nil {
+		return err
+	}
+
+	_, err = sshClient.RunCommand(fmt.Sprintf("sudo systemctl enable %s", serviceName))
+	if err != nil {
+		return err
+	}
+
+	_, err = sshClient.RunCommand(fmt.Sprintf("sudo systemctl restart %s", serviceName))
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -129,20 +298,12 @@ func (s *deploymentService) InstallDependencies(sshClient SSHClient) error {
 		defer close(logChan)
 
 		cmd := `
-		# Install NVM if not exists
-		export NVM_DIR="$HOME/.nvm"
-		[ -s "$NVM_DIR/nvm.sh" ] || curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-
-		# Load NVM
-		. "$NVM_DIR/nvm.sh"
-
-		# Install & use Node LTS
-		nvm install --lts
-		nvm use --lts
-
-		# Verify
-		node -v
-		npm -v
+		if ! command -v docker &> /dev/null; then
+			curl -fsSL https://get.docker.com -o get-docker.sh
+			sudo sh get-docker.sh
+			sudo usermod -aG docker $USER
+		fi
+		sudo docker --version
 		`
 
 		err := sshClient.RunCommandStream(cmd, logChan)
@@ -158,30 +319,57 @@ func (s *deploymentService) InstallDependencies(sshClient SSHClient) error {
 
 	return nil
 }
+
 func (s *deploymentService) SetupNginx(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO) error {
 	nginxFile := fmt.Sprintf("/etc/nginx/sites-available/%s-%s-%s.conf", service.Project.Name, service.Environment.Name, service.Name)
 
-	// Nginx config
-	config := fmt.Sprintf(`
-server {
-    listen 80;
-    server_name %s;
+	domain := service.Domain
+	if domain == "" {
+		domain = fmt.Sprintf("test-%s.myapico.live", service.Name)
+	}
 
-    location / {
-        proxy_pass http://localhost:%s;
+	var config string
+	if service.Type == "static" || service.Type == "frontend" {
+		documentRoot := fmt.Sprintf("/var/www/%s/%s/%s", service.Project.Name, service.Environment.Name, service.Name)
+		if service.DeployPath != "" && service.DeployPath != "/" {
+			documentRoot = fmt.Sprintf("%s/%s", documentRoot, service.DeployPath)
+		}
+		documentRoot += "/dist"
 
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-`, "www.myapico.live myapico.live", "4173")
+		config = fmt.Sprintf(`
+		server {
+			listen 80;
+			server_name %s;
 
-	cmd := fmt.Sprintf(`cat <<'EOF' | sudo tee %s
-%s
-EOF`, nginxFile, config)
+			root %s;
+			index index.html index.htm;
+
+			location / {
+				try_files $uri $uri/ /index.html;
+			}
+		}
+	`, domain, documentRoot)
+	} else {
+		config = fmt.Sprintf(`
+		server {
+			listen 80;
+			server_name %s;
+
+			location / {
+				proxy_pass http://localhost:%s;
+
+				proxy_http_version 1.1;
+				proxy_set_header Upgrade $http_upgrade;
+				proxy_set_header Connection "upgrade";
+				proxy_set_header Host $host;
+				proxy_cache_bypass $http_upgrade;
+			}
+		}
+	`, domain, fmt.Sprintf("%d", service.Port))
+	}
+
+	encodedConfig := base64.StdEncoding.EncodeToString([]byte(config))
+	cmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s > /dev/null", encodedConfig, nginxFile)
 
 	_, err := sshClient.RunCommand(cmd)
 	if err != nil {
@@ -201,10 +389,111 @@ EOF`, nginxFile, config)
 
 	return nil
 }
-func wrapWithNVM(cmd string) string {
-	return `
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-` + cmd
+func (s *deploymentService) SetupSSL(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO) error {
+	if service.Domain == "" {
+		return fmt.Errorf("domain is required for SSL setup")
+	}
+
+	if service.CertType == "auto" {
+		cmd := fmt.Sprintf("sudo certbot --nginx -d %s --non-interactive --agree-tos --register-unsafely-without-email", service.Domain)
+		_, err := sshClient.RunCommand(cmd)
+		if err != nil {
+			return fmt.Errorf("certbot failed: %w", err)
+		}
+	} else if service.CertType == "custom" && service.CustomCert != "" && service.CustomKey != "" {
+		sslDir := fmt.Sprintf("/etc/nginx/ssl/%s", service.Domain)
+		_, err := sshClient.RunCommand(fmt.Sprintf("sudo mkdir -p %s", sslDir))
+		if err != nil {
+			return err
+		}
+
+		certFile := fmt.Sprintf("%s/fullchain.pem", sslDir)
+		keyFile := fmt.Sprintf("%s/privkey.pem", sslDir)
+
+		encodedCert := base64.StdEncoding.EncodeToString([]byte(service.CustomCert))
+		encodedKey := base64.StdEncoding.EncodeToString([]byte(service.CustomKey))
+
+		_, err = sshClient.RunCommand(fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s > /dev/null", encodedCert, certFile))
+		if err != nil {
+			return err
+		}
+		_, err = sshClient.RunCommand(fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s > /dev/null", encodedKey, keyFile))
+		if err != nil {
+			return err
+		}
+
+		nginxFile := fmt.Sprintf("/etc/nginx/sites-available/%s-%s-%s.conf", service.Project.Name, service.Environment.Name, service.Name)
+
+		var config string
+		if service.Type == "static" || service.Type == "frontend" {
+			documentRoot := fmt.Sprintf("/var/www/%s/%s/%s", service.Project.Name, service.Environment.Name, service.Name)
+			if service.DeployPath != "" && service.DeployPath != "/" {
+				documentRoot = fmt.Sprintf("%s/%s", documentRoot, service.DeployPath)
+			}
+			documentRoot += "/dist"
+
+			config = fmt.Sprintf(`
+		server {
+			listen 80;
+			server_name %s;
+			return 301 https://$host$request_uri;
+		}
+
+		server {
+			listen 443 ssl;
+			server_name %s;
+
+			ssl_certificate %s;
+			ssl_certificate_key %s;
+
+			root %s;
+			index index.html index.htm;
+
+			location / {
+				try_files $uri $uri/ /index.html;
+			}
+		}
+	`, service.Domain, service.Domain, certFile, keyFile, documentRoot)
+		} else {
+			config = fmt.Sprintf(`
+		server {
+			listen 80;
+			server_name %s;
+			return 301 https://$host$request_uri;
+		}
+
+		server {
+			listen 443 ssl;
+			server_name %s;
+
+			ssl_certificate %s;
+			ssl_certificate_key %s;
+
+			location / {
+				proxy_pass http://localhost:%s;
+
+				proxy_http_version 1.1;
+				proxy_set_header Upgrade $http_upgrade;
+				proxy_set_header Connection "upgrade";
+				proxy_set_header Host $host;
+				proxy_cache_bypass $http_upgrade;
+			}
+		}
+	`, service.Domain, service.Domain, certFile, keyFile, fmt.Sprintf("%d", service.Port))
+		}
+
+		encodedConfig := base64.StdEncoding.EncodeToString([]byte(config))
+		_, err = sshClient.RunCommand(fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s > /dev/null", encodedConfig, nginxFile))
+		if err != nil {
+			return err
+		}
+
+		_, err = sshClient.RunCommand("sudo systemctl reload nginx")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
