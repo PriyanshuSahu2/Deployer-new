@@ -41,7 +41,7 @@ const ForgotPassword = () => {
       notifications.show({
         color: "green",
         title: "Email sent",
-        message: res.message || "Password reset email sent!",
+        message: res.data?.message || "Password reset email sent!",
       });
 
       setEmailSent(true);
@@ -49,12 +49,13 @@ const ForgotPassword = () => {
       setTimeout(() => {
         router.push(`/reset-password?email=${encodeURIComponent(email)}`);
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to send reset email";
       console.error(err);
       notifications.show({
         color: "red",
         title: "Request failed",
-        message: err.message || "Failed to send reset email",
+        message: errMsg,
       });
     }
 
@@ -74,7 +75,7 @@ const ForgotPassword = () => {
               Forgot Password?
             </h1>
             <p className="text-slate-500">
-              No worries, we'll send you reset instructions
+              No worries, we&apos;ll send you reset instructions
             </p>
           </div>
 

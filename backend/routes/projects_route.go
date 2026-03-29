@@ -24,6 +24,7 @@ func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectContro
 		projects.GET("/:uuid/services", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServicesByProject)
 		projects.POST("/:uuid/services/:serviceUUID/trigger-deploy", permissionMiddleWare.RequirePermission("service:update"), serviceController.TriggerDeployment)
 		projects.GET("/:uuid/services/:serviceUUID", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServiceDetails)
+		projects.PUT("/:uuid/services/:serviceUUID", permissionMiddleWare.RequirePermission("service:update"), serviceController.UpdateService)
 		projects.GET("/:uuid/services/:serviceUUID/logs", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServiceLogs)
 		projects.PATCH("/:uuid/services/:serviceUUID/auto-deploy", permissionMiddleWare.RequirePermission("service:update"), serviceController.ToggleAutoDeploy)
 	}

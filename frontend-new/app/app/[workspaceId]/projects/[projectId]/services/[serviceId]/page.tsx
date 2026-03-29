@@ -3,11 +3,12 @@ import { useParams } from 'next/navigation';
 import { useGetServiceLogs, useTriggerDeployment, useToggleAutoDeploy, useGetServiceDetails } from '@/hooks/useServices';
 import { Card, Text, Group, ScrollArea, Loader, ThemeIcon, Button, Badge, Skeleton, Paper, CopyButton, ActionIcon, Tooltip, Stack, Switch } from '@mantine/core';
 import { useEffect, useRef } from 'react';
-import { IconTerminal2, IconPlayerPlay, IconServer, IconCopy, IconCheck } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
+import { IconTerminal2, IconPlayerPlay, IconCopy, IconCheck, IconPencil } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 
 const parseAnsi = (text: string) => {
-  const ansiRegex = /\033\[([0-9;]*)m/g;
+  const ansiRegex = /\x1b\[([0-9;]*)m/g;
   const parts = text.split(ansiRegex);
 
   const elements = [];
@@ -50,12 +51,14 @@ const parseAnsi = (text: string) => {
 
 export default function ServiceDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const workspaceId = params.workspaceId as string;
   const projectId = params.projectId as string;
   const serviceId = params.serviceId as string;
 
   const { data, isLoading, isError } = useGetServiceLogs(workspaceId, projectId, serviceId);
   const { data: serviceDetailsResponse, isLoading: servicesLoading } = useGetServiceDetails(workspaceId, projectId, serviceId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const service = (serviceDetailsResponse as any)?.data ?? serviceDetailsResponse;
 
   const { mutateAsync: triggerDeployAsync, isPending: isDeploying } = useTriggerDeployment(workspaceId, projectId);
@@ -69,6 +72,7 @@ export default function ServiceDetailsPage() {
         message: `Deployment triggered for service ${service?.name || serviceId}`,
         color: 'teal',
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       notifications.show({
         title: 'Deploy Failed',
@@ -108,14 +112,23 @@ export default function ServiceDetailsPage() {
           </div>
         </Group>
 
-        <Button
-          leftSection={<IconPlayerPlay size={16} />}
-          color="teal"
-          onClick={handleDeploy}
-          loading={isDeploying}
-        >
-          Deploy Now
-        </Button>
+        <Group gap="sm">
+          <Button
+            leftSection={<IconPencil size={16} />}
+            variant="default"
+            onClick={() => router.push(`/app/${workspaceId}/projects/${projectId}/services/${serviceId}/edit`)}
+          >
+            Edit
+          </Button>
+          <Button
+            leftSection={<IconPlayerPlay size={16} />}
+            color="teal"
+            onClick={handleDeploy}
+            loading={isDeploying}
+          >
+            Deploy Now
+          </Button>
+        </Group>
       </Group>
 
       {servicesLoading ? (

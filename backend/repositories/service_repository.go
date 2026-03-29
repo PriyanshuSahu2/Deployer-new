@@ -43,6 +43,32 @@ func (r *ServiceRepository) AddEnvVariable(tx *gorm.DB, env_variable *models_ser
 	return query.Create(&env_variable).Error
 }
 
+func (r *ServiceRepository) UpdateService(tx *gorm.DB, service *models_service.Service) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	// We only update the provided fields, and since we might update ID/UUID we only use an existing model or dict.
+	// Since service contains the ID, we can do Save() or Updates()
+	return query.Save(service).Error
+}
+
+func (r *ServiceRepository) DeleteGitConfigByServiceID(tx *gorm.DB, serviceID uint) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Unscoped().Where("service_id = ?", serviceID).Delete(&models_service.ServiceGitConfig{}).Error
+}
+
+func (r *ServiceRepository) DeleteEnvVariablesByServiceID(tx *gorm.DB, serviceID uint) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Unscoped().Where("service_id = ?", serviceID).Delete(&models_service.ServiceEnvVariable{}).Error
+}
+
 func (r *ServiceRepository) GetServicesByProject(tx *gorm.DB, projectID uint) ([]models_service.Service, error) {
 	var services []models_service.Service
 	query := db.DB

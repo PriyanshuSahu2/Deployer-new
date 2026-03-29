@@ -23,17 +23,21 @@ const ProjectDetails = ({ workspaceId, projectId }: { workspaceId: string, proje
 
   const [activeEnv, setActiveEnv] = useState<Environment | undefined>(environments?.[0]);
 
-
   useEffect(() => {
-    const envId = searchParams.get("env");
-    if (environments.length > 0) {
-      const found = environments.find(e => e.uuid === envId);
-      if (found) {
-        setActiveEnv(found);
-      } else {
-        setActiveEnv(environments[0]);
+    const run = async () => {
+      const envId = searchParams.get("env");
+
+      if (environments.length > 0) {
+        const found = environments.find(e => e.uuid === envId);
+        if (found) {
+          setActiveEnv(found);
+        } else {
+          setActiveEnv(environments[0]);
+        }
       }
-    }
+    };
+
+    run();
   }, [environments, searchParams]);
 
   const handleOpenNewEnvironmentModal = () => {

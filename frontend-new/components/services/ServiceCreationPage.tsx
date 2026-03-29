@@ -43,7 +43,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGetProjects } from '@/hooks/useProjects';
 import { useGetServers, useCheckPort } from '@/hooks/useServers';
 import { useGetGithubRepos, useGetGithubBranches } from '@/hooks/useIntegrations';
-import { useCreateService } from '@/hooks/useServices';
+import { useCreateService, useUpdateService, useGetServiceDetails } from '@/hooks/useServices';
 
 const STEP_CONFIG = [
   {
@@ -90,6 +90,7 @@ const SERVICE_TYPE_OPTIONS = [
   { value: 'web', label: 'Web Service' },
   { value: 'worker', label: 'Worker' },
   { value: 'cron', label: 'Cron Job' },
+  { value: 'static', label: 'Static Site' },
 ];
 
 const FRAMEWORK_OPTIONS = [
@@ -147,6 +148,7 @@ interface ServiceCreationPageProps {
   workspaceId: string;
   initialProjectId?: string;
   environmentId?: string;
+  serviceId?: string; // when provided, the page is in edit mode
 }
 
 function SectionHeader({
@@ -224,9 +226,10 @@ function AdvancedSectionToggle({
 export default function ServiceCreationPage({
   workspaceId,
   initialProjectId,
-  environmentId,
+  serviceId,
 }: ServiceCreationPageProps) {
   const router = useRouter();
+  const isEditMode = !!serviceId;
   const [activeStep, setActiveStep] = useState(0);
   const [advancedSections, setAdvancedSections] = useState({
     service: false,
@@ -266,6 +269,7 @@ export default function ServiceCreationPage({
       framework: '',
       buildCommand: '',
       startCommand: '',
+      outputDirectory: 'dist',
       port: 3000,
       dockerizeType: 'auto',
       runtimeVersion: '',
@@ -323,10 +327,18 @@ export default function ServiceCreationPage({
     },
   });
 
-  const { mutateAsync: createService, isPending } = useCreateService(
+  const { mutateAsync: createService, isPending: isCreating } = useCreateService(
     workspaceId,
     form.values.projectId,
   );
+
+  const { mutateAsync: updateService, isPending: isUpdating } = useUpdateService(
+    workspaceId,
+    form.values.projectId,
+    serviceId ?? '',
+  );
+
+  const isPending = isCreating || isUpdating;
 
   const { data: githubRepos = [], isLoading: isLoadingRepos } = useGetGithubRepos(
     workspaceId,
@@ -361,6 +373,61 @@ export default function ServiceCreationPage({
     form.setFieldValue('projectId', initialProjectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProjectId]);
+
+  // Pre-populate form in edit mode
+  const { data: serviceDetails } = useGetServiceDetails(
+    workspaceId,
+    form.values.projectId || initialProjectId || '',
+    serviceId ?? '',
+  );
+
+  useEffect(() => {
+    if (!serviceDetails || !isEditMode) return;
+    const d = serviceDetails.data;
+    form.setValues({
+      projectId: initialProjectId ?? form.values.projectId,
+      name: d.name,
+      description: d.description ?? '',
+      serviceType: d.type,
+      framework: d.framework,
+      buildCommand: d.buildCommand,
+      startCommand: d.startCommand,
+      outputDirectory: d.outputDirectory ?? 'dist',
+      port: d.port,
+      dockerizeType: d.dockerizeType,
+      healthCheckPath: '',
+      instanceCount: 1,
+      runtimeVersion: '',
+      gitProvider: d.git?.provider ?? '',
+      repository: d.git?.repositoryUrl ?? '',
+      branch: d.git?.branch ?? 'main',
+      rootFolder: d.git?.subDirectory ?? '',
+      autoDeployOnPush: d.git?.autoDeploy ?? true,
+      buildTrigger: 'push',
+      envVars: d.envVariables && d.envVariables.length > 0
+        ? d.envVariables.map((v) => ({ key: v.key, value: v.value }))
+        : [{ key: '', value: '' }],
+      serverId: d.server?.serverId ? String(d.server.serverId) : '',
+      cpu: 1,
+      memory: 512,
+      disk: 10,
+      containerType: 'docker',
+      network: 'public',
+      customDomain: d.domain ?? '',
+      ssl: d.httpsEnabled ?? true,
+      certType: d.certType ?? 'auto',
+      customCert: d.customCert ?? '',
+      customKey: d.customKey ?? '',
+      strategy: 'rolling',
+      autoRollback: true,
+      timeout: 300,
+      retries: 3,
+      metricsEnabled: true,
+      logRetention: '30d',
+      alerts: 'critical',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceDetails]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -428,67 +495,68 @@ export default function ServiceCreationPage({
   };
 
   const handleSubmit = form.onSubmit(async (values) => {
+    const payload = {
+      name: values.name,
+      projectUuid: values.projectId,
+      type: values.serviceType,
+      framework: values.framework,
+      description: values.description,
+      buildCommand: values.buildCommand,
+      startCommand: values.startCommand,
+      deployPath: values.rootFolder || '/',
+      outputDirectory: values.outputDirectory,
+      port: values.port,
+      dockerizeType: values.dockerizeType,
+      domain: values.customDomain,
+      httpsEnabled: values.ssl,
+      certType: values.certType,
+      customCert: values.customCert,
+      customKey: values.customKey,
+      serverId: values.serverId,
+      git: {
+        provider: values.gitProvider,
+        repositoryUrl: values.repository,
+        branch: values.branch,
+        subDirectory: values.rootFolder || '/',
+        authType: 'token',
+        autoDeploy: values.autoDeployOnPush,
+        webhookEnabled: true,
+      },
+      envVariables: values.envVars
+        .filter((v) => v.key.trim() !== '')
+        .map((v) => ({
+          key: v.key,
+          value: v.value,
+          isSecret: false,
+          isBuildVariable: false,
+        })),
+    };
     try {
       notifications.show({
-        title: 'Creating service',
-        message: `"${values.name}" is being created.`,
+        title: isEditMode ? 'Updating service' : 'Creating service',
+        message: `"${values.name}" is being ${isEditMode ? 'updated' : 'created'}.`,
         color: 'blue',
       });
-      await createService({
-        name: values.name,
-        projectUuid: values.projectId,
-        type: values.serviceType,
-        framework: values.framework,
-        description: values.description,
-        buildCommand: values.buildCommand,
-        startCommand: values.startCommand,
-        deployPath: values.rootFolder || '/',
-        port: values.port,
-        dockerizeType: values.dockerizeType,
-        domain: values.customDomain,
-        httpsEnabled: values.ssl,
-        certType: values.certType,
-        customCert: values.customCert,
-        customKey: values.customKey,
-        serverId: values.serverId,
-        git: {
-          provider: values.gitProvider,
-          repositoryUrl: values.repository,
-          branch: values.branch,
-          subDirectory: values.rootFolder || '/',
-          authType: 'token',
-          autoDeploy: values.autoDeployOnPush,
-          webhookEnabled: true,
-        },
-        envVariables: values.envVars
-          .filter((v) => v.key.trim() !== '')
-          .map((v) => ({
-            key: v.key,
-            value: v.value,
-            isSecret: false,
-            isBuildVariable: false,
-          })),
-      });
+
+      if (isEditMode) {
+        await updateService(payload);
+      } else {
+        await createService(payload);
+      }
 
       notifications.show({
-        title: 'Service created',
-        message: `"${values.name}" has been successfully created.`,
+        title: isEditMode ? 'Service updated' : 'Service created',
+        message: `"${values.name}" has been successfully ${isEditMode ? 'updated' : 'created'}.`,
         color: 'teal',
       });
 
       router.push(`/app/${workspaceId}/projects/${values.projectId}`);
     } catch (err: unknown) {
+      type AxiosLike = { response?: { data?: { error?: string } } };
+      const axiosErr = err as AxiosLike;
       const message =
-        typeof err === 'object' &&
-          err !== null &&
-          'response' in err &&
-          typeof (err as any).response === 'object' &&
-          (err as any).response !== null &&
-          'data' in (err as any).response &&
-          typeof (err as any).response.data === 'object' &&
-          (err as any).response.data !== null &&
-          'error' in (err as any).response.data
-          ? String((err as any).response.data.error)
+        axiosErr?.response?.data?.error
+          ? String(axiosErr.response.data.error)
           : err instanceof Error
             ? err.message
             : 'Failed to create service';
@@ -526,16 +594,17 @@ export default function ServiceCreationPage({
               Back
             </Button>
             <Badge variant='light' color='gray' radius='sm'>
-              Service Creation
+              {isEditMode ? 'Edit Service' : 'Service Creation'}
             </Badge>
           </Group>
 
           <Text fw={700} size='xl'>
-            Create Service
+            {isEditMode ? 'Edit Service' : 'Create Service'}
           </Text>
           <Text size='sm' c='dimmed' mt={4}>
-            Multi-step Service setup tied to a project. Active step follows the
-            section currently on screen.
+            {isEditMode
+              ? 'Update the configuration of your existing service.'
+              : 'Multi-step Service setup tied to a project. Active step follows the section currently on screen.'}
           </Text>
         </Box>
 
@@ -547,7 +616,7 @@ export default function ServiceCreationPage({
             Cancel
           </Button>
           <Button radius='sm' loading={isPending} onClick={() => handleSubmit()}>
-            Create
+            {isEditMode ? 'Save Changes' : 'Create'}
           </Button>
         </Group>
       </Group>
@@ -646,6 +715,13 @@ export default function ServiceCreationPage({
                       withAsterisk
                       {...form.getInputProps('startCommand')}
                     />
+                    {(form.values.serviceType === 'static' || form.values.serviceType === 'frontend') && (
+                      <TextInput
+                        label='Output Folder Name'
+                        placeholder='dist, build, or .next'
+                        {...form.getInputProps('outputDirectory')}
+                      />
+                    )}
                     <Box>
                       <NumberInput
                         label='Port'
@@ -911,6 +987,11 @@ export default function ServiceCreationPage({
                       withAsterisk
                       {...form.getInputProps('serverId')}
                     />
+                    <TextInput
+                      label='Custom Domain'
+                      placeholder='api.example.com'
+                      {...form.getInputProps('customDomain')}
+                    />
                   </SimpleGrid>
                   <Stack gap='sm'>
                     <AdvancedSectionToggle
@@ -949,11 +1030,6 @@ export default function ServiceCreationPage({
                             label='Network'
                             data={NETWORK_OPTIONS}
                             {...form.getInputProps('network')}
-                          />
-                          <TextInput
-                            label='Custom Domain'
-                            placeholder='api.example.com'
-                            {...form.getInputProps('customDomain')}
                           />
                         </SimpleGrid>
                         <Switch

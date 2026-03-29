@@ -18,8 +18,9 @@ type Service struct {
 	BuildCommand  string                         `gorm:"type:text"`
 	StartCommand  string                         `gorm:"type:text"`
 	DeployPath    string                         `gorm:"type:text"`
-	Port          int                            `gorm:"type:int;default:3000"`
-	DockerizeType string                         `gorm:"type:varchar(20);default:'auto'"`
+	Port            int                            `gorm:"type:int;default:3000"`
+	OutputDirectory string                         `gorm:"type:varchar(255);default:'dist'"`
+	DockerizeType   string                         `gorm:"type:varchar(20);default:'auto'"`
 	ServerID      *uint                          `gorm:"index"`
 	Server        *models_server.Server          `gorm:"foreignKey:ServerID"`
 	ProjectID     uint                           `gorm:"index;not null;uniqueIndex:idx_env_service"`

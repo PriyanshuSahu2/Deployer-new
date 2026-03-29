@@ -8,6 +8,7 @@ export interface CreateServicePayload {
   buildCommand: string;
   startCommand: string;
   deployPath: string;
+  outputDirectory?: string;
   port: number;
   dockerizeType: string;
 
@@ -34,6 +35,46 @@ export interface CreateServicePayload {
   }[];
 }
 
+export type UpdateServicePayload = CreateServicePayload;
+
+export interface ServiceDetails extends Service {
+  environmentUuid?: string;
+  git?: {
+    provider: string;
+    repositoryUrl: string;
+    branch: string;
+    subDirectory: string;
+    authType: string;
+    autoDeploy: boolean;
+    webhookEnabled: boolean;
+  };
+  envVariables?: {
+    key: string;
+    value: string;
+    isSecret: boolean;
+    isBuildVariable: boolean;
+  }[];
+  server?: {
+    serverId?: number;
+    name: string;
+    host: string;
+    port: number;
+    username: string;
+    passKey: string;
+    authType: string;
+  };
+  project?: {
+    uuid: string;
+    name: string;
+    description: string;
+    workspaceId: number;
+  };
+  environment?: {
+    uuid: string;
+    name: string;
+  };
+}
+
 export interface Service {
   uuid: string;
   name: string;
@@ -45,6 +86,7 @@ export interface Service {
   buildCommand: string;
   startCommand: string;
   deployPath: string;
+  outputDirectory?: string;
   port: number;
   dockerizeType: string;
 

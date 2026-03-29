@@ -1,11 +1,12 @@
 import { getWorkspaceMembers, inviteMember } from "@/service/member";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useInviteMember = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (workspaceUUID: string, params: any) => inviteMember(workspaceUUID, params),
+        mutationFn: ({ workspaceUUID, params }: { workspaceUUID: string; params: Record<string, unknown> }) =>
+            inviteMember(workspaceUUID, params),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["user-workspace"] });
         },

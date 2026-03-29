@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { IconLock, IconKey, IconCheck, IconX } from "@tabler/icons-react";
 import { TextInput, PasswordInput, Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import axios from "axios";
 import { useResetPassword } from "@/hooks/useAuth";
 
 const ResetPassword = () => {
@@ -90,13 +89,15 @@ const ResetPassword = () => {
             setTimeout(() => {
                 router.push("/login");
             }, 1500);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            type AxiosLike = { response?: { data?: { message?: string } } };
+            const axiosErr = err as AxiosLike;
             notifications.update({
                 id: notifId,
                 color: "red",
                 title: "Error",
                 message:
-                    err?.response?.data?.message || "Failed to reset password",
+                    axiosErr?.response?.data?.message || "Failed to reset password",
                 icon: <IconX size={18} />,
                 loading: false,
                 autoClose: 3000,

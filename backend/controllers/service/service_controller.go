@@ -41,6 +41,32 @@ func (c *ServiceController) CreateService(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, serviceResponse)
 }
 
+func (c *ServiceController) UpdateService(ctx *gin.Context) {
+	var body dtos_service.UpdateServiceDTO
+
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	body.ProjectUUID = ctx.Param("uuid")
+	serviceUUID := ctx.Param("serviceUUID")
+
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	serviceResponse, err := c.Service.UpdateService(nil, userID.(uint), body.ProjectUUID, serviceUUID, body)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, serviceResponse)
+}
+
 func (c *ServiceController) GetServicesByProject(ctx *gin.Context) {
 	projectUUID := ctx.Param("uuid")
 

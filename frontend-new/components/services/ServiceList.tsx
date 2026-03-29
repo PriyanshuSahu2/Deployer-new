@@ -1,22 +1,23 @@
 'use client';
 
-import { Box, Button, Center, Paper, Stack, Text, ThemeIcon, Table, Group, Badge, ActionIcon, Skeleton } from '@mantine/core';
+import { Button, Center, Paper, Stack, Text, ThemeIcon, Table, Group, Badge, ActionIcon, Skeleton } from '@mantine/core';
 import { IconPlus, IconServer, IconExternalLink, IconSettings, IconPlayerPlay } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useGetServices, useTriggerDeployment } from '@/hooks/useServices';
 import { notifications } from '@mantine/notifications';
+import type { Service } from '@/types/service';
 
 interface ServiceListProps {
   workspaceId: string;
-  projectId: string;
-  environmentId: string;
+  projectId?: string;
+  environmentId?: string;
 }
 
 export default function ServiceList({ workspaceId, projectId, environmentId }: ServiceListProps) {
   const router = useRouter();
 
-  const { data: servicesResponse, isLoading } = useGetServices(workspaceId, projectId);
-  const { mutateAsync: triggerDeployAsync, isPending: isDeploying } = useTriggerDeployment(workspaceId, projectId);
+  const { data: servicesResponse, isLoading } = useGetServices(workspaceId, projectId ?? '', !!projectId);
+  const { mutateAsync: triggerDeployAsync, isPending: isDeploying } = useTriggerDeployment(workspaceId, projectId ?? '');
 
   const handleDeploy = async (serviceUUID: string, serviceName: string) => {
     try {
@@ -26,18 +27,20 @@ export default function ServiceList({ workspaceId, projectId, environmentId }: S
         message: `Deployment triggered for service ${serviceName}`,
         color: 'teal',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      type AxiosLike = { response?: { data?: { error?: string } }; message?: string };
+      const axiosErr = err as AxiosLike;
       notifications.show({
         title: 'Deploy Failed',
-        message: err?.response?.data?.error || err.message || 'Failed to trigger deployment',
+        message: axiosErr?.response?.data?.error || axiosErr?.message || 'Failed to trigger deployment',
         color: 'red',
       });
     }
   };
 
-  const services = Array.isArray(servicesResponse) ? servicesResponse : (servicesResponse as any)?.data || [];
+  const services: Service[] = Array.isArray(servicesResponse) ? servicesResponse : ((servicesResponse as { data?: Service[] })?.data ?? []);
 
-  const filteredServices = services.filter((s: any) => !environmentId || s.environmentUuid === environmentId);
+  const filteredServices = services.filter((s: Service) => !environmentId || (s as Service & { environmentUuid?: string }).environmentUuid === environmentId);
 
   if (isLoading) {
     return (
@@ -101,7 +104,7 @@ export default function ServiceList({ workspaceId, projectId, environmentId }: S
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {filteredServices.map((service: any) => (
+            {filteredServices.map((service) => (
               <Table.Tr key={service.uuid}>
                 <Table.Td>
                   <Text fw={500}>{service.name}</Text>

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { createService, getServices, triggerDeployment, getServiceLogs, toggleAutoDeploy, getServiceDetails } from '@/service/service';
-import type { CreateServicePayload } from '@/types/service';
+import { createService, updateService, getServices, triggerDeployment, getServiceLogs, toggleAutoDeploy, getServiceDetails } from '@/service/service';
+import type { CreateServicePayload, UpdateServicePayload } from '@/types/service';
 
 export const useCreateService = (workspaceUUID: string, projectUUID: string) => {
   const queryClient = useQueryClient();
@@ -9,6 +9,18 @@ export const useCreateService = (workspaceUUID: string, projectUUID: string) => 
     mutationFn: (payload: CreateServicePayload) => createService(workspaceUUID, projectUUID, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services', projectUUID] });
+    },
+  });
+};
+
+export const useUpdateService = (workspaceUUID: string, projectUUID: string, serviceUUID: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdateServicePayload) => updateService(workspaceUUID, projectUUID, serviceUUID, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services', projectUUID] });
+      queryClient.invalidateQueries({ queryKey: ['serviceDetails', serviceUUID] });
     },
   });
 };

@@ -2,7 +2,6 @@ import { acceptWorkspaceInvite, declineWorkspaceInvite, getInvites, getWorkspace
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useGetWorkspaceInviteByToken = () => {
-    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (token: string) => getWorkspaceInviteByToken(token),
@@ -14,7 +13,6 @@ export const useGetWorkspaceInviteByToken = () => {
 }
 
 export const useAcceptWorkspaceInvite = () => {
-    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (token: string) => acceptWorkspaceInvite(token),
@@ -26,7 +24,6 @@ export const useAcceptWorkspaceInvite = () => {
 }
 
 export const useDeclineWorkspaceInvite = () => {
-    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (token: string) => declineWorkspaceInvite(token),

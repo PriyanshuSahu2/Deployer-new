@@ -31,7 +31,7 @@ const NotFound = () => {
             </Title>
             <Text c="dimmed" size="lg" className="max-w-md mt-6 mx-auto leading-relaxed">
               The page you are looking for might have been moved, deleted, or
-              never existed. Let's get you back on track.
+              never existed. Let&apos;s get you back on track.
             </Text>
           </Box>
 

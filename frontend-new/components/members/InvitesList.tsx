@@ -36,9 +36,12 @@ function InviteRow({
   const handleResend = async () => {
     try {
       await resendInvite({
-        user_email: invite.email,
-        role_uuid: invite.role_uuid,
-        workspace_uuid: workspaceId,
+        workspaceUUID: workspaceId,
+        params: {
+          user_email: invite.email,
+          role_uuid: invite.role_uuid,
+          workspace_uuid: workspaceId,
+        },
       });
       notifications.show({
         title: 'Success',

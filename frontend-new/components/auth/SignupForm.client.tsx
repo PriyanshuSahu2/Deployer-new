@@ -147,15 +147,16 @@ const SignupForm = () => {
       notifications.show({
         color: "green",
         title: "Account created",
-        message: res.message || "Registration successful!",
+        message: (res as { data?: { message?: string } })?.data?.message || "Registration successful!",
       });
 
       router.push("/login");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Something went wrong";
       notifications.show({
         color: "red",
         title: "Registration failed",
-        message: err.message || "Something went wrong",
+        message: errMsg,
       });
     }
   };

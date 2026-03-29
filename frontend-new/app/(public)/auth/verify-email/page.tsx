@@ -29,23 +29,24 @@ export default function VerifyEmailPage() {
       try {
         setMessage("Verifying your email address...");
 
-        apiFetch("/api/auth/verify-email", {
+        const res = await apiFetch("/api/auth/verify-email", {
           method: "POST",
           body: { token },
         });
 
         setStatus("success");
-        setMessage(res.data.message || "Email verified successfully!");
+        setMessage((res as { data?: { message?: string } })?.data?.message || "Email verified successfully!");
 
         setTimeout(() => {
           router.replace("/login");
         }, 3000);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         setStatus("error");
-
+        type AxiosLike = { response?: { data?: { error?: string } } };
+        const axiosErr = err as AxiosLike;
         setMessage(
-          err?.response?.data?.error ||
+          axiosErr?.response?.data?.error ||
             "Verification failed. Token may be invalid or expired.",
         );
 

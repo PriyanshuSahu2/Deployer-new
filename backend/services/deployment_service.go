@@ -195,17 +195,7 @@ func (s *deploymentService) BuildService(sshClient SSHClient, service *dtos_serv
 				if startCmd == "" {
 					startCmd = "npm start"
 				}
-				dockerfile := fmt.Sprintf(`
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN %s
-ENV PORT=%d
-EXPOSE %d
-CMD %s
-`, service.BuildCommand, service.Port, service.Port, startCmd)
+				dockerfile := fmt.Sprintf(NodeDockerfileTemplate, service.BuildCommand, service.Port, service.Port, startCmd)
 
 				encodedDf := base64.StdEncoding.EncodeToString([]byte(dockerfile))
 				writeCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/Dockerfile > /dev/null", encodedDf, path)
@@ -219,17 +209,7 @@ CMD %s
 				if startCmd == "" {
 					startCmd = "bun start"
 				}
-				dockerfile := fmt.Sprintf(`
-FROM oven/bun:alpine
-WORKDIR /app
-COPY package*.json bun.lockb* ./
-RUN bun install
-COPY . .
-RUN %s
-ENV PORT=%d
-EXPOSE %d
-CMD %s
-`, service.BuildCommand, service.Port, service.Port, startCmd)
+				dockerfile := fmt.Sprintf(BunDockerfileTemplate, service.BuildCommand, service.Port, service.Port, startCmd)
 
 				encodedDf := base64.StdEncoding.EncodeToString([]byte(dockerfile))
 				writeCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/Dockerfile > /dev/null", encodedDf, path)
@@ -250,13 +230,17 @@ CMD %s
 		}
 
 		if service.Type == "static" || service.Type == "frontend" {
-			logChan <- "\033[36mExtracting built static files for Nginx to serve...\033[0m"
+			outDir := service.OutputDirectory
+			if outDir == "" {
+				outDir = "dist"
+			}
+			logChan <- fmt.Sprintf("\033[36mExtracting built static files (%s) for Nginx to serve...\033[0m", outDir)
 			extractCmd := fmt.Sprintf(`
-			sudo rm -rf %[2]s/dist
+			sudo rm -rf %[2]s/%[3]s
 			sudo docker create --name extract-%[1]s %[1]s
-			sudo docker cp extract-%[1]s:/app/dist %[2]s/dist || sudo docker cp extract-%[1]s:/app/out %[2]s/dist || true
+			sudo docker cp extract-%[1]s:/app/%[3]s %[2]s/%[3]s || sudo docker cp extract-%[1]s:/app/out %[2]s/%[3]s || sudo docker cp extract-%[1]s:/app/build %[2]s/%[3]s || true
 			sudo docker rm -v extract-%[1]s
-			`, imageName, path)
+			`, imageName, path, outDir)
 			if _, err := sshClient.RunCommand(extractCmd); err != nil {
 				errChan <- fmt.Errorf("Error extracting static files: %v", err)
 				return
@@ -280,24 +264,7 @@ func (s *deploymentService) SetupSystemd(sshClient SSHClient, service *dtos_serv
 	imageName := strings.ToLower(fmt.Sprintf("%s-%s-%s", service.Project.Name, service.Environment.Name, service.Name))
 	serviceFile := fmt.Sprintf("/etc/systemd/system/%s", serviceName)
 
-	config := fmt.Sprintf(`[Unit]
-Description=%[1]s service Docker container
-Requires=docker.service
-After=docker.service
-
-[Service]
-Restart=always
-RestartSec=10
-ExecStartPre=-/usr/bin/docker stop %[2]s
-ExecStartPre=-/usr/bin/docker rm %[2]s
-ExecStart=/usr/bin/docker run --name %[2]s --rm -p %[3]d:%[3]d %[2]s
-ExecStop=/usr/bin/docker stop %[2]s
-
-SyslogIdentifier=%[1]s
-
-[Install]
-WantedBy=multi-user.target
-`, serviceName, imageName, service.Port)
+	config := fmt.Sprintf(SystemdServiceTemplate, serviceName, imageName, service.Port)
 
 	encodedConfig := base64.StdEncoding.EncodeToString([]byte(config))
 	cmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s > /dev/null", encodedConfig, serviceFile)
@@ -340,14 +307,7 @@ func (s *deploymentService) InstallDependencies(sshClient SSHClient, logger func
 	go func() {
 		defer close(logChan)
 
-		cmd := `
-		if ! command -v docker &> /dev/null; then
-			curl -fsSL https://get.docker.com -o get-docker.sh
-			sudo sh get-docker.sh
-			sudo usermod -aG docker $USER
-		fi
-		sudo docker --version
-		`
+		cmd := DockerInstallScript
 
 		err := sshClient.RunCommandStream(cmd, logChan)
 		if err != nil {
@@ -378,38 +338,15 @@ func (s *deploymentService) SetupNginx(sshClient SSHClient, service *dtos_servic
 		if service.DeployPath != "" && service.DeployPath != "/" {
 			documentRoot = fmt.Sprintf("%s/%s", documentRoot, service.DeployPath)
 		}
-		documentRoot += "/dist"
-
-		config = fmt.Sprintf(`
-		server {
-			listen 80;
-			server_name %s;
-
-			root %s;
-			index index.html index.htm;
-
-			location / {
-				try_files $uri $uri/ /index.html;
-			}
+		outDir := service.OutputDirectory
+		if outDir == "" {
+			outDir = "dist"
 		}
-	`, domain, documentRoot)
+		documentRoot = fmt.Sprintf("%s/%s", documentRoot, outDir)
+
+		config = fmt.Sprintf(NginxStaticTemplate, domain, documentRoot)
 	} else {
-		config = fmt.Sprintf(`
-		server {
-			listen 80;
-			server_name %s;
-
-			location / {
-				proxy_pass http://localhost:%s;
-
-				proxy_http_version 1.1;
-				proxy_set_header Upgrade $http_upgrade;
-				proxy_set_header Connection "upgrade";
-				proxy_set_header Host $host;
-				proxy_cache_bypass $http_upgrade;
-			}
-		}
-	`, domain, fmt.Sprintf("%d", service.Port))
+		config = fmt.Sprintf(NginxProxyTemplate, domain, fmt.Sprintf("%d", service.Port))
 	}
 
 	encodedConfig := base64.StdEncoding.EncodeToString([]byte(config))
@@ -476,56 +413,15 @@ func (s *deploymentService) SetupSSL(sshClient SSHClient, service *dtos_service.
 			if service.DeployPath != "" && service.DeployPath != "/" {
 				documentRoot = fmt.Sprintf("%s/%s", documentRoot, service.DeployPath)
 			}
-			documentRoot += "/dist"
-
-			config = fmt.Sprintf(`
-		server {
-			listen 80;
-			server_name %s;
-			return 301 https://$host$request_uri;
-		}
-
-		server {
-			listen 443 ssl;
-			server_name %s;
-
-			ssl_certificate %s;
-			ssl_certificate_key %s;
-
-			root %s;
-			index index.html index.htm;
-
-			location / {
-				try_files $uri $uri/ /index.html;
+			outDir := service.OutputDirectory
+			if outDir == "" {
+				outDir = "dist"
 			}
-		}
-	`, service.Domain, service.Domain, certFile, keyFile, documentRoot)
+			documentRoot = fmt.Sprintf("%s/%s", documentRoot, outDir)
+
+			config = fmt.Sprintf(NginxSSLStaticTemplate, service.Domain, service.Domain, certFile, keyFile, documentRoot)
 		} else {
-			config = fmt.Sprintf(`
-		server {
-			listen 80;
-			server_name %s;
-			return 301 https://$host$request_uri;
-		}
-
-		server {
-			listen 443 ssl;
-			server_name %s;
-
-			ssl_certificate %s;
-			ssl_certificate_key %s;
-
-			location / {
-				proxy_pass http://localhost:%s;
-
-				proxy_http_version 1.1;
-				proxy_set_header Upgrade $http_upgrade;
-				proxy_set_header Connection "upgrade";
-				proxy_set_header Host $host;
-				proxy_cache_bypass $http_upgrade;
-			}
-		}
-	`, service.Domain, service.Domain, certFile, keyFile, fmt.Sprintf("%d", service.Port))
+			config = fmt.Sprintf(NginxSSLProxyTemplate, service.Domain, service.Domain, certFile, keyFile, fmt.Sprintf("%d", service.Port))
 		}
 
 		encodedConfig := base64.StdEncoding.EncodeToString([]byte(config))

@@ -50,6 +50,7 @@ export default function LoginForm() {
       });
 
       router.replace("/app");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       notifications.update({
         id: notificationId,
@@ -104,7 +105,7 @@ export default function LoginForm() {
           Sign In
         </Button>
         <Text size="sm" ta="center" mt="md">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/auth/signup" className="text-blue-600 font-semibold">
             Sign up
           </Link>

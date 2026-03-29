@@ -189,7 +189,7 @@ function InvitesModal({ opened, onClose, initialInvites = [] }) {
               No pending invitations
             </Text>
             <Text size="xs" c="dimmed" mt={4}>
-              You're all caught up!
+              You&apos;re all caught up!
             </Text>
           </Box>
         ) : (

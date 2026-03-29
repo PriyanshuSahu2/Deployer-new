@@ -18,9 +18,10 @@ export const privateRequest = axios.create({
 })
 
 let isRefreshing = false
-let failedQueue: any[] = []
+type QueueItem = { resolve: (value?: unknown) => void; reject: (err: unknown) => void };
+let failedQueue: QueueItem[] = []
 
-const processFailedQueue = (error: any = null) => {
+const processFailedQueue = (error: unknown = null) => {
     failedQueue.forEach((prom) => {
         if (error) {
             prom.reject(error)

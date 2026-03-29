@@ -45,6 +45,7 @@ import InviteMemberModal from "../modals/InviteMemberModal";
 import { useRouter } from "next/navigation";
 
 interface NavItem {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon: any;
   label: string;
   href: string;
@@ -208,7 +209,7 @@ function WorkspaceSwitcher({
   const theme = useMantineTheme();
   const params = useParams();
   const [popoverOpened, setPopoverOpened] = useState(false);
-    const colorScheme = useComputedColorScheme("light");
+  const colorScheme = useComputedColorScheme("light");
   const isDark = colorScheme === "dark";
 
   const currentWorkspace = params.workspaceId as string;

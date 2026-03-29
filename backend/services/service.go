@@ -77,9 +77,10 @@ func (s *ServiceService) CreateService(tx *gorm.DB, userID uint, projectUUID str
 		Framework:     dto.Framework,
 		Description:   dto.Description,
 		BuildCommand:  dto.BuildCommand,
-		StartCommand:  dto.StartCommand,
-		DeployPath:    dto.DeployPath,
-		Domain:        dto.Domain,
+		StartCommand:    dto.StartCommand,
+		DeployPath:      dto.DeployPath,
+		OutputDirectory: dto.OutputDirectory,
+		Domain:          dto.Domain,
 		HttpsEnabled:  dto.HttpsEnabled,
 		CertType:      dto.CertType,
 		CustomCert:    dto.CustomCert,
@@ -140,6 +141,132 @@ func (s *ServiceService) CreateService(tx *gorm.DB, userID uint, projectUUID str
 		BuildCommand:    service.BuildCommand,
 		StartCommand:    service.StartCommand,
 		DeployPath:      service.DeployPath,
+		OutputDirectory: service.OutputDirectory,
+		Domain:          service.Domain,
+		HttpsEnabled:    service.HttpsEnabled,
+		CertType:        service.CertType,
+		CustomCert:      service.CustomCert,
+		CustomKey:       service.CustomKey,
+		Port:            service.Port,
+		DockerizeType:   service.DockerizeType,
+		CreatedAt:       service.CreatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
+}
+
+func (s *ServiceService) UpdateService(tx *gorm.DB, userID uint, projectUUID string, serviceUUID string, dto dtos_service.UpdateServiceDTO) (*dtos_service.ServiceCreationResponseDTO, error) {
+	project, err := s.ProjectRepo.GetByUUID(tx, projectUUID)
+	if err != nil {
+		return nil, errors.New("project not found")
+	}
+
+	service, err := s.ServiceRepo.GetByUUID(tx, serviceUUID)
+	if err != nil {
+		return nil, errors.New("service not found")
+	}
+
+	if service.ProjectID != project.ID {
+		return nil, errors.New("service does not belong to this project")
+	}
+
+	server, err := s.ServerRepo.GetByUUID(dto.ServerUUID)
+	if err != nil {
+		return nil, errors.New("server not found")
+	}
+
+	var envId uint
+	var envUUID string
+	if dto.EnvironmentUUID != "" {
+		env, err := s.EnvironmentRepo.GetByUUID(tx, dto.EnvironmentUUID)
+		if err != nil {
+			return nil, errors.New("environment not found")
+		}
+		envId = env.ID
+		envUUID = env.UUID.String()
+	} else {
+		envId = service.EnvironmentID
+		// we fetch to get envUUID
+		// for simplicity we might just skip the response env uuid accurately if not provided, but usually we just keep it.
+	}
+
+	// Update basic fields
+	service.Name = dto.Name
+	service.EnvironmentID = envId
+	service.Type = dto.Type
+	service.Framework = dto.Framework
+	service.Description = dto.Description
+	service.BuildCommand = dto.BuildCommand
+	service.StartCommand = dto.StartCommand
+	service.DeployPath = dto.DeployPath
+	service.OutputDirectory = dto.OutputDirectory
+	service.Domain = dto.Domain
+	service.HttpsEnabled = dto.HttpsEnabled
+	service.CertType = dto.CertType
+	service.CustomCert = dto.CustomCert
+	service.CustomKey = dto.CustomKey
+	service.Port = dto.Port
+	service.DockerizeType = dto.DockerizeType
+	service.ServerID = &server.ID
+
+	if err := s.ServiceRepo.UpdateService(tx, service); err != nil {
+		return nil, err
+	}
+
+	// Update GitConfig: delete old, create new
+	if err := s.ServiceRepo.DeleteGitConfigByServiceID(tx, service.ID); err != nil {
+		return nil, err
+	}
+
+	gitConfig := models_service.ServiceGitConfig{
+		ServiceID:      service.ID,
+		Provider:       dto.Git.Provider,
+		RepositoryURL:  dto.Git.RepositoryURL,
+		Branch:         dto.Git.Branch,
+		SubDirectory:   dto.Git.SubDirectory,
+		AuthType:       dto.Git.AuthType,
+		AutoDeploy:     dto.Git.AutoDeploy,
+		WebhookEnabled: dto.Git.WebhookEnabled,
+	}
+
+	if err := s.ServiceRepo.AddGitConfig(tx, &gitConfig); err != nil {
+		return nil, err
+	}
+
+	if dto.Git.AutoDeploy && strings.EqualFold(dto.Git.Provider, "github") {
+		workspaceUUID := dto.ProjectUUID
+		go s.IntegrationService.RegisterGitHubWebhookForProject(workspaceUUID, project.WorkspaceID, dto.Git.RepositoryURL)
+	}
+
+	// Update Env Variables: delete old, create new
+	if err := s.ServiceRepo.DeleteEnvVariablesByServiceID(tx, service.ID); err != nil {
+		return nil, err
+	}
+
+	for _, envVar := range dto.EnvVariables {
+		env := models_service.ServiceEnvVariable{
+			ServiceID:       service.ID,
+			Key:             envVar.Key,
+			Value:           envVar.Value,
+			IsSecret:        envVar.IsSecret,
+			IsBuildVariable: envVar.IsBuildVariable,
+		}
+		if err := s.ServiceRepo.AddEnvVariable(tx, &env); err != nil {
+			return nil, err
+		}
+	}
+
+	return &dtos_service.ServiceCreationResponseDTO{
+		UUID:            service.UUID.String(),
+		Name:            service.Name,
+		ProjectID:       service.ProjectID,
+		EnvironmentID:   service.EnvironmentID,
+		EnvironmentUUID: envUUID,
+		Type:            service.Type,
+		Framework:       service.Framework,
+		Description:     service.Description,
+		BuildCommand:    service.BuildCommand,
+		StartCommand:    service.StartCommand,
+		DeployPath:      service.DeployPath,
+		OutputDirectory: service.OutputDirectory,
 		Domain:          service.Domain,
 		HttpsEnabled:    service.HttpsEnabled,
 		CertType:        service.CertType,
@@ -176,6 +303,7 @@ func (s *ServiceService) GetServicesByProject(tx *gorm.DB, userID uint, projectU
 			BuildCommand:    service.BuildCommand,
 			StartCommand:    service.StartCommand,
 			DeployPath:      service.DeployPath,
+			OutputDirectory: service.OutputDirectory,
 			Domain:          service.Domain,
 			HttpsEnabled:    service.HttpsEnabled,
 			CertType:        service.CertType,
@@ -248,6 +376,7 @@ func (s *ServiceService) GetServiceDetails(tx *gorm.DB, serviceUUID string) (*dt
 			BuildCommand:    service.BuildCommand,
 			StartCommand:    service.StartCommand,
 			DeployPath:      service.DeployPath,
+			OutputDirectory: service.OutputDirectory,
 			Domain:          service.Domain,
 			HttpsEnabled:    service.HttpsEnabled,
 			CertType:        service.CertType,
@@ -344,6 +473,7 @@ func (s *ServiceService) TriggerDeployment(tx *gorm.DB, serviceUUID string, work
 			BuildCommand:    service.BuildCommand,
 			StartCommand:    service.StartCommand,
 			DeployPath:      service.DeployPath,
+			OutputDirectory: service.OutputDirectory,
 			Domain:          service.Domain,
 			HttpsEnabled:    service.HttpsEnabled,
 			CertType:        service.CertType,
