@@ -18,7 +18,15 @@ interface InviteDetails {
   invitedBy: string;
   role: string;
 }
+import { Suspense } from "react";
 
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Authenticating...</div>}>
+      <WorkspaceInvite />
+    </Suspense>
+  );
+}
 const WorkspaceInvite = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,9 +38,9 @@ const WorkspaceInvite = () => {
   const { mutateAsync: getWorkspaceInviteByTokenAsync } =
     useGetWorkspaceInviteByToken();
 
-      const { mutateAsync: acceptWorkspaceInviteAsync } =
+  const { mutateAsync: acceptWorkspaceInviteAsync } =
     useAcceptWorkspaceInvite();
-      const { mutateAsync: declineWorkspaceInviteAsync } =
+  const { mutateAsync: declineWorkspaceInviteAsync } =
     useDeclineWorkspaceInvite();
   useEffect(() => {
     const validateInvite = async () => {
@@ -83,7 +91,7 @@ const WorkspaceInvite = () => {
 
   const handleAccept = async () => {
     try {
-      
+
       await acceptWorkspaceInviteAsync(searchParams.get("token")!);
 
       notifications.show({
@@ -100,10 +108,10 @@ const WorkspaceInvite = () => {
       });
     }
   };
-  
-  const handleDecline = async() => {
-  try {
-      
+
+  const handleDecline = async () => {
+    try {
+
       await declineWorkspaceInviteAsync(searchParams.get("token")!);
       notifications.show({
         color: "green",
@@ -270,4 +278,3 @@ const WorkspaceInvite = () => {
   );
 };
 
-export default WorkspaceInvite;

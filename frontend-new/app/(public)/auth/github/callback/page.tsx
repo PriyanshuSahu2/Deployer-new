@@ -5,6 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { IconBrandGithub, IconCheck, IconX } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 
+import { Suspense } from "react";
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Authenticating...</div>}>
+      <GithubCallback />
+    </Suspense>
+  );
+}
+
 const GithubCallback = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +53,7 @@ const GithubCallback = () => {
       try {
         setMessage("Finalizing authentication...");
 
-       
+
 
         await new Promise((r) => setTimeout(r, 1200));
 
@@ -88,13 +98,12 @@ const GithubCallback = () => {
               )}
 
               <div
-                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${
-                  status === "loading"
-                    ? "bg-gradient-to-br from-blue-500 to-purple-600"
-                    : status === "success"
+                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${status === "loading"
+                  ? "bg-gradient-to-br from-blue-500 to-purple-600"
+                  : status === "success"
                     ? "bg-gradient-to-br from-green-500 to-emerald-600"
                     : "bg-gradient-to-br from-red-500 to-rose-600"
-                }`}
+                  }`}
               >
                 {status === "loading" && (
                   <IconBrandGithub
@@ -157,4 +166,3 @@ const GithubCallback = () => {
   );
 };
 
-export default GithubCallback;

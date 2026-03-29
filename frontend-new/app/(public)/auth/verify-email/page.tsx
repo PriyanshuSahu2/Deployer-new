@@ -6,8 +6,16 @@ import { IconMailCheck, IconCheck, IconX } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { apiFetch } from "@/lib/api";
+import { Suspense } from "react";
 
-export default function VerifyEmailPage() {
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Authenticating...</div>}>
+      <VerifyEmailPage />
+    </Suspense>
+  );
+}
+function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -47,7 +55,7 @@ export default function VerifyEmailPage() {
         const axiosErr = err as AxiosLike;
         setMessage(
           axiosErr?.response?.data?.error ||
-            "Verification failed. Token may be invalid or expired.",
+          "Verification failed. Token may be invalid or expired.",
         );
 
         notifications.show({
@@ -68,13 +76,12 @@ export default function VerifyEmailPage() {
           {/* Status Icon */}
           <div className="flex justify-center mb-8">
             <div
-              className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${
-                status === "loading"
+              className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${status === "loading"
                   ? "bg-gradient-to-br from-purple-500 to-indigo-600"
                   : status === "success"
                     ? "bg-gradient-to-br from-green-500 to-emerald-600"
                     : "bg-gradient-to-br from-red-500 to-rose-600"
-              }`}
+                }`}
             >
               {status === "loading" && (
                 <IconMailCheck size={48} className="text-white animate-pulse" />

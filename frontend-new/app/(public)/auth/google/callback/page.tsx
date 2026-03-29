@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconBrandGoogle, IconCheck, IconX } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
+import { Suspense } from "react";
 
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Authenticating...</div>}>
+      <GoogleCallback />
+    </Suspense>
+  );
+}
 const GoogleCallback = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,13 +82,12 @@ const GoogleCallback = () => {
               )}
 
               <div
-                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${
-                  status === "loading"
-                    ? "bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500"
-                    : status === "success"
+                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${status === "loading"
+                  ? "bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500"
+                  : status === "success"
                     ? "bg-gradient-to-br from-green-500 to-emerald-600"
                     : "bg-gradient-to-br from-red-500 to-rose-600"
-                }`}
+                  }`}
               >
                 {status === "loading" && (
                   <IconBrandGoogle size={48} className="text-white animate-pulse" />
@@ -116,4 +123,3 @@ const GoogleCallback = () => {
   );
 };
 
-export default GoogleCallback;

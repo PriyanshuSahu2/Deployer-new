@@ -87,9 +87,12 @@ export default function InviteMemberModal() {
       await Promise.all(
         invitees.map((invitee) =>
           inviteMemberAsync({
-            user_email: invitee.email,
-            role_uuid: invitee.role,
-            workspace_uuid: workspaceId,
+
+            params: {
+              user_email: invitee.email,
+              role_uuid: invitee.role,
+            },
+            workspaceUUID: workspaceId,
           }),
         ),
       );

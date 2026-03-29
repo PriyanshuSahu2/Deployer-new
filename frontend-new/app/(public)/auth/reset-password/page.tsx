@@ -7,6 +7,15 @@ import { TextInput, PasswordInput, Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useResetPassword } from "@/hooks/useAuth";
 
+import { Suspense } from "react";
+
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Authenticating...</div>}>
+            <ResetPassword />
+        </Suspense>
+    );
+}
 const ResetPassword = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -199,4 +208,3 @@ const ResetPassword = () => {
     );
 };
 
-export default ResetPassword;
