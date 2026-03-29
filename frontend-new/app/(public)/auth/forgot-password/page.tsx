@@ -37,7 +37,7 @@ const ForgotPassword = () => {
 
     try {
       const res = await handleForgotPassword({ email });
-
+      //sent
       notifications.show({
         color: "green",
         title: "Email sent",
