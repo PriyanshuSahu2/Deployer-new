@@ -83,3 +83,46 @@ func (c *ServiceController) TriggerDeployment(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Deployment triggered successfully"})
 }
+
+func (c *ServiceController) GetServiceLogs(ctx *gin.Context) {
+	serviceUUID := ctx.Param("serviceUUID")
+
+	logs, err := c.Service.GetServiceLogs(serviceUUID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"logs": logs})
+}
+
+func (c *ServiceController) GetServiceDetails(ctx *gin.Context) {
+	serviceUUID := ctx.Param("serviceUUID")
+
+	details, err := c.Service.GetServiceDetails(nil, serviceUUID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, details)
+}
+
+func (c *ServiceController) ToggleAutoDeploy(ctx *gin.Context) {
+	serviceUUID := ctx.Param("serviceUUID")
+
+	var body struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid body"})
+		return
+	}
+
+	if err := c.Service.ToggleAutoDeploy(nil, serviceUUID, body.Enabled); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Auto-deploy updated", "enabled": body.Enabled})
+}

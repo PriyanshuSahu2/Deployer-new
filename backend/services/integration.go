@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -300,4 +301,66 @@ func (s *IntegrationService) GetProviderAccessToken(tx *gorm.DB, workspaceUUID s
 	}
 
 	return integration.AccessToken, nil
+}
+
+func (s *IntegrationService) RegisterGitHubWebhookForProject(projectUUID string, workspaceID uint, repositoryFullName string) {
+	repoName := strings.TrimPrefix(repositoryFullName, "https://github.com/")
+	repoName = strings.TrimPrefix(repoName, "github.com/")
+	repoName = strings.TrimSuffix(repoName, ".git")
+
+	integration, err := s.IntegrationRepo.GetIntegrationByProvider(db.DB, workspaceID, "github")
+	if err != nil {
+		fmt.Printf("[Webhook] Could not find GitHub integration for workspace %d: %v\n", workspaceID, err)
+		return
+	}
+
+	baseURL := os.Getenv("APP_BASE_URL")
+	if baseURL == "" {
+		fmt.Println("[Webhook] APP_BASE_URL not set, cannot register GitHub webhook")
+		return
+	}
+
+	webhookURL := baseURL + "/webhooks/github"
+
+	body := map[string]interface{}{
+		"name": "web",
+		"active": true,
+		"events": []string{"push"},
+		"config": map[string]string{
+			"url":          webhookURL,
+			"content_type": "json",
+			"insecure_ssl": "0",
+		},
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("[Webhook] Failed to marshal webhook body: %v\n", err)
+		return
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/hooks", repoName)
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		fmt.Printf("[Webhook] Failed to create request: %v\n", err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+integration.AccessToken)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("[Webhook] GitHub API call failed: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusCreated {
+		fmt.Printf("[Webhook] Successfully registered webhook for %s -> %s\n", repoName, webhookURL)
+	} else {
+		respBody, _ := io.ReadAll(resp.Body)
+		fmt.Printf("[Webhook] GitHub API returned status %d: %s\n", resp.StatusCode, string(respBody))
+	}
 }

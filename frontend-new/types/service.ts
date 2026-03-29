@@ -23,6 +23,8 @@ export interface CreateServicePayload {
     branch: string;
     subDirectory: string;
     authType: string;
+    autoDeploy?: boolean;
+    webhookEnabled?: boolean;
   };
   envVariables: {
     key: string;

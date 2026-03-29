@@ -10,6 +10,7 @@ import (
 	controller_server "backend/controllers/server"
 	controller_service "backend/controllers/service"
 	controller_workspace "backend/controllers/workspace"
+	controller_webhook "backend/controllers/webhook"
 	"backend/middleware"
 
 	"backend/db"
@@ -30,6 +31,7 @@ type Container struct {
 	PermissionMW              *middleware.PermissionMiddleware
 	IntegrationController     *controller_integration.IntegrationController
 	ServiceController         *controller_service.ServiceController
+	WebhookController         *controller_webhook.WebhookController
 }
 
 func NewContainer(emailService *services.EmailService) *Container {
@@ -76,7 +78,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	serverService := services.NewServerService(serverRepo, workspaceRepo, sshService)
 
 	deploymentService := services.NewDeploymentService(sshService, gitService)
-	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, deploymentService)
+	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, deploymentService, integrationService)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
@@ -99,6 +101,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	serviceController := controller_service.NewServiceController(serviceService)
 
 	workspaceController := controller_workspace.NewWorkspaceController(workspaceService)
+	webhookController := controller_webhook.NewWebhookController(serviceService)
 
 	workspaceMemberController := controller_workspace.NewWorkspaceMemberController(
 		workspaceMemberService,
@@ -123,5 +126,6 @@ func NewContainer(emailService *services.EmailService) *Container {
 		PermissionMW:              permissionMW,
 		IntegrationController:     integrationController,
 		ServiceController:         serviceController,
+		WebhookController:         webhookController,
 	}
 }

@@ -7,16 +7,20 @@ import (
 	models_service "backend/models/service"
 	"backend/repositories"
 	"errors"
+	"fmt"
+	"os"
+	"strings"
 
 	"gorm.io/gorm"
 )
 
 type ServiceService struct {
-	ServiceRepo       *repositories.ServiceRepository
-	ProjectRepo       *repositories.ProjectRepository
-	EnvironmentRepo   *repositories.EnvironmentRepository
-	ServerRepo        *repositories.ServerRepository
-	DeploymentService DeploymentService
+	ServiceRepo        *repositories.ServiceRepository
+	ProjectRepo        *repositories.ProjectRepository
+	EnvironmentRepo    *repositories.EnvironmentRepository
+	ServerRepo         *repositories.ServerRepository
+	DeploymentService  DeploymentService
+	IntegrationService *IntegrationService
 }
 
 func NewServiceService(
@@ -25,13 +29,15 @@ func NewServiceService(
 	environmentRepo *repositories.EnvironmentRepository,
 	serverRepo *repositories.ServerRepository,
 	deploymentService DeploymentService,
+	integrationService *IntegrationService,
 ) *ServiceService {
 	return &ServiceService{
-		ServiceRepo:       serviceRepo,
-		ProjectRepo:       projectRepo,
-		EnvironmentRepo:   environmentRepo,
-		ServerRepo:        serverRepo,
-		DeploymentService: deploymentService,
+		ServiceRepo:        serviceRepo,
+		ProjectRepo:        projectRepo,
+		EnvironmentRepo:    environmentRepo,
+		ServerRepo:         serverRepo,
+		DeploymentService:  deploymentService,
+		IntegrationService: integrationService,
 	}
 }
 
@@ -92,13 +98,21 @@ func (s *ServiceService) CreateService(tx *gorm.DB, userID uint, projectUUID str
 		ServiceID:     service.ID,
 		Provider:      dto.Git.Provider,
 		RepositoryURL: dto.Git.RepositoryURL,
-		Branch:        dto.Git.Branch,
-		SubDirectory:  dto.Git.SubDirectory,
-		AuthType:      dto.Git.AuthType,
+		Branch:         dto.Git.Branch,
+		SubDirectory:   dto.Git.SubDirectory,
+		AuthType:       dto.Git.AuthType,
+		AutoDeploy:     dto.Git.AutoDeploy,
+		WebhookEnabled: dto.Git.WebhookEnabled,
 	}
 
 	if err := s.ServiceRepo.AddGitConfig(tx, &gitConfig); err != nil {
 		return nil, err
+	}
+
+	// Auto-register GitHub webhook if AutoDeploy is enabled
+	if dto.Git.AutoDeploy && strings.EqualFold(dto.Git.Provider, "github") {
+		workspaceUUID := dto.ProjectUUID // use projectUUID to look up workspace in the goroutine
+		go s.IntegrationService.RegisterGitHubWebhookForProject(workspaceUUID, project.WorkspaceID, dto.Git.RepositoryURL)
 	}
 
 	for _, envVar := range dto.EnvVariables {
@@ -179,6 +193,88 @@ func (s *ServiceService) GetServiceByUUID(tx *gorm.DB, serviceUUID string) (*mod
 	return s.ServiceRepo.GetByUUID(tx, serviceUUID)
 }
 
+func (s *ServiceService) GetServiceDetails(tx *gorm.DB, serviceUUID string) (*dtos_service.ServiceDetailsResponseDTO, error) {
+	service, err := s.ServiceRepo.GetServiceWithDetails(tx, serviceUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	var gitConfigDTO *dtos_service.GitConfigDTO
+	if service.GitConfig != nil {
+		gitConfigDTO = &dtos_service.GitConfigDTO{
+			Provider:       service.GitConfig.Provider,
+			RepositoryURL:  service.GitConfig.RepositoryURL,
+			Branch:         service.GitConfig.Branch,
+			SubDirectory:   service.GitConfig.SubDirectory,
+			AuthType:       service.GitConfig.AuthType,
+			AutoDeploy:     service.GitConfig.AutoDeploy,
+			WebhookEnabled: service.GitConfig.WebhookEnabled,
+		}
+	}
+
+	var envVarsDTO []dtos_service.EnvVariableDTO
+	for _, env := range service.EnvVariables {
+		envVarsDTO = append(envVarsDTO, dtos_service.EnvVariableDTO{
+			Key:             env.Key,
+			Value:           env.Value,
+			IsSecret:        env.IsSecret,
+			IsBuildVariable: env.IsBuildVariable,
+		})
+	}
+
+	var serverConfigDTO *dtos_service.ServerConfigDTO
+	if service.Server != nil {
+		serverConfigDTO = &dtos_service.ServerConfigDTO{
+			ServerID: service.ServerID,
+			Name:     service.Server.Name,
+			Host:     service.Server.Host,
+			Port:     service.Server.Port,
+			Username: service.Server.Username,
+			PassKey:  service.Server.PassKey,
+			AuthType: service.Server.AuthType,
+		}
+	}
+
+	details := &dtos_service.ServiceDetailsResponseDTO{
+		ServiceCreationResponseDTO: dtos_service.ServiceCreationResponseDTO{
+			UUID:            service.UUID.String(),
+			Name:            service.Name,
+			ProjectID:       service.ProjectID,
+			EnvironmentID:   service.EnvironmentID,
+			EnvironmentUUID: service.Environment.UUID.String(),
+			Type:            service.Type,
+			Framework:       service.Framework,
+			Description:     service.Description,
+			BuildCommand:    service.BuildCommand,
+			StartCommand:    service.StartCommand,
+			DeployPath:      service.DeployPath,
+			Domain:          service.Domain,
+			HttpsEnabled:    service.HttpsEnabled,
+			CertType:        service.CertType,
+			CustomCert:      service.CustomCert,
+			CustomKey:       service.CustomKey,
+			Port:            service.Port,
+			DockerizeType:   service.DockerizeType,
+			CreatedAt:       service.CreatedAt.Format("2006-01-02 15:04:05"),
+		},
+		Git:          gitConfigDTO,
+		EnvVariables: envVarsDTO,
+		Server:       serverConfigDTO,
+		Project: &dtos_project.ProjectResponseDTO{
+			UUID:        service.Project.UUID.String(),
+			Name:        service.Project.Name,
+			Description: service.Project.Description,
+			WorkspaceID: service.Project.WorkspaceID,
+		},
+		Environment: &dtos_environment.ResponseEnvironmentDTO{
+			UUID: service.Environment.UUID.String(),
+			Name: service.Environment.Name,
+		},
+	}
+
+	return details, nil
+}
+
 func (s *ServiceService) TriggerDeployment(tx *gorm.DB, serviceUUID string, workspaceUUID string) error {
 	service, err := s.ServiceRepo.GetServiceWithDetails(tx, serviceUUID)
 	if err != nil {
@@ -190,8 +286,10 @@ func (s *ServiceService) TriggerDeployment(tx *gorm.DB, serviceUUID string, work
 			Provider:      service.GitConfig.Provider,
 			RepositoryURL: service.GitConfig.RepositoryURL,
 			Branch:        service.GitConfig.Branch,
-			SubDirectory:  service.GitConfig.SubDirectory,
-			AuthType:      service.GitConfig.AuthType,
+			SubDirectory:   service.GitConfig.SubDirectory,
+			AuthType:       service.GitConfig.AuthType,
+			AutoDeploy:     service.GitConfig.AutoDeploy,
+			WebhookEnabled: service.GitConfig.WebhookEnabled,
 		}
 	}
 
@@ -264,4 +362,55 @@ func (s *ServiceService) TriggerDeployment(tx *gorm.DB, serviceUUID string, work
 	go s.DeploymentService.RunDeployment(&serviceDetails, serviceUUID, workspaceUUID)
 
 	return nil
+}
+
+func (s *ServiceService) GetServiceLogs(serviceUUID string) (string, error) {
+	logFilePath := fmt.Sprintf("logs/deployments/%s.log", serviceUUID)
+	data, err := os.ReadFile(logFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil // No logs yet
+		}
+		return "", err
+	}
+	return string(data), nil
+}
+
+func (s *ServiceService) ToggleAutoDeploy(tx *gorm.DB, serviceUUID string, enabled bool) error {
+	if err := s.ServiceRepo.ToggleAutoDeploy(tx, serviceUUID, enabled); err != nil {
+		return err
+	}
+
+	// If enabling, ensure the GitHub webhook is registered
+	if enabled && s.IntegrationService != nil {
+		service, err := s.ServiceRepo.GetServiceWithDetails(tx, serviceUUID)
+		if err == nil && service.GitConfig != nil && strings.EqualFold(service.GitConfig.Provider, "github") {
+			go s.IntegrationService.RegisterGitHubWebhookForProject(
+				"", service.Project.WorkspaceID, service.GitConfig.RepositoryURL,
+			)
+		}
+	}
+
+	return nil
+}
+
+func (s *ServiceService) ProcessGitHubWebhook(full_name string, branch string) {
+	fmt.Printf("Processing GitHub webhook for urls %v branch %s\n", full_name, branch)
+
+	gitConfigs, err := s.ServiceRepo.GetServicesByRepoAndBranch(nil, full_name, branch)
+	if err != nil {
+		fmt.Printf("Error finding services for webhook: %v\n", err)
+		return
+	}
+
+	for _, config := range gitConfigs {
+		if config.Service.UUID.String() != "" {
+			fmt.Printf("Auto-deploying service: %s\n", config.Service.Name)
+			workspaceUUID := config.Service.Project.Workspace.UUID.String()
+			err = s.TriggerDeployment(nil, config.Service.UUID.String(), workspaceUUID)
+			if err != nil {
+				fmt.Printf("Auto-deploy failed for %s: %v\n", config.Service.Name, err)
+			}
+		}
+	}
 }

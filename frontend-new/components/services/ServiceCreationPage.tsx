@@ -457,6 +457,8 @@ export default function ServiceCreationPage({
           branch: values.branch,
           subDirectory: values.rootFolder || '/',
           authType: 'token',
+          autoDeploy: values.autoDeployOnPush,
+          webhookEnabled: true,
         },
         envVariables: values.envVars
           .filter((v) => v.key.trim() !== '')

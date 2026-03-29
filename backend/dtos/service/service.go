@@ -66,6 +66,9 @@ type GitConfigDTO struct {
 	SubDirectory  string `json:"subDirectory"`
 
 	AuthType string `json:"authType"`
+
+	AutoDeploy     bool `json:"autoDeploy"`
+	WebhookEnabled bool `json:"webhookEnabled"`
 }
 
 type EnvVariableDTO struct {

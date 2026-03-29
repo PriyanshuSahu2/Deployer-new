@@ -125,7 +125,12 @@ export default function ServiceList({ workspaceId, projectId, environmentId }: S
                     >
                       <IconPlayerPlay size={16} />
                     </ActionIcon>
-                    <ActionIcon variant="light" color="blue" title="Open Deployment">
+                    <ActionIcon
+                      variant="light"
+                      color="blue"
+                      title="Open Deployment"
+                      onClick={() => router.push(`/app/${workspaceId}/projects/${projectId}/services/${service.uuid}`)}
+                    >
                       <IconExternalLink size={16} />
                     </ActionIcon>
                     <ActionIcon variant="light" color="gray" title="Settings">

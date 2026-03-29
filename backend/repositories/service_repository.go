@@ -86,3 +86,35 @@ func (r *ServiceRepository) GetServiceWithDetails(tx *gorm.DB, serviceUUID strin
 
 	return &service, err
 }
+
+func (r *ServiceRepository) GetServicesByRepoAndBranch(tx *gorm.DB, full_name string, branch string) ([]models_service.ServiceGitConfig, error) {
+	var gitConfigs []models_service.ServiceGitConfig
+	query := db.DB
+
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Preload("Service").
+		Preload("Service.Project").
+		Preload("Service.Project.Workspace").
+		Where("repository_url = ? AND branch = ? AND auto_deploy = ?", full_name, branch, true).
+		Find(&gitConfigs).Error
+
+	return gitConfigs, err
+}
+
+func (r *ServiceRepository) ToggleAutoDeploy(tx *gorm.DB, serviceUUID string, enabled bool) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	var service models_service.Service
+	if err := query.Select("id").Where("uuid = ?", serviceUUID).First(&service).Error; err != nil {
+		return err
+	}
+	return query.Model(&models_service.ServiceGitConfig{}).
+		Where("service_id = ?", service.ID).
+		Update("auto_deploy", enabled).Error
+}
