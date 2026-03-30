@@ -188,22 +188,22 @@ func (s *deploymentService) BuildService(sshClient SSHClient, service *dtos_serv
 	go func() {
 		defer close(logChan)
 
-		// Generate .env file on the server
-		if len(service.EnvVariables) > 0 {
-			var envContent strings.Builder
-			for _, env := range service.EnvVariables {
-				envContent.WriteString(fmt.Sprintf("%s=%s\n", env.Key, env.Value))
-			}
-			encodedEnv := base64.StdEncoding.EncodeToString([]byte(envContent.String()))
-			writeEnvCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/.env > /dev/null", encodedEnv, path)
-			if _, err := sshClient.RunCommand(writeEnvCmd); err != nil {
-				errChan <- fmt.Errorf("Error writing .env file: %v", err)
-				return
-			}
-			logChan <- "\033[36mSuccessfully wrote .env file to project directory.\033[0m"
+		// Generate .env file on the server (Always create it to prevent docker-compose from failing)
+		var envContent strings.Builder
+		for _, env := range service.EnvVariables {
+			envContent.WriteString(fmt.Sprintf("%s=%s\n", env.Key, env.Value))
 		}
+		encodedEnv := base64.StdEncoding.EncodeToString([]byte(envContent.String()))
+		logChan <- fmt.Sprintf("\033[36mWriting .env file to: %s/.env\033[0m", path)
+		writeEnvCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/.env > /dev/null", encodedEnv, path)
+		if _, err := sshClient.RunCommand(writeEnvCmd); err != nil {
+			errChan <- fmt.Errorf("Error writing .env file: %v", err)
+			return
+		}
+		logChan <- "\033[32mEnvironment file (.env) prepared successfully.\033[0m"
 
-		if service.DockerizeType == "compose" {
+		switch service.DockerizeType {
+		case "compose":
 			logChan <- "\033[36mUsing Docker Compose for deployment as specified...\033[0m"
 			// Check for docker-compose.yml or docker-compose.yaml
 			checkCmd := fmt.Sprintf("[ -f \"%s/docker-compose.yml\" ] || [ -f \"%s/docker-compose.yaml\" ] && echo 'exists' || echo 'not_exists'", path, path)
@@ -220,7 +220,7 @@ func (s *deploymentService) BuildService(sshClient SSHClient, service *dtos_serv
 				return
 			}
 			logChan <- "\033[32mDocker Compose deployment successful!\033[0m"
-		} else if service.DockerizeType == "auto" {
+		case "auto":
 			switch service.Framework {
 			case "node":
 				startCmd := service.StartCommand

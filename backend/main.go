@@ -27,10 +27,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
-	_ "backend/docs"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func init() {
@@ -169,10 +165,6 @@ func main() {
 			"message": "Good",
 		})
 	})
-
-	/* ---------------- SWAGGER ---------------- */
-
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	/* ---------------- SERVER ---------------- */
 
