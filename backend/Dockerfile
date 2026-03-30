@@ -14,8 +14,11 @@ RUN go mod download
 # Copy the rest of the source code
 COPY . .
 
-# Build the main application
-RUN CGO_ENABLED=0 GOOS=linux go build -o main main.go
+# Build the main API application
+RUN CGO_ENABLED=0 GOOS=linux go build -o api-main main.go
+
+# Build the worker application
+RUN CGO_ENABLED=0 GOOS=linux go build -o worker-main cmd/worker/main.go
 
 # Stage 2: Runtime phase
 FROM alpine:latest
@@ -26,11 +29,12 @@ RUN apk add --no-cache ca-certificates
 # Set the working directory
 WORKDIR /app
 
-# Copy the binary from the builder stage
-COPY --from=builder /app/main .
+# Copy both binaries from the builder stage
+COPY --from=builder /app/api-main .
+COPY --from=builder /app/worker-main .
 
 # Expose the API port
 EXPOSE 8080
 
-# Environment-based entry command
-CMD ["./main"]
+# Default command (can be overridden in docker-compose)
+CMD ["./api-main"]

@@ -4,6 +4,7 @@ services:
   backend:
     build: .
     container_name: deployer-backend
+    command: ./api-main
     ports:
       - "8080:8080"
     environment:
@@ -16,6 +17,21 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - deployer-network
+
+  worker:
+    build: .
+    container_name: deployer-worker
+    command: ./worker-main
+    environment:
+      - DB_DSN=host=db user=postgres password=postgres dbname=deployer port=5432 sslmode=disable
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      db:
+        condition: service_healthy
       rabbitmq:
         condition: service_started
     networks:

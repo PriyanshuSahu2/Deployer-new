@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
@@ -22,6 +23,10 @@ func ConnectRedis() {
 	addr := os.Getenv("REDIS_ADDR")
 	if addr == "" {
 		addr = "localhost:6379"
+	} else {
+		// Redis address should not include protocol
+		addr = strings.TrimPrefix(addr, "http://")
+		addr = strings.TrimPrefix(addr, "https://")
 	}
 
 	Client = redis.NewClient(&redis.Options{
