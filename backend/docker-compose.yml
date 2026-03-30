@@ -5,13 +5,13 @@ services:
     build: .
     container_name: deployer-backend
     command: ./api-main
+    env_file: .env
     ports:
       - "8080:8080"
     environment:
       - DB_DSN=host=db user=postgres password=postgres dbname=deployer port=5432 sslmode=disable
       - REDIS_ADDR=redis:6379
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - FRONTEND_URL=http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
@@ -26,6 +26,7 @@ services:
     build: .
     container_name: deployer-worker
     command: ./worker-main
+    env_file: .env
     environment:
       - DB_DSN=host=db user=postgres password=postgres dbname=deployer port=5432 sslmode=disable
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/

@@ -7,8 +7,8 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache git
 
-# Copy dependency files first for layer caching
-COPY go.mod go.sum ./
+# Copy dependency files and .env for build-time configuration
+COPY go.mod go.sum .env* ./
 RUN go mod download
 
 # Copy the rest of the source code
