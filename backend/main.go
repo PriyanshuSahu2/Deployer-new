@@ -26,7 +26,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-
 )
 
 func init() {
@@ -35,7 +34,11 @@ func init() {
 
 func main() {
 
-	gin.SetMode(gin.DebugMode)
+	mode := os.Getenv("GIN_MODE")
+	if mode == "" {
+		mode = gin.DebugMode
+	}
+	gin.SetMode(mode)
 
 	r := gin.Default()
 	r.Use(gin.Recovery())

@@ -29,9 +29,10 @@ RUN apk add --no-cache ca-certificates
 # Set the working directory
 WORKDIR /app
 
-# Copy both binaries from the builder stage
+# Copy both binaries and the .env file from the builder stage
 COPY --from=builder /app/api-main .
 COPY --from=builder /app/worker-main .
+COPY --from=builder /app/.env* .
 
 # Expose the API port
 EXPOSE 8080
