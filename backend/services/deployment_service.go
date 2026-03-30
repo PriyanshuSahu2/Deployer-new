@@ -141,7 +141,7 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 		return
 	}
 
-	if service.Type != "static" && service.Type != "frontend" {
+	if service.Type != "static" && service.Type != "frontend" && service.DockerizeType != "compose" {
 		if !isUpdate {
 			err = s.SetupSystemd(sshClient, service, buildPath, logger)
 			if err != nil {
@@ -188,7 +188,39 @@ func (s *deploymentService) BuildService(sshClient SSHClient, service *dtos_serv
 	go func() {
 		defer close(logChan)
 
-		if service.DockerizeType == "auto" {
+		// Generate .env file on the server
+		if len(service.EnvVariables) > 0 {
+			var envContent strings.Builder
+			for _, env := range service.EnvVariables {
+				envContent.WriteString(fmt.Sprintf("%s=%s\n", env.Key, env.Value))
+			}
+			encodedEnv := base64.StdEncoding.EncodeToString([]byte(envContent.String()))
+			writeEnvCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/.env > /dev/null", encodedEnv, path)
+			if _, err := sshClient.RunCommand(writeEnvCmd); err != nil {
+				errChan <- fmt.Errorf("Error writing .env file: %v", err)
+				return
+			}
+			logChan <- "\033[36mSuccessfully wrote .env file to project directory.\033[0m"
+		}
+
+		if service.DockerizeType == "compose" {
+			logChan <- "\033[36mUsing Docker Compose for deployment as specified...\033[0m"
+			// Check for docker-compose.yml or docker-compose.yaml
+			checkCmd := fmt.Sprintf("[ -f \"%s/docker-compose.yml\" ] || [ -f \"%s/docker-compose.yaml\" ] && echo 'exists' || echo 'not_exists'", path, path)
+			out, _ := sshClient.RunCommand(checkCmd)
+			if strings.TrimSpace(out) != "exists" {
+				errChan <- fmt.Errorf("docker-compose.yml or docker-compose.yaml not found in project root")
+				return
+			}
+
+			composeCmd := fmt.Sprintf("cd %s && sudo docker compose up -d --build", path)
+			err := sshClient.RunCommandStream(composeCmd, logChan)
+			if err != nil {
+				errChan <- fmt.Errorf("Error running docker compose: %v", err)
+				return
+			}
+			logChan <- "\033[32mDocker Compose deployment successful!\033[0m"
+		} else if service.DockerizeType == "auto" {
 			switch service.Framework {
 			case "node":
 				startCmd := service.StartCommand
@@ -218,6 +250,38 @@ func (s *deploymentService) BuildService(sshClient SSHClient, service *dtos_serv
 					return
 				}
 				logChan <- "\033[36mAuto-generated Bun Dockerfile successfully.\033[0m"
+			case "go":
+				startCmd := service.StartCommand
+				if startCmd == "" {
+					startCmd = "./main"
+				}
+				buildCmd := service.BuildCommand
+				if buildCmd == "" {
+					buildCmd = "go build -o main ."
+				}
+				dockerfile := fmt.Sprintf(GoDockerfileTemplate, buildCmd, service.Port, service.Port, startCmd)
+
+				encodedDf := base64.StdEncoding.EncodeToString([]byte(dockerfile))
+				writeCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/Dockerfile > /dev/null", encodedDf, path)
+				if _, err := sshClient.RunCommand(writeCmd); err != nil {
+					errChan <- fmt.Errorf("Error writing Dockerfile: %v", err)
+					return
+				}
+				logChan <- "\033[36mAuto-generated Go Dockerfile successfully.\033[0m"
+			case "python":
+				startCmd := service.StartCommand
+				if startCmd == "" {
+					startCmd = "python main.py"
+				}
+				dockerfile := fmt.Sprintf(PythonDockerfileTemplate, service.BuildCommand, service.Port, service.Port, startCmd)
+
+				encodedDf := base64.StdEncoding.EncodeToString([]byte(dockerfile))
+				writeCmd := fmt.Sprintf("echo '%s' | base64 -d | sudo tee %s/Dockerfile > /dev/null", encodedDf, path)
+				if _, err := sshClient.RunCommand(writeCmd); err != nil {
+					errChan <- fmt.Errorf("Error writing Dockerfile: %v", err)
+					return
+				}
+				logChan <- "\033[36mAuto-generated Python Dockerfile successfully.\033[0m"
 			}
 		}
 

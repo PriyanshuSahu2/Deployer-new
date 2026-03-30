@@ -5,6 +5,7 @@ import {
   Badge,
   Box,
   Button,
+  FileButton,
   Collapse,
   Divider,
   Group,
@@ -37,6 +38,9 @@ import {
   IconPlayerPlay,
   IconPlus,
   IconTrash,
+  IconUpload,
+  IconEye,
+  IconEyeOff,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -238,6 +242,39 @@ export default function ServiceCreationPage({
     deploy: false,
     observability: false,
   });
+  const [showEnv, setShowEnv] = useState(false);
+
+  const handleEnvUpload = (file: File | null) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const lines = content.split('\n');
+      const newEnvVars = lines
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'))
+        .map((line) => {
+          const index = line.indexOf('=');
+          if (index === -1) return { key: line, value: '' };
+          return {
+            key: line.slice(0, index).trim(),
+            value: line.slice(index + 1).trim().replace(/^["']|["']$/g, ''), // Remove quotes if present
+          };
+        })
+        .filter((v) => v.key);
+
+      if (newEnvVars.length > 0) {
+        form.setFieldValue('envVars', newEnvVars);
+        notifications.show({
+          title: 'Environment variables imported',
+          message: `Imported ${newEnvVars.length} variables from ${file.name}`,
+          color: 'teal',
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Record<StepKey, HTMLDivElement | null>>({
     service: null,
@@ -691,6 +728,7 @@ export default function ServiceCreationPage({
                       data={[
                         { value: 'auto', label: 'Dockerize on the go' },
                         { value: 'custom', label: 'Dockerfile is present' },
+                        { value: 'compose', label: 'Docker Compose' },
                       ]}
                       placeholder='Select dockerize type'
                       withAsterisk
@@ -703,18 +741,22 @@ export default function ServiceCreationPage({
                       withAsterisk
                       {...form.getInputProps('framework')}
                     />
-                    <TextInput
-                      label='Build Command'
-                      placeholder='npm run build'
-                      withAsterisk
-                      {...form.getInputProps('buildCommand')}
-                    />
-                    <TextInput
-                      label='Start Command'
-                      placeholder='npm run start'
-                      withAsterisk
-                      {...form.getInputProps('startCommand')}
-                    />
+                    {form.values.dockerizeType !== 'compose' && (
+                      <>
+                        <TextInput
+                          label='Build Command'
+                          placeholder='npm run build'
+                          withAsterisk
+                          {...form.getInputProps('buildCommand')}
+                        />
+                        <TextInput
+                          label='Start Command'
+                          placeholder='npm run start'
+                          withAsterisk
+                          {...form.getInputProps('startCommand')}
+                        />
+                      </>
+                    )}
                     {(form.values.serviceType === 'static' || form.values.serviceType === 'frontend') && (
                       <TextInput
                         label='Output Folder Name'
@@ -912,18 +954,40 @@ export default function ServiceCreationPage({
                     title='Basic'
                     description='Runtime key-value pairs passed to the service.'
                   />
-                  <Group justify='space-between' align='center'>
+                  <Group justify='space-between' align='center' wrap='nowrap'>
                     <Divider style={{ flex: 1 }} />
-                    <Button
-                      type='button'
-                      variant='subtle'
-                      size='xs'
-                      leftSection={<IconPlus size={14} />}
-                      onClick={() =>
-                        form.insertListItem('envVars', { key: '', value: '' })
-                      }>
-                      Add Variable
-                    </Button>
+                    <Group gap="xs">
+                      <FileButton onChange={handleEnvUpload} accept=".env,text/plain">
+                        {(props) => (
+                          <Button
+                            {...props}
+                            variant="subtle"
+                            size="xs"
+                            leftSection={<IconUpload size={14} />}
+                          >
+                            Upload .env
+                          </Button>
+                        )}
+                      </FileButton>
+                      <Button
+                        variant="subtle"
+                        size="xs"
+                        leftSection={showEnv ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                        onClick={() => setShowEnv(!showEnv)}
+                      >
+                        {showEnv ? 'Hide Values' : 'Show Values'}
+                      </Button>
+                      <Button
+                        type='button'
+                        variant='subtle'
+                        size='xs'
+                        leftSection={<IconPlus size={14} />}
+                        onClick={() =>
+                          form.insertListItem('envVars', { key: '', value: '' })
+                        }>
+                        Add Variable
+                      </Button>
+                    </Group>
                   </Group>
                   <Stack gap='md'>
                     {form.values.envVars.map((_, index) => (
@@ -942,6 +1006,7 @@ export default function ServiceCreationPage({
                             label={index === 0 ? 'Value' : undefined}
                             placeholder='postgres://...'
                             withAsterisk
+                            type={showEnv ? 'text' : 'password'}
                             {...form.getInputProps(`envVars.${index}.value`)}
                           />
                         </SimpleGrid>

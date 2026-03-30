@@ -3,8 +3,10 @@ package redisclient
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -13,8 +15,17 @@ var (
 )
 
 func ConnectRedis() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("Note: .env file not found, using system environment variables")
+	}
+
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:6379"
+	}
+
 	Client = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     addr,
 		Password: "",
 		DB:       0,
 	})

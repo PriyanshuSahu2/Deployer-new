@@ -24,6 +24,30 @@ EXPOSE %d
 CMD %s
 `
 
+const GoDockerfileTemplate = `
+FROM golang:1.22-alpine
+WORKDIR /app
+COPY go.mod go.sum* ./
+RUN go mod download || true
+COPY . .
+RUN %s
+ENV PORT=%d
+EXPOSE %d
+CMD %s
+`
+
+const PythonDockerfileTemplate = `
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt* ./
+RUN pip install --no-cache-dir -r requirements.txt || true
+COPY . .
+RUN %s
+ENV PORT=%d
+EXPOSE %d
+CMD %s
+`
+
 const SystemdServiceTemplate = `[Unit]
 Description=%[1]s service Docker container
 Requires=docker.service
@@ -32,10 +56,12 @@ After=docker.service
 [Service]
 Restart=always
 RestartSec=10
+StartLimitIntervalSec=0
 ExecStartPre=-/usr/bin/docker stop %[2]s
 ExecStartPre=-/usr/bin/docker rm %[2]s
-ExecStart=/usr/bin/docker run --name %[2]s --rm -p %[3]d:%[3]d %[2]s
+ExecStart=/usr/bin/docker run --name %[2]s -p %[3]d:%[3]d %[2]s
 ExecStop=/usr/bin/docker stop %[2]s
+ExecStopPost=-/usr/bin/docker rm %[2]s
 
 SyslogIdentifier=%[1]s
 
