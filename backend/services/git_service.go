@@ -74,6 +74,10 @@ func (g *gitServiceImpl) SwitchBranch(sshClient SSHClient, path string, branch s
 }
 
 func (g *gitServiceImpl) Pull(sshClient SSHClient, path string) (string, error) {
-	cmd := fmt.Sprintf("cd %s && git pull", path)
+	// 1. Fetch latest changes from all remotes
+	// 2. Force reset the current branch to match its upstream counterpart (@{u})
+	// This ensures that local file changes on the server (like generated Dockerfiles)
+	// do not cause merge conflicts during deployment.
+	cmd := fmt.Sprintf("cd %s && git fetch --all && git reset --hard @{u}", path)
 	return sshClient.RunCommand(cmd)
 }

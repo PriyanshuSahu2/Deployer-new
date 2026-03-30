@@ -15,10 +15,10 @@ RUN go mod download
 COPY . .
 
 # Build the main API application
-RUN CGO_ENABLED=0 GOOS=linux go build -o api-main main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o api-main main.go
 
 # Build the worker application
-RUN CGO_ENABLED=0 GOOS=linux go build -o worker-main cmd/worker/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o worker-main cmd/worker/main.go
 
 # Stage 2: Runtime phase
 FROM alpine:latest

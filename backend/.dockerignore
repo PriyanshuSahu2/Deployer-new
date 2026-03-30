@@ -1,0 +1,11 @@
+.git
+.vscode
+node_modules
+frontend
+tmp
+logs
+__debug_bin*
+backend
+*.exe
+*.test
+*.prof
