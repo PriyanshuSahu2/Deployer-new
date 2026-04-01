@@ -3,7 +3,7 @@ package services
 const NodeDockerfileTemplate = `
 FROM node:20-alpine
 WORKDIR /app
-COPY package*.json ./
+COPY package*.json .env* ./
 RUN npm install
 COPY . .
 RUN %s
@@ -15,7 +15,7 @@ CMD %s
 const BunDockerfileTemplate = `
 FROM oven/bun:alpine
 WORKDIR /app
-COPY package*.json bun.lockb* ./
+COPY package*.json bun.lockb* .env* ./
 RUN bun install
 COPY . .
 RUN %s
@@ -39,7 +39,7 @@ CMD %s
 const PythonDockerfileTemplate = `
 FROM python:3.11-slim
 WORKDIR /app
-COPY requirements.txt* ./
+COPY requirements.txt* .env* ./
 RUN pip install --no-cache-dir -r requirements.txt || true
 COPY . .
 RUN %s
