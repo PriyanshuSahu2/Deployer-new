@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const BASE_URL = process.env.NEXT_BACKEND_URL
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL
 
 export const publicRequest = axios.create({
     baseURL: BASE_URL,
