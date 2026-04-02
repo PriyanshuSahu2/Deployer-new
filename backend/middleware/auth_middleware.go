@@ -23,11 +23,10 @@ func ValidateRequest() gin.HandlerFunc {
 
 		authHeaders, err := c.Cookie("access_token")
 		if err != nil || authHeaders == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token Not Found"})
-			c.Abort()
-			return
+			authHeaders = c.Query("token")
 		}
-		if len(authHeaders) == 0 {
+
+		if authHeaders == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token Not Found"})
 			c.Abort()
 			return
@@ -76,7 +75,6 @@ func ValidateRequest() gin.HandlerFunc {
 		}
 
 		c.Set("userID", userID)
-
 		c.Next()
 	}
 }

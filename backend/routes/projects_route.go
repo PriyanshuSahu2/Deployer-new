@@ -8,7 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectController *controller_project.ProjectController, serviceController *controller_service.ServiceController, permissionMiddleWare *middleware.PermissionMiddleware) {
+func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectController *controller_project.ProjectController, serviceController *controller_service.ServiceController, logController *controller_service.LogController, permissionMiddleWare *middleware.PermissionMiddleware) {
+	r.GET("/workspaces/:workspaceUUID/projects/:uuid/services/:serviceUUID/stream", logController.StreamLogs)
+
 	projects := workspaceRoute.Group("/projects")
 
 	projects.Use(middleware.ValidateRequest())
@@ -26,6 +28,7 @@ func ProjectRoutes(r *gin.Engine, workspaceRoute *gin.RouterGroup, projectContro
 		projects.GET("/:uuid/services/:serviceUUID", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServiceDetails)
 		projects.PUT("/:uuid/services/:serviceUUID", permissionMiddleWare.RequirePermission("service:update"), serviceController.UpdateService)
 		projects.GET("/:uuid/services/:serviceUUID/logs", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServiceLogs)
+		projects.GET("/:uuid/services/:serviceUUID/runtime-logs", permissionMiddleWare.RequirePermission("service:read"), serviceController.GetServiceRuntimeLogs)
 		projects.PATCH("/:uuid/services/:serviceUUID/auto-deploy", permissionMiddleWare.RequirePermission("service:update"), serviceController.ToggleAutoDeploy)
 	}
 }

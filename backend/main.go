@@ -17,6 +17,7 @@ import (
 	redisclient "backend/redis"
 	"backend/routes"
 	"backend/services"
+	"backend/worker"
 
 	"log"
 	"net/http"
@@ -44,7 +45,7 @@ func main() {
 	r.Use(gin.Recovery())
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001", "https://deployer.myapico.live"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -91,11 +92,17 @@ func main() {
 		&models_service.Service{},
 		&models_service.ServiceGitConfig{},
 		&models_service.ServiceEnvVariable{},
+		&models_service.Deployment{},
 	)
 
 	/* ---------------- CONTAINER ---------------- */
 
-	c := container.NewContainer(emailService)
+	c := container.NewContainer(emailService, rmq)
+
+	/* ---------------- WORKERS ---------------- */
+
+	go worker.StartEmailConsumer(rmq, emailService)
+	go worker.StartDeploymentConsumer(rmq, c.ServiceController.Service)
 
 	/* ---------------- ROUTES ---------------- */
 
@@ -121,6 +128,7 @@ func main() {
 		workspaceRoute,
 		c.ProjectController,
 		c.ServiceController,
+		c.LogController,
 		c.PermissionMW,
 	)
 
@@ -146,6 +154,7 @@ func main() {
 		c.MemberController,
 		c.PermissionMW,
 	)
+	routes.DashboardRoutes(workspaceRoute, c.DashboardController, c.PermissionMW)
 
 	/* ---------------- HEALTH ROUTES ---------------- */
 

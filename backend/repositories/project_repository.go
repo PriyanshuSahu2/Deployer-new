@@ -3,6 +3,7 @@ package repositories
 import (
 	"backend/db"
 	models_project "backend/models/project"
+	models_service "backend/models/service"
 	"gorm.io/gorm"
 )
 
@@ -63,4 +64,27 @@ func (r *ProjectRepository) Delete(tx *gorm.DB, project *models_project.Project)
 		query = tx
 	}
 	return query.Delete(project).Error
+}
+
+func (r *ProjectRepository) CountByWorkspace(tx *gorm.DB, workspaceID uint) (int64, error) {
+	var count int64
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	err := query.Model(&models_project.Project{}).Where("workspace_id = ?", workspaceID).Count(&count).Error
+	return count, err
+}
+
+func (r *ProjectRepository) CountServicesByWorkspace(tx *gorm.DB, workspaceID uint) (int64, error) {
+	var count int64
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	err := query.Model(&models_service.Service{}).
+		Joins("JOIN projects ON projects.id = services.project_id").
+		Where("projects.workspace_id = ?", workspaceID).
+		Count(&count).Error
+	return count, err
 }

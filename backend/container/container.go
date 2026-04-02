@@ -12,6 +12,7 @@ import (
 	controller_workspace "backend/controllers/workspace"
 	controller_webhook "backend/controllers/webhook"
 	"backend/middleware"
+	"backend/rabbitmq"
 
 	"backend/db"
 	redisclient "backend/redis"
@@ -32,9 +33,11 @@ type Container struct {
 	IntegrationController     *controller_integration.IntegrationController
 	ServiceController         *controller_service.ServiceController
 	WebhookController         *controller_webhook.WebhookController
+	DashboardController       *controller_workspace.DashboardController
+	LogController             *controller_service.LogController
 }
 
-func NewContainer(emailService *services.EmailService) *Container {
+func NewContainer(emailService *services.EmailService, rmq *rabbitmq.RabbitMQ) *Container {
 
 	/* ---------------- REPOSITORIES ---------------- */
 
@@ -49,6 +52,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	serviceRepo := repositories.NewServiceRepository()
 	redisRepo := repositories.NewRedisRepository(redisclient.Client)
 	integrationRepo := repositories.NewIntegrationRepository()
+	deploymentRepo := repositories.NewDeploymentRepository()
 
 	/* ---------------- SERVICES ---------------- */
 
@@ -77,8 +81,8 @@ func NewContainer(emailService *services.EmailService) *Container {
 	sshService := services.NewSSHService()
 	serverService := services.NewServerService(serverRepo, workspaceRepo, sshService)
 
-	deploymentService := services.NewDeploymentService(sshService, gitService)
-	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, deploymentService, integrationService)
+	deploymentService := services.NewDeploymentService(sshService, gitService, serviceRepo, deploymentRepo)
+	serviceService := services.NewServiceService(serviceRepo, projectRepo, environmentRepo, serverRepo, deploymentService, integrationService, rmq, deploymentRepo, sshService)
 
 	workspaceMemberService := services.NewWorkspaceMemberService(
 		userRepo,
@@ -90,6 +94,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 	)
 
 	memberService := services.NewMemberService(memberRepo, workspaceRepo)
+	dashboardService := services.NewDashboardService(workspaceRepo, projectRepo, serviceRepo, serverRepo, deploymentRepo)
 
 	/* ---------------- CONTROLLERS ---------------- */
 
@@ -110,6 +115,11 @@ func NewContainer(emailService *services.EmailService) *Container {
 	memberController := controller_member.NewMemberController(memberService)
 	authController := controllers_auth.NewAuthController(emailService, workspaceService, memberService)
 	integrationController := controller_integration.NewIntegrationController(integrationService)
+	dashboardController := controller_workspace.NewDashboardController(dashboardService)
+
+	logStreamer := services.NewLogStreamer(serviceService, sshService)
+	logController := controller_service.NewLogController(logStreamer)
+
 	/* ---------------- RETURN CONTAINER ---------------- */
 
 	permissionMW := middleware.NewPermissionMiddleware(roleService, workspaceRepo)
@@ -127,5 +137,7 @@ func NewContainer(emailService *services.EmailService) *Container {
 		IntegrationController:     integrationController,
 		ServiceController:         serviceController,
 		WebhookController:         webhookController,
+		DashboardController:       dashboardController,
+		LogController:             logController,
 	}
 }

@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 
 async function getPermissions(workspaceId: string) {
   const res = await fetch(
-    `${process.env.NEXT_BACKEND_URL}/workspaces/${workspaceId}/me/permissions`,
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/workspaces/${workspaceId}/me/permissions`,
     { next: { revalidate: 60 } }
   );
 

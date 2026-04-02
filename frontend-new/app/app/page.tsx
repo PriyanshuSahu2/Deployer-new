@@ -6,7 +6,7 @@ export default async function AppRootPage() {
 
   const cookiesHeader = (await cookieStore).toString();
 
-  const res = await fetch(`${process.env.BACKEND_URL}/workspaces/default`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/workspaces/default`, {
     headers: {
       Cookie: cookiesHeader,
     },
@@ -22,5 +22,5 @@ export default async function AppRootPage() {
 
   const data = await res.json();
 
-  redirect(`/app/${data.uuid}`);
+  redirect(`/app/${data.uuid}/overview`);
 }

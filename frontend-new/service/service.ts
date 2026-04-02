@@ -31,3 +31,7 @@ export const toggleAutoDeploy = (workspaceUUID: string, projectUUID: string, ser
     { enabled }
   );
 };
+
+export const getServiceRuntimeLogs = (workspaceUUID: string, projectUUID: string, serviceUUID: string) => {
+  return privateRequest.get<{ logs: string }>(`/workspaces/${workspaceUUID}/projects/${projectUUID}/services/${serviceUUID}/runtime-logs`);
+};

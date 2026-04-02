@@ -88,6 +88,7 @@ type ServiceCreationResponseDTO struct {
 	CustomKey    string `json:"customKey"`
 
 	CreatedAt    string `json:"createdAt"`
+	Status       string `json:"status"` // Current operational status
 }
 
 type GitConfigDTO struct {
@@ -128,4 +129,6 @@ type ServiceDetailsResponseDTO struct {
 	Server                     *ServerConfigDTO                         `json:"server"`
 	Project                    *dtos_project.ProjectResponseDTO         `json:"project"`
 	Environment                *dtos_environment.ResponseEnvironmentDTO `json:"environment"`
+	LatestDeploymentStatus     string                                   `json:"latestDeploymentStatus"`
+	LatestDeploymentUUID       string                                   `json:"latestDeploymentUuid"`
 }

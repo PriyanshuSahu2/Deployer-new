@@ -1,10 +1,10 @@
 "use client"
-import { useParams } from 'next/navigation';
-import { useGetServiceLogs, useTriggerDeployment, useToggleAutoDeploy, useGetServiceDetails } from '@/hooks/useServices';
-import { Card, Text, Group, ScrollArea, Loader, ThemeIcon, Button, Badge, Skeleton, Paper, CopyButton, ActionIcon, Tooltip, Stack, Switch } from '@mantine/core';
+import { useParams, useRouter } from 'next/navigation';
+import { useTriggerDeployment, useToggleAutoDeploy, useGetServiceDetails } from '@/hooks/useServices';
+import { useLogStream } from '@/hooks/useLogStream';
+import { Card, Text, Group, ScrollArea, Loader, ThemeIcon, Button, Badge, Skeleton, Paper, CopyButton, ActionIcon, Tooltip, Stack, Switch, Tabs } from '@mantine/core';
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { IconTerminal2, IconPlayerPlay, IconCopy, IconCheck, IconPencil } from '@tabler/icons-react';
+import { IconTerminal2, IconPlayerPlay, IconCopy, IconCheck, IconPencil, IconClock, IconX, IconActivity } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 
 const parseAnsi = (text: string) => {
@@ -56,7 +56,6 @@ export default function ServiceDetailsPage() {
   const projectId = params.projectId as string;
   const serviceId = params.serviceId as string;
 
-  const { data, isLoading, isError } = useGetServiceLogs(workspaceId, projectId, serviceId);
   const { data: serviceDetailsResponse, isLoading: servicesLoading } = useGetServiceDetails(workspaceId, projectId, serviceId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const service = (serviceDetailsResponse as any)?.data ?? serviceDetailsResponse;
@@ -64,7 +63,53 @@ export default function ServiceDetailsPage() {
   const { mutateAsync: triggerDeployAsync, isPending: isDeploying } = useTriggerDeployment(workspaceId, projectId);
   const { mutateAsync: toggleAutoDeployAsync, isPending: isTogglingAutoDeploy } = useToggleAutoDeploy(workspaceId, projectId);
 
+  const isBusy = service?.latestDeploymentStatus === 'pending' || service?.latestDeploymentStatus === 'deploying';
+
+  const { logs: deploymentLogs, isConnected: isDeploymentWsConnected, error: deploymentWsError } = useLogStream(workspaceId, projectId, serviceId, 'deployment', true);
+  const { logs: runtimeLogs, isConnected: isRuntimeWsConnected, error: runtimeWsError } = useLogStream(workspaceId, projectId, serviceId, 'runtime', true);
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const runtimeViewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (viewportRef.current) {
+      viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [deploymentLogs]);
+
+  useEffect(() => {
+    if (runtimeViewportRef.current) {
+      runtimeViewportRef.current.scrollTo({ top: runtimeViewportRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [runtimeLogs]);
+
+  const getStatusBadge = () => {
+    if (!service) return <Badge color="green" size="sm">Active</Badge>;
+    
+    const status = service.latestDeploymentStatus?.toLowerCase();
+    switch (status) {
+      case 'pending':
+        return <Badge color="yellow" variant="light" size="sm" leftSection={<IconClock size={12} />}>Queued</Badge>;
+      case 'deploying':
+        return <Badge color="blue" variant="light" size="sm" leftSection={<Loader size={10} />}>Deploying</Badge>;
+      case 'success':
+        return <Badge color="green" variant="light" size="sm" leftSection={<IconCheck size={12} />}>Deployed</Badge>;
+      case 'failed':
+        return <Badge color="red" variant="light" size="sm" leftSection={<IconX size={12} />}>Failed</Badge>;
+      default:
+        return <Badge color="green" size="sm">Active</Badge>;
+    }
+  };
+
   const handleDeploy = async () => {
+    if (isBusy) {
+      notifications.show({
+        title: 'Deployment in Progress',
+        message: 'A deployment is already queued or in progress for this service.',
+        color: 'orange',
+      });
+      return;
+    }
     try {
       await triggerDeployAsync(serviceId);
       notifications.show({
@@ -82,14 +127,6 @@ export default function ServiceDetailsPage() {
     }
   };
 
-  const viewportRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (viewportRef.current) {
-      viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
-    }
-  }, [data?.data.logs]);
-
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
       <Group justify="space-between" mb="lg">
@@ -98,13 +135,15 @@ export default function ServiceDetailsPage() {
             <IconTerminal2 size={24} />
           </ThemeIcon>
           <div>
-            <Text size="xl" fw={700}>Service Details</Text>
+            <Group gap="xs" align="center">
+              <Text size="xl" fw={700}>Service Details</Text>
+              {service && getStatusBadge()}
+            </Group>
             {service ? (
               <Group gap="xs" mt={2}>
                 <Text fw={500} size="sm">{service.name}</Text>
                 <Badge color="blue" variant="light" size="sm">{service.type}</Badge>
                 <Badge color="violet" variant="light" size="sm">{service.framework}</Badge>
-                <Badge color="green" size="sm">Active</Badge>
               </Group>
             ) : (
               <Text c="dimmed" size="sm">Console logs and details for {serviceId}</Text>
@@ -120,14 +159,17 @@ export default function ServiceDetailsPage() {
           >
             Edit
           </Button>
-          <Button
-            leftSection={<IconPlayerPlay size={16} />}
-            color="teal"
-            onClick={handleDeploy}
-            loading={isDeploying}
-          >
-            Deploy Now
-          </Button>
+          <Tooltip label={isBusy ? "A deployment is already in progress" : "Deploy latest version"} disabled={!isBusy}>
+            <Button
+              leftSection={<IconPlayerPlay size={16} />}
+              color="teal"
+              onClick={handleDeploy}
+              loading={isDeploying}
+              disabled={isBusy}
+            >
+              {isBusy ? (service.latestDeploymentStatus === 'pending' ? 'Queued' : 'Deploying...') : 'Deploy Now'}
+            </Button>
+          </Tooltip>
         </Group>
       </Group>
 
@@ -204,45 +246,94 @@ export default function ServiceDetailsPage() {
         </Paper>
       ) : null}
 
-      <Card shadow="sm" p="0" radius="md" withBorder style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#eab308' }} />
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-          <Text size="xs" c="dimmed" ml="sm" style={{ fontFamily: 'monospace' }}>bash - deployer</Text>
-        </div>
+      <Tabs defaultValue="deployment" variant="pills" color="blue" radius="md">
+        <Tabs.List mb="md">
+          <Tabs.Tab value="deployment" leftSection={<IconTerminal2 size={16} />}>Deployment Logs</Tabs.Tab>
+          <Tabs.Tab value="runtime" leftSection={<IconActivity size={16} />}>Service Logs (Runtime)</Tabs.Tab>
+        </Tabs.List>
 
-        <ScrollArea h={600} viewportRef={viewportRef} style={{ padding: '16px' }}>
-          {isLoading && (
-            <Group py="xl">
-              <Loader size="sm" variant="dots" color="gray" />
-              <Text c="dimmed" size="sm" style={{ fontFamily: 'monospace' }}>Connecting to log stream...</Text>
-            </Group>
-          )}
+        <Tabs.Panel value="deployment">
+          <Card shadow="sm" p="0" radius="md" withBorder style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#eab308' }} />
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+              <Text size="xs" c="dimmed" ml="sm" style={{ fontFamily: 'monospace' }}>deployment-logs</Text>
+              {!isDeploymentWsConnected && <Badge color="red" variant="dot" size="xs" ml="auto">Offline</Badge>}
+              {isDeploymentWsConnected && <Badge color="green" variant="dot" size="xs" ml="auto">Streaming</Badge>}
+            </div>
 
-          {isError && (
-            <Text c="red" size="sm" style={{ fontFamily: 'monospace' }}>Failed to load deployment logs. The log file may not exist yet or the server is unreachable.</Text>
-          )}
+            <ScrollArea h={600} viewportRef={viewportRef} style={{ padding: '16px' }}>
+              {!isDeploymentWsConnected && !deploymentLogs && (
+                <Group py="xl">
+                  <Loader size="sm" variant="dots" color="gray" />
+                  <Text c="dimmed" size="sm" style={{ fontFamily: 'monospace' }}>Connecting to log stream...</Text>
+                </Group>
+              )}
 
-          {data && !data.data.logs && (
-            <Text c="dimmed" size="sm" style={{ fontFamily: 'monospace' }}>Waiting for deployment to start...</Text>
-          )}
+              {deploymentWsError && (
+                <Text c="red" size="sm" style={{ fontFamily: 'monospace' }}>{deploymentWsError}</Text>
+              )}
 
-          {data?.data.logs && (
-            <pre style={{
-              margin: 0,
-              fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace',
-              fontSize: '13px',
-              lineHeight: '1.6',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              color: '#e5e7eb'
-            }}>
-              {parseAnsi(data.data.logs)}
-            </pre>
-          )}
-        </ScrollArea>
-      </Card>
+              {deploymentLogs && (
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace',
+                  fontSize: '13px',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: '#e5e7eb'
+                }}>
+                  {parseAnsi(deploymentLogs)}
+                </pre>
+              )}
+            </ScrollArea>
+          </Card>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="runtime">
+          <Card shadow="sm" p="0" radius="md" withBorder style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#eab308' }} />
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+              <Text size="xs" c="dimmed" ml="sm" style={{ fontFamily: 'monospace' }}>service-runtime-logs</Text>
+              {!isRuntimeWsConnected && <Badge color="red" variant="dot" size="xs" ml="auto">Offline</Badge>}
+              {isRuntimeWsConnected && <Badge color="green" variant="dot" size="xs" ml="auto">Streaming</Badge>}
+            </div>
+
+            <ScrollArea h={600} viewportRef={runtimeViewportRef} style={{ padding: '16px' }}>
+              {!isRuntimeWsConnected && !runtimeLogs && (
+                <Group py="xl">
+                  <Loader size="sm" variant="dots" color="gray" />
+                  <Text c="dimmed" size="sm" style={{ fontFamily: 'monospace' }}>Connecting to runtime stream...</Text>
+                </Group>
+              )}
+
+              {runtimeWsError && (
+                <Text c="red" size="sm" style={{ fontFamily: 'monospace' }}>{runtimeWsError}</Text>
+              )}
+
+              {runtimeLogs ? (
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace',
+                  fontSize: '13px',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: '#e5e7eb'
+                }}>
+                  {parseAnsi(runtimeLogs)}
+                </pre>
+              ) : isRuntimeWsConnected && (
+                <Text c="dimmed" size="sm" style={{ fontFamily: 'monospace' }}>Waiting for output...</Text>
+              )}
+            </ScrollArea>
+          </Card>
+        </Tabs.Panel>
+      </Tabs>
     </div>
   );
 }

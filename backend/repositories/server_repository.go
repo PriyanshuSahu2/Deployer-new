@@ -3,6 +3,7 @@ package repositories
 import (
 	"backend/db"
 	models_server "backend/models/server"
+	"gorm.io/gorm"
 )
 
 type ServerRepository struct{}
@@ -45,4 +46,14 @@ func (r *ServerRepository) ListByWorkspace(workspaceID uint) ([]models_server.Se
 
 func (r *ServerRepository) Delete(server *models_server.Server) error {
 	return db.DB.Delete(server).Error
+}
+
+func (r *ServerRepository) CountByWorkspace(tx *gorm.DB, workspaceID uint) (int64, error) {
+	var count int64
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	err := query.Model(&models_server.Server{}).Where("workspace_id = ?", workspaceID).Count(&count).Error
+	return count, err
 }

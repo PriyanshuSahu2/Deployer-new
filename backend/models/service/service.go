@@ -34,4 +34,5 @@ type Service struct {
 
 	GitConfig     *ServiceGitConfig    `gorm:"foreignKey:ServiceID"`
 	EnvVariables  []ServiceEnvVariable `gorm:"foreignKey:ServiceID"`
+	Status        string               `gorm:"type:varchar(20);default:'idle'"` // 'idle', 'deploying', 'success', 'failed'
 }

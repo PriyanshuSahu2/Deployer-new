@@ -25,3 +25,4 @@ export const resetPassword = (body: {
 }) => privateRequest.post('/auth/reset-password', body);
 
 export const getMe = () => privateRequest.get('/auth/me');
+export const getWSTicket = () => privateRequest.post('/auth/ws-ticket');

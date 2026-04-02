@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { createService, updateService, getServices, triggerDeployment, getServiceLogs, toggleAutoDeploy, getServiceDetails } from '@/service/service';
+import { createService, updateService, getServices, triggerDeployment, getServiceLogs, toggleAutoDeploy, getServiceDetails, getServiceRuntimeLogs } from '@/service/service';
 import type { CreateServicePayload, UpdateServicePayload } from '@/types/service';
 
 export const useCreateService = (workspaceUUID: string, projectUUID: string) => {
@@ -65,5 +65,14 @@ export const useGetServiceDetails = (workspaceUUID: string, projectUUID: string,
     queryKey: ['serviceDetails', serviceUUID],
     queryFn: () => getServiceDetails(workspaceUUID, projectUUID, serviceUUID),
     enabled: !!workspaceUUID && !!projectUUID && !!serviceUUID,
+  });
+};
+
+export const useGetServiceRuntimeLogs = (workspaceUUID: string, projectUUID: string, serviceUUID: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['serviceRuntimeLogs', serviceUUID],
+    queryFn: () => getServiceRuntimeLogs(workspaceUUID, projectUUID, serviceUUID),
+    enabled: !!workspaceUUID && !!projectUUID && !!serviceUUID && enabled,
+    refetchInterval: 5000,
   });
 };

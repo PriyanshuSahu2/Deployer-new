@@ -2,14 +2,17 @@ package services
 
 import (
 	dtos_service "backend/dtos/service"
+	models_service "backend/models/service"
+	"backend/repositories"
 	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 type DeploymentService interface {
-	RunDeployment(service *dtos_service.ServiceDetailsResponseDTO, serviceUUID string, workspaceUUID string)
+	RunDeployment(service *dtos_service.ServiceDetailsResponseDTO, serviceUUID string, workspaceUUID string, deploymentUUID string)
 	CreateDir(sshClient SSHClient, path string, logger func(string)) error
 	TransferPermission(sshClient SSHClient, username string, path string, logger func(string)) error
 	BuildService(sshClient SSHClient, service *dtos_service.ServiceDetailsResponseDTO, path string, logger func(string)) error
@@ -19,18 +22,22 @@ type DeploymentService interface {
 }
 
 type deploymentService struct {
-	SSHService SSHService
-	GitService GitService
+	SSHService     SSHService
+	GitService     GitService
+	ServiceRepo    *repositories.ServiceRepository
+	DeploymentRepo *repositories.DeploymentRepository
 }
 
-func NewDeploymentService(sshService SSHService, gitService GitService) DeploymentService {
+func NewDeploymentService(sshService SSHService, gitService GitService, serviceRepo *repositories.ServiceRepository, deploymentRepo *repositories.DeploymentRepository) DeploymentService {
 	return &deploymentService{
-		SSHService: sshService,
-		GitService: gitService,
+		SSHService:     sshService,
+		GitService:     gitService,
+		ServiceRepo:    serviceRepo,
+		DeploymentRepo: deploymentRepo,
 	}
 }
 
-func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsResponseDTO, serviceUUID string, workspaceUUID string) {
+func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsResponseDTO, serviceUUID string, workspaceUUID string, deploymentUUID string) {
 	logDir := "logs/deployments"
 	os.MkdirAll(logDir, os.ModePerm)
 	logFile, _ := os.OpenFile(fmt.Sprintf("%s/%s.log", logDir, serviceUUID), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
@@ -38,14 +45,39 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 		defer logFile.Close()
 	}
 
+	var logBuilder strings.Builder
+
 	logger := func(msg string) {
 		fmt.Println(msg)
+		logBuilder.WriteString(msg + "\n")
 		if logFile != nil {
 			logFile.WriteString(msg + "\n")
 		}
 	}
 
 	logger(fmt.Sprintf("\033[36mStarting deployment for service %s...\033[0m", service.Name))
+
+	// Get service details
+	dbService, _ := s.ServiceRepo.GetByUUID(nil, serviceUUID)
+
+	// Fetch existing deployment record or create a fallback
+	deployment, err := s.DeploymentRepo.GetByUUID(nil, deploymentUUID)
+	if err != nil || deployment == nil {
+		logger("\033[33mWarning: existing deployment record not found, creating new one.\033[0m")
+		deployment = &models_service.Deployment{
+			ServiceID: dbService.ID,
+			Status:    "deploying",
+			StartTime: time.Now(),
+		}
+		s.DeploymentRepo.Create(nil, deployment)
+	} else {
+		deployment.Status = "deploying"
+		deployment.StartTime = time.Now()
+		s.DeploymentRepo.Update(nil, deployment)
+	}
+
+	dbService.Status = "deploying"
+	s.ServiceRepo.UpdateService(nil, dbService)
 
 	sshClient, err := s.SSHService.Connect(
 		service.Server.Host,
@@ -55,6 +87,13 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 	)
 	if err != nil {
 		logger(fmt.Sprintf("\033[31mError connecting to ssh: %v\033[0m", err))
+		deployment.Status = "failed"
+		deployment.Logs = logBuilder.String()
+		now := time.Now()
+		deployment.EndTime = &now
+		s.DeploymentRepo.Update(nil, deployment)
+		dbService.Status = "failed"
+		s.ServiceRepo.UpdateService(nil, dbService)
 		return
 	}
 	defer sshClient.Close()
@@ -168,6 +207,15 @@ func (s *deploymentService) RunDeployment(service *dtos_service.ServiceDetailsRe
 		logger("\033[32mCleanup complete.\033[0m")
 	}
 	logger("\033[32m\033[1mDeployment finished successfully!\033[0m")
+
+	deployment.Status = "success"
+	deployment.Logs = logBuilder.String()
+	now := time.Now()
+	deployment.EndTime = &now
+	s.DeploymentRepo.Update(nil, deployment)
+
+	dbService.Status = "success"
+	s.ServiceRepo.UpdateService(nil, dbService)
 }
 
 func (s *deploymentService) CreateDir(sshClient SSHClient, path string, logger func(string)) error {

@@ -1,7 +1,7 @@
 'use client';
 
-import { Button, Center, Paper, Stack, Text, ThemeIcon, Table, Group, Badge, ActionIcon, Skeleton } from '@mantine/core';
-import { IconPlus, IconServer, IconExternalLink, IconSettings, IconPlayerPlay } from '@tabler/icons-react';
+import { Button, Center, Paper, Stack, Text, ThemeIcon, Table, Group, Badge, ActionIcon, Skeleton, Tooltip, Loader } from '@mantine/core';
+import { IconPlus, IconServer, IconExternalLink, IconSettings, IconPlayerPlay, IconClock, IconCheck, IconX, IconPencil } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useGetServices, useTriggerDeployment } from '@/hooks/useServices';
 import { notifications } from '@mantine/notifications';
@@ -114,30 +114,52 @@ export default function ServiceList({ workspaceId, projectId, environmentId }: S
                 </Table.Td>
                 <Table.Td>{service.framework}</Table.Td>
                 <Table.Td>
-                  <Badge color="green">Active</Badge>
+                  {(() => {
+                    const status = service.status?.toLowerCase();
+                    switch (status) {
+                      case 'pending':
+                        return <Badge color="yellow" variant="light" leftSection={<IconClock size={12} />}>Queued</Badge>;
+                      case 'deploying':
+                        return <Badge color="blue" variant="light" leftSection={<Loader size={10} />}>Deploying</Badge>;
+                      case 'success':
+                        return <Badge color="green" variant="light" leftSection={<IconCheck size={12} />}>Deployed</Badge>;
+                      case 'failed':
+                        return <Badge color="red" variant="light" leftSection={<IconX size={12} />}>Failed</Badge>;
+                      default:
+                        return <Badge color="green">Active</Badge>;
+                    }
+                  })()}
                 </Table.Td>
                 <Table.Td>{service.createdAt}</Table.Td>
                 <Table.Td>
                   <Group gap="xs" justify="flex-end">
-                    <ActionIcon
-                      variant="light"
-                      color="teal"
-                      title="Deploy"
-                      loading={isDeploying}
-                      onClick={() => handleDeploy(service.uuid, service.name)}
-                    >
-                      <IconPlayerPlay size={16} />
-                    </ActionIcon>
+                    <Tooltip label={ (service.status === 'pending' || service.status === 'deploying') ? "Deployment in progress" : "Deploy Now" }>
+                      <ActionIcon
+                        variant="light"
+                        color="teal"
+                        title="Deploy"
+                        loading={isDeploying}
+                        disabled={service.status === 'pending' || service.status === 'deploying'}
+                        onClick={() => handleDeploy(service.uuid, service.name)}
+                      >
+                        <IconPlayerPlay size={16} />
+                      </ActionIcon>
+                    </Tooltip>
                     <ActionIcon
                       variant="light"
                       color="blue"
-                      title="Open Deployment"
+                      title="Edit Service"
+                      onClick={() => router.push(`/app/${workspaceId}/projects/${projectId}/services/${service.uuid}/edit`)}
+                    >
+                      <IconPencil size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                      variant="light"
+                      color="gray"
+                      title="Open Service"
                       onClick={() => router.push(`/app/${workspaceId}/projects/${projectId}/services/${service.uuid}`)}
                     >
                       <IconExternalLink size={16} />
-                    </ActionIcon>
-                    <ActionIcon variant="light" color="gray" title="Settings">
-                      <IconSettings size={16} />
                     </ActionIcon>
                   </Group>
                 </Table.Td>

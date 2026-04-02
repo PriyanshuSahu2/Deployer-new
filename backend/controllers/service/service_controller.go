@@ -152,3 +152,15 @@ func (c *ServiceController) ToggleAutoDeploy(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Auto-deploy updated", "enabled": body.Enabled})
 }
+
+func (c *ServiceController) GetServiceRuntimeLogs(ctx *gin.Context) {
+	serviceUUID := ctx.Param("serviceUUID")
+
+	logs, err := c.Service.GetServiceRuntimeLogs(nil, serviceUUID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"logs": logs})
+}

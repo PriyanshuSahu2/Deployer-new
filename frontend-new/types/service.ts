@@ -39,6 +39,8 @@ export type UpdateServicePayload = CreateServicePayload;
 
 export interface ServiceDetails extends Service {
   environmentUuid?: string;
+  latestDeploymentStatus?: string;
+  latestDeploymentUuid?: string;
   git?: {
     provider: string;
     repositoryUrl: string;
@@ -97,4 +99,5 @@ export interface Service {
   customKey?: string;
 
   createdAt: string;
+  status?: string;
 }

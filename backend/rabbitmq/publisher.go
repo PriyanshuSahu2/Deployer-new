@@ -14,7 +14,26 @@ func (r *RabbitMQ) PublishEmail(message interface{}) error {
 
 	return r.Channel.Publish(
 		EmailExchange,
-		RoutingKey,
+		EmailRoutingKey,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent,
+			Body:         body,
+		},
+	)
+}
+
+func (r *RabbitMQ) PublishDeployment(message interface{}) error {
+	body, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	return r.Channel.Publish(
+		DeploymentExchange,
+		DeploymentRoutingKey,
 		false,
 		false,
 		amqp.Publishing{
