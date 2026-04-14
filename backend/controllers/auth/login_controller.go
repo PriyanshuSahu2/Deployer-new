@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -63,11 +62,7 @@ func (a *AuthController) Login(c *gin.Context) {
 			}
 			db.DB.Create(&otpRecord)
 
-			frontendURL := os.Getenv("FRONTEND_URL")
-			if frontendURL == "" {
-				frontendURL = "http://localhost:5173/auth"
-			}
-			verificationLink := frontendURL + "/verify-email?token=" + token
+			verificationLink := utils.BuildFrontendVerificationLink(token)
 			go a.emailService.SendEmailVerification(foundUser.Email, foundUser.Username, verificationLink)
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{

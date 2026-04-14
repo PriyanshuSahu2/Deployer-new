@@ -253,12 +253,14 @@ export default function Header() {
 
             <Menu.Item
               leftSection={<IconUser size={15} stroke={1.75} />}
-              style={{ fontSize: 13 }}>
+              style={{ fontSize: 13 }}
+              onClick={() => router.push('/app/profile')}>
               Profile
             </Menu.Item>
             <Menu.Item
               leftSection={<IconSettings size={15} stroke={1.75} />}
-              style={{ fontSize: 13 }}>
+              style={{ fontSize: 13 }}
+              onClick={() => router.push('/app/account-settings')}>
               Account Settings
             </Menu.Item>
 

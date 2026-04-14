@@ -150,7 +150,7 @@ const SignupForm = () => {
         message: (res as { data?: { message?: string } })?.data?.message || "Registration successful!",
       });
 
-      router.push("/login");
+      router.push("/auth/login");
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "Something went wrong";
       notifications.show({

@@ -9,8 +9,8 @@ import (
 	controller_roles "backend/controllers/roles"
 	controller_server "backend/controllers/server"
 	controller_service "backend/controllers/service"
-	controller_workspace "backend/controllers/workspace"
 	controller_webhook "backend/controllers/webhook"
+	controller_workspace "backend/controllers/workspace"
 	"backend/middleware"
 	"backend/rabbitmq"
 

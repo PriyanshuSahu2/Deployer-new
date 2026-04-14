@@ -46,7 +46,7 @@ function VerifyEmailPage() {
         setMessage((res as { data?: { message?: string } })?.data?.message || "Email verified successfully!");
 
         setTimeout(() => {
-          router.replace("/login");
+          router.replace("/auth/login");
         }, 3000);
       } catch (err: unknown) {
         console.error(err);
@@ -107,7 +107,7 @@ function VerifyEmailPage() {
               <div className="space-y-3 pt-4">
                 <Button
                   fullWidth
-                  onClick={() => router.push("/email-not-verified")}
+                  onClick={() => router.push("/auth/email-not-verified")}
                 >
                   Request New Link
                 </Button>
@@ -115,7 +115,7 @@ function VerifyEmailPage() {
                 <Button
                   fullWidth
                   variant="outline"
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push("/auth/login")}
                 >
                   Back to Login
                 </Button>

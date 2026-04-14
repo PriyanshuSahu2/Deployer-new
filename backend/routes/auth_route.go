@@ -21,6 +21,8 @@ func AuthRoutes(r *gin.Engine, authController *controllers_auth.AuthController) 
 		auth.GET("/github/callback", authController.GithubCallback)
 		auth.GET("/google/callback", authController.GoogleCallback)
 		auth.GET("/me", middleware.ValidateRequest(), authController.GetMe)
+		auth.PATCH("/profile", middleware.ValidateRequest(), authController.UpdateProfile)
+		auth.PATCH("/password", middleware.ValidateRequest(), authController.ChangePassword)
 		auth.POST("/ws-ticket", middleware.ValidateRequest(), authController.GenerateWSTicket)
 		auth.POST("/logout", authController.Logout)
 	}

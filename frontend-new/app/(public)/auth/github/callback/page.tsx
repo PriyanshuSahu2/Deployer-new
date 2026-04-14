@@ -46,7 +46,7 @@ const GithubCallback = () => {
           title: "GitHub login failed",
           message: "Authorization was denied",
         });
-        setTimeout(() => router.replace("/login"), 3000);
+        setTimeout(() => router.replace("/auth/login"), 3000);
         return;
       }
 
@@ -78,7 +78,7 @@ const GithubCallback = () => {
           title: "Authentication failed",
           message: "Something went wrong",
         });
-        setTimeout(() => router.replace("/login"), 3000);
+        setTimeout(() => router.replace("/auth/login"), 3000);
       }
     };
 
@@ -165,4 +165,3 @@ const GithubCallback = () => {
     </div>
   );
 };
-

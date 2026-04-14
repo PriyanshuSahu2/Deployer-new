@@ -198,7 +198,7 @@ func (a *AuthController) ResendVerificationEmail(c *gin.Context) {
 		return
 	}
 
-	verificationLink := "http://localhost:5173/auth/verify-email?token=" + token
+	verificationLink := utils.BuildFrontendVerificationLink(token)
 
 	go a.emailService.SendEmailVerification(body.Email, user.Username, verificationLink)
 

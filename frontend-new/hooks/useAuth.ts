@@ -4,6 +4,7 @@ import {
   login,
   logout,
   register,
+  resendVerification,
   resetPassword,
 } from '@/service/auth';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -29,6 +30,12 @@ export const useRegister = () => {
 export const useForgotPassword = () => {
   return useMutation({
     mutationFn: forgotPassword,
+  });
+};
+
+export const useResendVerification = () => {
+  return useMutation({
+    mutationFn: resendVerification,
   });
 };
 

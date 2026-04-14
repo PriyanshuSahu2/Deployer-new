@@ -84,6 +84,51 @@ func (s *RoleService) GetUserRoleID(tx *gorm.DB, workspaceUUID string, userID in
 	return roleID, nil
 }
 
+func (s *RoleService) EnsureSystemRoles(tx *gorm.DB, createdByID uint) (map[string]models_role.Role, error) {
+	query := tx
+	if query == nil {
+		return nil, errors.New("transaction is required")
+	}
+
+	systemRoles := []struct {
+		Name        string
+		Description string
+	}{
+		{"Owner", "Full access — all permissions granted automatically"},
+		{"Manager", "Administrative access with limited destructive actions"},
+		{"Viewer", "Read-only access across the workspace"},
+	}
+
+	roles := make(map[string]models_role.Role, len(systemRoles))
+
+	for _, item := range systemRoles {
+		role := models_role.Role{}
+		err := query.
+			Where("LOWER(TRIM(role_name)) = LOWER(TRIM(?)) AND is_system = ? AND workspace_id IS NULL", item.Name, true).
+			First(&role).Error
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, err
+			}
+
+			role = models_role.Role{
+				RoleName:    item.Name,
+				Description: item.Description,
+				WorkspaceID: nil,
+				CreatedByID: createdByID,
+				IsSystem:    true,
+			}
+			if err := query.Create(&role).Error; err != nil {
+				return nil, err
+			}
+		}
+
+		roles[item.Name] = role
+	}
+
+	return roles, nil
+}
+
 func (s *RoleService) CreateRole(tx *gorm.DB, userID uint, dto dtos_roles.CreateRoleDTO) error {
 
 	workspace, err := s.WorkspaceRepo.GetByUUID(tx, dto.WorkspaceUUID)

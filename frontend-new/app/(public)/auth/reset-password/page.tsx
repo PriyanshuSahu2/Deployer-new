@@ -96,7 +96,7 @@ const ResetPassword = () => {
             });
 
             setTimeout(() => {
-                router.push("/login");
+                router.push("/auth/login");
             }, 1500);
         } catch (err: unknown) {
             type AxiosLike = { response?: { data?: { message?: string } } };
@@ -207,4 +207,3 @@ const ResetPassword = () => {
         </div>
     );
 };
-

@@ -34,7 +34,7 @@ const GoogleCallback = () => {
           title: "Google login failed",
           message: "Authorization was denied",
         });
-        setTimeout(() => router.replace("/login"), 3000);
+        setTimeout(() => router.replace("/auth/login"), 3000);
         return;
       }
 
@@ -64,7 +64,7 @@ const GoogleCallback = () => {
           title: "Authentication failed",
           message: "Something went wrong",
         });
-        setTimeout(() => router.replace("/login"), 3000);
+        setTimeout(() => router.replace("/auth/login"), 3000);
       }
     };
 
@@ -122,4 +122,3 @@ const GoogleCallback = () => {
     </div>
   );
 };
-

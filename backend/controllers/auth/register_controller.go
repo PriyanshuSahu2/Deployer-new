@@ -7,7 +7,6 @@ import (
 	models_auth "backend/models/auth"
 	"backend/utils"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -70,25 +69,16 @@ func (a *AuthController) Register(c *gin.Context) {
 				return err
 			}
 
-			frontendURL := os.Getenv("FRONTEND_URL")
-			if frontendURL == "" {
-				frontendURL = "http://localhost:5173"
-			}
-			verificationLink := frontendURL + "/auth/verify-email?token=" + token
+			verificationLink := utils.BuildFrontendVerificationLink(token)
 
 			go a.emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationLink)
 		}
 
 		// 3. Create Workspace
-		workspace, err := a.workspaceService.CreateWorkspace(tx, newUser.ID, dtos_workspace.CreateWorkspaceDTO{
+		_, err = a.workspaceService.CreateWorkspace(tx, newUser.ID, dtos_workspace.CreateWorkspaceDTO{
 			Name: userBody.Username + "'s Workspace",
 		})
 		if err != nil {
-			return err
-		}
-
-		// 4. Add Internal Member (Owner)
-		if err := a.memberService.AddInternalMember(tx, workspace.ID, newUser.ID, 1, newUser.ID); err != nil {
 			return err
 		}
 

@@ -18,6 +18,9 @@ export const register = (body: {
 export const forgotPassword = (body: { email: string }) =>
   privateRequest.post('/auth/forgot-password', body);
 
+export const resendVerification = (body: { email: string }) =>
+  privateRequest.post('/auth/resend-verification', body);
+
 export const resetPassword = (body: {
   otp: string;
   email: string;

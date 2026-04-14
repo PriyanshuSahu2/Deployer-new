@@ -54,6 +54,16 @@ func (s *WorkspaceService) CreateWorkspace(tx *gorm.DB, userID uint, dto dtos_wo
 	}
 
 	err := query.Transaction(func(tx2 *gorm.DB) error {
+		systemRoles, err := s.RoleService.EnsureSystemRoles(tx2, userID)
+		if err != nil {
+			return err
+		}
+
+		ownerRole, exists := systemRoles["Owner"]
+		if !exists || ownerRole.ID == 0 {
+			return errors.New("owner role not found")
+		}
+
 		workspace = models_workspace.Workspace{
 			WorkspaceName: dto.Name,
 			OwnerID:       userID,
@@ -68,7 +78,9 @@ func (s *WorkspaceService) CreateWorkspace(tx *gorm.DB, userID uint, dto dtos_wo
 		if err := s.MemberRepo.Create(tx2, models_workspace.WorkspaceMember{
 			WorkspaceID: workspace.ID,
 			UserId:      userID,
+			RoleID:      ownerRole.ID,
 			Status:      "ACTIVE",
+			InvitedByID: userID,
 		}); err != nil {
 			return err
 		}
