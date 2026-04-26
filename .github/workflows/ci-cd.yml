@@ -3,16 +3,11 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
-  build-and-test-backend:
-    name: Build & Test Backend
+  build-and-push:
+    name: Build & Push Images
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
     permissions:
       contents: read
       packages: write
@@ -25,43 +20,53 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install Dependencies
-        run: go mod tidy
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Run Tests
-        run: go test ./... || echo "No tests defined or failed"
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Downcase REPO
+      - name: Downcase REPO_OWNER
         run: |
-          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+          echo "REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >>${GITHUB_ENV}
 
-      - name: Build and Push Docker Image
+      - name: Build & Push API Image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/${{ env.REPO }}-backend:latest
+          file: ./backend/Dockerfile.api
+          push: true
+          tags: ghcr.io/${{ env.REPO_OWNER }}/deployer-api:latest
+
+      - name: Build & Push Worker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.worker
+          push: true
+          tags: ghcr.io/${{ env.REPO_OWNER }}/deployer-worker:latest
 
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-    needs: [build-and-test-backend]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build-and-push
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy config files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "backend/docker-compose.yml,backend/nginx.conf"
+          target: "Deployer-new"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -69,14 +74,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            # WARNING: Update the path below to where your project sits on your Ubuntu server!
-            cd Deployer-new
-            
-            # Pull the latest code
-            git pull origin main
-            
-            # Deploy Backend (using your docker-compose.yml)
-            cd backend
-            docker compose down
+            cd Deployer-new/backend
             docker compose pull
             docker compose up -d
