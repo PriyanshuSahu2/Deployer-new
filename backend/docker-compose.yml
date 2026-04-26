@@ -5,6 +5,7 @@ services:
     build: .
     image: ghcr.io/priyanshusahu2/deployer-new-backend:latest
     container_name: deployer-backend
+    restart: always
     command: ./api-main
     env_file: .env
     ports:
@@ -19,7 +20,7 @@ services:
       redis:
         condition: service_started
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     networks:
       - deployer-network
 
@@ -27,6 +28,7 @@ services:
     build: .
     image: ghcr.io/priyanshusahu2/deployer-new-backend:latest
     container_name: deployer-worker
+    restart: always
     command: ./worker-main
     env_file: .env
     environment:
@@ -36,7 +38,7 @@ services:
       db:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     networks:
       - deployer-network
 
@@ -73,6 +75,11 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - deployer-network
 

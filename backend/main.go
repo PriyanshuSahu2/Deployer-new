@@ -60,9 +60,18 @@ func main() {
 
 	rabbitURL := os.Getenv("RABBITMQ_URL")
 
-	rmq, err := rabbitmq.NewRabbitMQ(rabbitURL)
+	var rmq *rabbitmq.RabbitMQ
+	var err error
+	for i := 0; i < 5; i++ {
+		rmq, err = rabbitmq.NewRabbitMQ(rabbitURL)
+		if err == nil {
+			break
+		}
+		log.Printf("RabbitMQ unavailable, retrying in 3 seconds... (%d/5)\n", i+1)
+		time.Sleep(3 * time.Second)
+	}
 	if err != nil {
-		log.Fatal("Failed to connect to RabbitMQ:", err)
+		log.Fatal("Failed to connect to RabbitMQ after retries:", err)
 	}
 
 	err = rmq.DeclareTopology()
