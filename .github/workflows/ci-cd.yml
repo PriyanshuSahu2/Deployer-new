@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             # WARNING: Update the path below to where your project sits on your Ubuntu server!
-            cd /path/to/your/project/Deployer-new
+            cd Deployer-new
             
             # Pull the latest code
             git pull origin main
