@@ -33,6 +33,22 @@ func (c *DashboardController) GetDashboardStats(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, stats)
 }
 
+func (c *DashboardController) GetOverview(ctx *gin.Context) {
+	workspaceUUID := ctx.Param("workspaceUUID")
+	if workspaceUUID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "workspaceUUID is required"})
+		return
+	}
+
+	overview, err := c.DashboardService.GetOverview(nil, workspaceUUID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, overview)
+}
+
 func (c *DashboardController) GetWorkspaceDeployments(ctx *gin.Context) {
 	workspaceUUID := ctx.Param("workspaceUUID")
 	if workspaceUUID == "" {

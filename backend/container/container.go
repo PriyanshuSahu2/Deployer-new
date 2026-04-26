@@ -45,6 +45,7 @@ func NewContainer(emailService *services.EmailService, rmq *rabbitmq.RabbitMQ) *
 	memberRepo := repositories.NewMemberRepository()
 	userRepo := repositories.NewUserRepository()
 	workspaceRepo := repositories.NewWorkspaceRepository()
+	workspaceAPIKeyRepo := repositories.NewWorkspaceAPIKeyRepository()
 	roleRepo := repositories.NewRoleRepository()
 	projectRepo := repositories.NewProjectRepository()
 	environmentRepo := repositories.NewEnvironmentRepository()
@@ -72,6 +73,7 @@ func NewContainer(emailService *services.EmailService, rmq *rabbitmq.RabbitMQ) *
 	workspaceService := services.NewWorkspaceService(
 		workspaceRepo,
 		memberRepo,
+		workspaceAPIKeyRepo,
 		roleService,
 	)
 	integrationService := services.NewIntegrationService(integrationRepo, workspaceRepo)

@@ -91,6 +91,7 @@ func main() {
 		&models_auth.OTP{},
 		&models_workspace.Workspace{},
 		&models_workspace.WorkspaceMember{},
+		&models_workspace.WorkspaceAPIKey{},
 		&models_permission.Permission{},
 		&models_project.Project{},
 		&models_role.Role{},

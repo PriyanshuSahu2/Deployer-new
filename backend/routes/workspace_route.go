@@ -1,8 +1,8 @@
 package routes
 
 import (
-	controller_workspace "backend/controllers/workspace"
 	controller_integration "backend/controllers/integration"
+	controller_workspace "backend/controllers/workspace"
 	"backend/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +22,11 @@ func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.Wo
 	workspace.Use(middleware.ValidateRequest())
 	{
 		workspace.PUT("", workspaceController.UpdateWorkspace)
+		workspace.GET("/settings", permissionMiddleWare.RequirePermission("workspace_view"), workspaceController.GetWorkspaceSettings)
+		workspace.PUT("/settings", workspaceController.UpdateWorkspaceSettings)
+		workspace.POST("/settings/api-keys", workspaceController.CreateWorkspaceAPIKey)
+		workspace.DELETE("/settings/api-keys/:keyUUID", workspaceController.RevokeWorkspaceAPIKey)
+		workspace.POST("/transfer-ownership", workspaceController.TransferOwnership)
 
 		workspace.POST("/invite-member", workspaceMemberController.AddWorkspaceMember)
 
@@ -30,7 +35,7 @@ func WorkspaceRoutes(r *gin.Engine, workspaceController *controller_workspace.Wo
 		// Integration Routes
 		workspace.GET("/integrations", integrationController.GetWorkspaceIntegrations)
 		workspace.DELETE("/integrations/:provider", integrationController.DisconnectIntegration)
-		
+
 		workspace.GET("/integrations/github/auth", integrationController.GithubAuthInitiate)
 		workspace.GET("/integrations/github/callback", integrationController.GithubAuthCallback)
 

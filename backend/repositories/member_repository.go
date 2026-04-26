@@ -31,6 +31,47 @@ func (r *MemberRepository) GetByWorkspaceID(tx *gorm.DB, workspaceID uint) ([]mo
 	return members, err
 }
 
+func (r *MemberRepository) GetByWorkspaceAndUserID(tx *gorm.DB, workspaceID uint, userID uint) (*models_workspace.WorkspaceMember, error) {
+	var member models_workspace.WorkspaceMember
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Preload("User").
+		Preload("Role").
+		Where("workspace_id = ? AND user_id = ?", workspaceID, userID).
+		First(&member).Error
+
+	return &member, err
+}
+
+func (r *MemberRepository) GetByWorkspaceAndUserUUID(tx *gorm.DB, workspaceID uint, userUUID string) (*models_workspace.WorkspaceMember, error) {
+	var member models_workspace.WorkspaceMember
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Preload("User").
+		Preload("Role").
+		Joins("JOIN users ON users.id = workspace_members.user_id").
+		Where("workspace_members.workspace_id = ? AND users.uuid = ?", workspaceID, userUUID).
+		First(&member).Error
+
+	return &member, err
+}
+
+func (r *MemberRepository) Update(tx *gorm.DB, member *models_workspace.WorkspaceMember) error {
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+	return query.Save(member).Error
+}
+
 func (r *MemberRepository) Exists(tx *gorm.DB, workspaceID, userID uint) (bool, error) {
 	var count int64
 

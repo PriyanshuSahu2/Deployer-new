@@ -1,6 +1,7 @@
 package controller_workspace
 
 import (
+	"errors"
 	"net/http"
 
 	dtos_workspace "backend/dtos/workspace"
@@ -57,6 +58,74 @@ func (wc *WorkspaceController) UpdateWorkspace(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Workspace updated successfully"})
 }
 
+func (wc *WorkspaceController) GetWorkspaceSettings(c *gin.Context) {
+	workspaceUUID := c.Param("workspaceUUID")
+	userID := c.GetUint("userID")
+
+	settings, err := wc.Service.GetWorkspaceSettings(nil, userID, workspaceUUID)
+	if err != nil {
+		writeWorkspaceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, settings)
+}
+
+func (wc *WorkspaceController) UpdateWorkspaceSettings(c *gin.Context) {
+	var body dtos_workspace.UpdateWorkspaceSettingsDTO
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := wc.Service.UpdateWorkspaceSettings(nil, c.GetUint("userID"), c.Param("workspaceUUID"), body); err != nil {
+		writeWorkspaceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Workspace settings updated successfully"})
+}
+
+func (wc *WorkspaceController) CreateWorkspaceAPIKey(c *gin.Context) {
+	var body dtos_workspace.CreateWorkspaceAPIKeyDTO
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	key, err := wc.Service.CreateWorkspaceAPIKey(nil, c.GetUint("userID"), c.Param("workspaceUUID"), body)
+	if err != nil {
+		writeWorkspaceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, key)
+}
+
+func (wc *WorkspaceController) RevokeWorkspaceAPIKey(c *gin.Context) {
+	if err := wc.Service.RevokeWorkspaceAPIKey(nil, c.GetUint("userID"), c.Param("workspaceUUID"), c.Param("keyUUID")); err != nil {
+		writeWorkspaceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "API key revoked successfully"})
+}
+
+func (wc *WorkspaceController) TransferOwnership(c *gin.Context) {
+	var body dtos_workspace.TransferOwnershipDTO
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := wc.Service.TransferOwnership(nil, c.GetUint("userID"), c.Param("workspaceUUID"), body); err != nil {
+		writeWorkspaceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Workspace ownership transferred successfully"})
+}
+
 func (wc *WorkspaceController) ListWorkspaces(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -98,4 +167,19 @@ func (wc *WorkspaceController) GetMyWorkspacePermissions(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"permissions": permissions,
 	})
+}
+
+func writeWorkspaceError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, services.ErrWorkspaceForbidden):
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+	case errors.Is(err, services.ErrWorkspaceNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	case errors.Is(err, services.ErrWorkspaceMemberMissing):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	case errors.Is(err, services.ErrWorkspaceSelfTransfer):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
 }

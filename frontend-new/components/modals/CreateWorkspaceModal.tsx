@@ -9,7 +9,6 @@ export default function CreateWorkspaceModal() {
   const form = useForm({
     initialValues: {
       name: "",
-      slug: "",
     },
     validate: {
       name: (v) => (v.length < 3 ? "Workspace name too short" : null),    },

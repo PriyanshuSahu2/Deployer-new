@@ -1,4 +1,10 @@
 import { privateRequest } from "@/lib/requestMethod";
+import type { WorkspaceOverview } from "@/types/overview";
+
+export const getOverview = async (workspaceUUID: string) => {
+    const response = await privateRequest.get<WorkspaceOverview>(`/workspaces/${workspaceUUID}/dashboard/overview`);
+    return response.data;
+};
 
 export const getDeploymentStats = async (workspaceUUID: string) => {
     const response = await privateRequest.get(`/workspaces/${workspaceUUID}/dashboard/stats`);

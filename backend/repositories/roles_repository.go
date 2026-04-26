@@ -59,6 +59,20 @@ func (r *RoleRepository) GetWorkspaceAndSystemRoles(tx *gorm.DB, workspaceID uin
 	return roles, err
 }
 
+func (r *RoleRepository) GetSystemRoleByName(tx *gorm.DB, roleName string) (*models_role.Role, error) {
+	var role models_role.Role
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Where("LOWER(TRIM(role_name)) = LOWER(TRIM(?)) AND is_system = ? AND workspace_id IS NULL", roleName, true).
+		First(&role).Error
+
+	return &role, err
+}
+
 func (r *RoleRepository) Delete(tx *gorm.DB, role *models_role.Role) error {
 	query := db.DB
 	if tx != nil {

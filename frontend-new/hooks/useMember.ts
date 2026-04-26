@@ -16,9 +16,9 @@ export const useInviteMember = () => {
 
 export const useGetWorkspaceMembers = (workspaceUUID: string, enabled: boolean) => {
     return useQuery({
-        queryKey: ["workspace-members"],
+        queryKey: ["workspace-members", workspaceUUID],
         queryFn: () => getWorkspaceMembers(workspaceUUID),
-        enabled: enabled,
+        enabled: enabled && !!workspaceUUID,
         select: (res) => res.data,
     })
 
@@ -27,9 +27,9 @@ export const useGetWorkspaceMembers = (workspaceUUID: string, enabled: boolean) 
 
 export const useGetWorkspaceInvites = (workspaceUUID: string, enabled: boolean) => {
     return useQuery({
-        queryKey: ["workspace-invites"],
+        queryKey: ["workspace-invites", workspaceUUID],
         queryFn: () => getWorkspaceMembers(workspaceUUID),
-        enabled: enabled,
+        enabled: enabled && !!workspaceUUID,
         select: (res) => res.data,
     })
 

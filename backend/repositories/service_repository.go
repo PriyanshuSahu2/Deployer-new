@@ -93,6 +93,39 @@ func (r *ServiceRepository) GetByUUID(tx *gorm.DB, serviceUUID string) (*models_
 	return &service, err
 }
 
+func (r *ServiceRepository) CountByWorkspaceAndStatuses(tx *gorm.DB, workspaceID uint, statuses []string) (int64, error) {
+	var count int64
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.Model(&models_service.Service{}).
+		Joins("JOIN projects ON projects.id = services.project_id").
+		Where("projects.workspace_id = ? AND services.status IN ?", workspaceID, statuses).
+		Count(&count).Error
+
+	return count, err
+}
+
+func (r *ServiceRepository) GetServicesByWorkspaceAndStatus(tx *gorm.DB, workspaceID uint, status string, limit int) ([]models_service.Service, error) {
+	var services []models_service.Service
+	query := db.DB
+	if tx != nil {
+		query = tx
+	}
+
+	err := query.
+		Preload("Project").
+		Joins("JOIN projects ON projects.id = services.project_id").
+		Where("projects.workspace_id = ? AND services.status = ?", workspaceID, status).
+		Order("services.updated_at DESC").
+		Limit(limit).
+		Find(&services).Error
+
+	return services, err
+}
+
 func (r *ServiceRepository) GetServiceWithDetails(tx *gorm.DB, serviceUUID string) (*models_service.Service, error) {
 	var service models_service.Service
 	query := db.DB
