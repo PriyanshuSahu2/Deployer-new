@@ -1,11 +1,14 @@
 {
   "folders": [
     {
-      "path": "backend",
+      "path": "backend"
     },
     {
-      "path": "frontend-new",
+      "path": "frontend-new"
     },
+    {
+      "path": ".github"
+    }
   ],
   "settings": {
     "files.exclude": {
@@ -18,7 +21,12 @@
       ".history": true,
     },
     "explorerExclude.backup": {},
-    "cSpell.words": ["godoc", "gonic", "swaggo", "VITE"],
+    "cSpell.words": [
+      "godoc",
+      "gonic",
+      "swaggo",
+      "VITE"
+    ],
   },
   "launch": {
     "version": "0.2.0",
@@ -31,13 +39,18 @@
         "type": "node",
         "request": "launch",
         "program": "${workspaceFolder:frontend-new}/node_modules/next/dist/bin/next",
-        "args": ["dev"],
+        "args": [
+          "dev"
+        ],
         "cwd": "${workspaceFolder:frontend-new}",
-        "runtimeArgs": ["--inspect"],
+        "runtimeArgs": [
+          "--inspect"
+        ],
         "console": "integratedTerminal",
-        "skipFiles": ["<node_internals>/**"],
+        "skipFiles": [
+          "<node_internals>/**"
+        ],
       },
-
       /* ============================
        NEXT.JS – CLIENT
     ============================ */
@@ -49,7 +62,6 @@
         "webRoot": "${workspaceFolder:frontend-new}",
         "sourceMaps": true,
       },
-
       /* ============================
        GO BACKEND
     ============================ */
@@ -63,11 +75,14 @@
         "args": [],
       },
     ],
-
     "compounds": [
       {
         "name": "Full Stack: Next.js + Go",
-        "configurations": ["Next.js: Server", "Next.js: Client", "Go: Backend"],
+        "configurations": [
+          "Next.js: Server",
+          "Next.js: Client",
+          "Go: Backend"
+        ],
       },
     ],
   },
