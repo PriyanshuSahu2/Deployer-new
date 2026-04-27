@@ -2,6 +2,7 @@ package controllers_auth
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,13 +15,18 @@ import (
 // @Success 200 {object} map[string]string
 // @Router /auth/logout [post]
 func (a *AuthController) Logout(c *gin.Context) {
+	domain := os.Getenv("COOKIE_DOMAIN")
+	if domain == "" {
+		domain = ".myapico.live"
+	}
+
 	c.SetCookie(
 		"access_token",
 		"",
 		-1,
 		"/",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 	c.SetCookie(
@@ -28,8 +34,8 @@ func (a *AuthController) Logout(c *gin.Context) {
 		"",
 		-1,
 		"/",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 

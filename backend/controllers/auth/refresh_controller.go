@@ -31,13 +31,18 @@ func (a *AuthController) RefreshController(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Something Went Wrong Generating Refresh token"})
 		return
 	}
+	domain := os.Getenv("COOKIE_DOMAIN")
+	if domain == "" {
+		domain = ".myapico.live"
+	}
+
 	c.SetCookie(
 		"access_token",
 		access_token,
 		7*24*60*60,
 		"/",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 	c.SetCookie(
@@ -45,8 +50,8 @@ func (a *AuthController) RefreshController(c *gin.Context) {
 		refresh_token,
 		7*24*60*60,
 		"/auth/refresh-token",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 	c.JSON(http.StatusOK, gin.H{"access_token": access_token})

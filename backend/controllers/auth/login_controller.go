@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -87,13 +88,18 @@ func (a *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	domain := os.Getenv("COOKIE_DOMAIN")
+	if domain == "" {
+		domain = ".myapico.live"
+	}
+
 	c.SetCookie(
 		"access_token",
 		access_token,
 		7*24*60*60,
 		"/",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 
@@ -102,8 +108,8 @@ func (a *AuthController) Login(c *gin.Context) {
 		refresh_token,
 		7*24*60*60,
 		"/auth/refresh-token",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 
