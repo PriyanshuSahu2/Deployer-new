@@ -8,9 +8,8 @@ export async function apiFetch<T>(
 ): Promise<T> {
   // Construct absolute URL for server-side requests
   const baseUrl =
-    typeof window === 'undefined'
-      ? process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      : '';
+    process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'
+
   const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
 
   const res = await fetch(fullUrl, {

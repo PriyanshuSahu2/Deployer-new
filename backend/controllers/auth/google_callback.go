@@ -49,8 +49,13 @@ func (a *AuthController) GoogleCallback(c *gin.Context) {
 		accessToken, _ := utils.GenerateAccessToken(payload)
 		refreshToken, _ := utils.GenerateRefreshToken(payload)
 
-		c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/auth/refresh-token", "", false, true)
-		c.SetCookie("access_token", accessToken, 7*24*60*60, "/", "", false, true)
+		domain := os.Getenv("COOKIE_DOMAIN")
+		if domain == "" {
+			domain = ".myapico.live"
+		}
+
+		c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/auth/refresh-token", domain, true, true)
+		c.SetCookie("access_token", accessToken, 7*24*60*60, "/", domain, true, true)
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Login successful",
 			"user":    foundUser.ID,
@@ -78,8 +83,13 @@ func (a *AuthController) GoogleCallback(c *gin.Context) {
 	accessToken, _ := utils.GenerateAccessToken(payload)
 	refreshToken, _ := utils.GenerateRefreshToken(payload)
 
-	c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/auth/refresh-token", "", false, true)
-	c.SetCookie("access_token", accessToken, 7*24*60*60, "/", "", false, true)
+	domain := os.Getenv("COOKIE_DOMAIN")
+	if domain == "" {
+		domain = ".myapico.live"
+	}
+
+	c.SetCookie("refresh_token", refreshToken, 7*24*60*60, "/auth/refresh-token", domain, true, true)
+	c.SetCookie("access_token", accessToken, 7*24*60*60, "/", domain, true, true)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Signup successful",
 		"user":    newUser.ID,

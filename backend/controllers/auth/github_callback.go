@@ -171,13 +171,18 @@ func (a *AuthController) GithubCallback(c *gin.Context) {
 			return
 		}
 
+		domain := os.Getenv("COOKIE_DOMAIN")
+		if domain == "" {
+			domain = ".myapico.live"
+		}
+
 		c.SetCookie(
 			"refresh_token",
 			refresh_token,
 			7*24*60*60,
 			"/auth/refresh-token",
-			"",
-			false,
+			domain,
+			true,
 			true,
 		)
 		c.SetCookie(
@@ -185,8 +190,8 @@ func (a *AuthController) GithubCallback(c *gin.Context) {
 			access_token,
 			7*24*60*60,
 			"/",
-			"",
-			false,
+			domain,
+			true,
 			true,
 		)
 
@@ -233,13 +238,18 @@ func (a *AuthController) GithubCallback(c *gin.Context) {
 		return
 	}
 
+	domain := os.Getenv("COOKIE_DOMAIN")
+	if domain == "" {
+		domain = ".myapico.live"
+	}
+
 	c.SetCookie(
 		"refresh_token",
 		refresh_token,
 		7*24*60*60,
 		"/auth/refresh-token",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 	c.SetCookie(
@@ -247,8 +257,8 @@ func (a *AuthController) GithubCallback(c *gin.Context) {
 		access_token,
 		7*24*60*60,
 		"/",
-		"",
-		false,
+		domain,
+		true,
 		true,
 	)
 	c.JSON(http.StatusOK, gin.H{

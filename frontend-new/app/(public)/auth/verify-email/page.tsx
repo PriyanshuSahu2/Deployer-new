@@ -37,7 +37,7 @@ function VerifyEmailPage() {
       try {
         setMessage("Verifying your email address...");
 
-        const res = await apiFetch("/api/auth/verify-email", {
+        const res = await apiFetch("/auth/verify-email", {
           method: "POST",
           body: { token },
         });
@@ -77,10 +77,10 @@ function VerifyEmailPage() {
           <div className="flex justify-center mb-8">
             <div
               className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${status === "loading"
-                  ? "bg-gradient-to-br from-purple-500 to-indigo-600"
-                  : status === "success"
-                    ? "bg-gradient-to-br from-green-500 to-emerald-600"
-                    : "bg-gradient-to-br from-red-500 to-rose-600"
+                ? "bg-gradient-to-br from-purple-500 to-indigo-600"
+                : status === "success"
+                  ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                  : "bg-gradient-to-br from-red-500 to-rose-600"
                 }`}
             >
               {status === "loading" && (
